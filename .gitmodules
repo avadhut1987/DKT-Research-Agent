@@ -1,0 +1,3 @@
+[submodule "QuantumKickedTop.jl"]
+	path = QuantumKickedTop.jl
+	url = https://github.com/avadhut1987/QuantumKickedTop.jl.git
