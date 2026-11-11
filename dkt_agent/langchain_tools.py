@@ -10,6 +10,10 @@ from dkt_agent.tools import (
     run_dkt_comparison_study as _run_dkt_comparison_study,
 )
 
+from dkt_agent.evidence import (
+    search_research_evidence as _search_research_evidence,
+    read_research_csv as _read_research_csv,
+)
 
 @tool
 def run_dkt_simulation(
@@ -156,3 +160,50 @@ def run_dkt_comparison_study(
     }
 
     return json.dumps(compact_result, indent=2)
+
+@tool
+def search_research_evidence(
+    query: str,
+    max_files: int = 10,
+) -> str:
+    """
+    Search existing DKT research evidence under results/.
+
+    This is a read-only tool. It retrieves matching files,
+    numerical records, and relevant text excerpts.
+
+    Use this tool before answering questions about existing
+    research results. It does not execute simulations or
+    establish scientific conclusions.
+    """
+
+    result = _search_research_evidence(
+        query=query,
+        max_files=max_files,
+    )
+
+    return json.dumps(result, indent=2)
+
+
+@tool
+def read_research_csv_tool(
+    relative_path: str,
+    max_rows: int = 100,
+) -> str:
+    """
+    Read an existing CSV file under results/ as structured records.
+
+    Returns the original column names and row dictionaries.
+    This is a read-only tool. It does not run experiments,
+    modify files, or establish scientific conclusions.
+
+    Use this tool to verify column meanings and numerical values
+    before making quantitative claims about research evidence.
+    """
+
+    result = _read_research_csv(
+        relative_path=relative_path,
+        max_rows=max_rows,
+    )
+
+    return json.dumps(result, indent=2)
