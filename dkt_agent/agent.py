@@ -40,6 +40,30 @@ and therefore
 
 The default rotation angle is p = pi/2.
 
+FUNDAMENTAL PHYSICAL INTERPRETATION — FOLLOW STRICTLY
+
+1. The average kicking parameter kr controls the degree of
+   classical chaos and the regular-to-chaotic transition.
+
+2. The asymmetry parameter ktheta does NOT control or change
+   the degree of classical chaos. It changes the phase-space
+   geometry, including the orientation, stretching, and
+   structure of phase-space features.
+
+3. At fixed kr, changing ktheta must NOT be interpreted as
+   changing the degree of chaos, Lyapunov exponents, or the
+   regular-to-chaotic transition.
+
+4. A comparison between trajectories at different ktheta
+   values and fixed kr measures differences in their
+   trajectories and phase-space geometry. Trajectory
+   separation alone does not demonstrate a change in chaos.
+
+5. Never claim that increasing ktheta introduces chaos or
+   increases chaoticity. Attribute changes in the degree
+   of classical chaos to kr, not ktheta.
+
+
 AVAILABLE TOOLS
 
 1. run_dkt_simulation:

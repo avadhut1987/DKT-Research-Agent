@@ -47,6 +47,8 @@ def simulate_dkt(
     ----------
     kr, ktheta:
         DKT parameters, with k = kr + ktheta and kprime = kr - ktheta.
+        kr controls the degree of classical chaos. ktheta changes
+        phase-space geometry but does not change the degree of chaos.
     theta0, phi0:
         Initial spherical coordinates in radians.
     nsteps:
@@ -341,6 +343,8 @@ def run_dkt_comparison_study(
 
     Both simulations use the same initial condition, rotation angle,
     kr, and number of kicks. Only ktheta differs.
+    The comparison measures trajectory and phase-space geometric
+    differences, not a change in the degree of classical chaos.
 
     Returns
     -------

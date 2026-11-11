@@ -29,6 +29,9 @@ def run_dkt_simulation(
 
     Parameters are given in radians where applicable.
     The DKT convention is k = kr + ktheta and kprime = kr - ktheta.
+    Physical interpretation: kr controls the degree of classical
+    chaos; ktheta changes phase-space geometry but does not change
+    the degree of chaos.
     The simulation starts at (theta0, phi0) and performs nsteps kicks.
     The default free-rotation angle is pi/2.
 
@@ -104,6 +107,8 @@ def run_dkt_comparison_study(
 
     Both simulations use the same kr, initial condition, rotation
     angle, and number of kicks. Only ktheta differs.
+    This comparison examines trajectory and phase-space geometric
+    differences, not a change in the degree of classical chaos.
 
     The tool automatically:
     1. Runs simulation A using ktheta_a.
