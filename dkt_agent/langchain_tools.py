@@ -6,6 +6,7 @@ from langchain_core.tools import tool
 
 from dkt_agent.tools import (
     simulate_dkt,
+    find_dkt_fixed_points as _find_dkt_fixed_points,
     compare_dkt_trajectories,
     run_dkt_comparison_study as _run_dkt_comparison_study,
 )
@@ -211,4 +212,36 @@ def read_research_csv_tool(
         max_rows=max_rows,
     )
 
+    return json.dumps(result, indent=2)
+
+
+@tool
+def find_dkt_fixed_points(
+    kr: float,
+    ktheta: float = 0.0,
+    p: float = 1.5707963267948966,
+    nseeds: int = 200,
+    tolerance: float = 1e-10,
+    max_iterations: int = 100,
+) -> str:
+    """
+    Numerically search for classical DKT fixed points and classify
+    their local linear stability.
+
+    Uses multiple initial seeds and a tangent-space Newton solver.
+    Reports fixed-point coordinates, residuals, tangent eigenvalues,
+    determinant, convergence information, and CSV output path.
+
+    This is a numerical seed search and does not prove completeness.
+    The average kicking parameter kr controls the degree of chaos.
+    ktheta changes phase-space geometry, not the degree of chaos.
+    """
+    result = _find_dkt_fixed_points(
+        kr=kr,
+        ktheta=ktheta,
+        p=p,
+        nseeds=nseeds,
+        tolerance=tolerance,
+        max_iterations=max_iterations,
+    )
     return json.dumps(result, indent=2)

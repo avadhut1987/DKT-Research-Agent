@@ -16,6 +16,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 JULIA_PROJECT = PROJECT_ROOT / "QuantumKickedTop.jl"
 JULIA_SCRIPT = PROJECT_ROOT / "scripts" / "julia" / "simulate_dkt.jl"
 RESULTS_DIR = PROJECT_ROOT / "results" / "trajectories"
+FIXED_POINTS_SCRIPT = (
+    PROJECT_ROOT / "scripts" / "julia" / "analyze_dkt_fixed_points.jl"
+)
+FIXED_POINTS_RESULTS_DIR = PROJECT_ROOT / "results" / "fixed_points"
 
 
 def _validate_finite(name: str, value: float) -> float:
@@ -208,6 +212,339 @@ def simulate_dkt(
 
     return result
 
+
+
+def simulate_dkt_grid(
+    kr: float,
+    ktheta: float,
+    grid_size: int = 15,
+    nsteps: int = 120,
+    p: float = math.pi / 2,
+    timeout: int = 300,
+) -> dict[str, Any]:
+    """Evolve a grid of DKT initial conditions and save every orbit point."""
+
+    kr = _validate_finite("kr", kr)
+    ktheta = _validate_finite("ktheta", ktheta)
+    p = _validate_finite("p", p)
+
+    if isinstance(grid_size, bool) or not isinstance(grid_size, int):
+        raise ValueError("grid_size must be an integer between 5 and 50.")
+    if not 5 <= grid_size <= 50:
+        raise ValueError("grid_size must be between 5 and 50.")
+
+    if isinstance(nsteps, bool) or not isinstance(nsteps, int) or nsteps < 1:
+        raise ValueError("nsteps must be a positive integer.")
+
+    if isinstance(timeout, bool) or not isinstance(timeout, int) or timeout < 1:
+        raise ValueError("timeout must be a positive integer.")
+
+    if not JULIA_PROJECT.is_dir():
+        raise FileNotFoundError(f"Julia project not found: {JULIA_PROJECT}")
+
+    grid_script = PROJECT_ROOT / "scripts" / "julia" / "simulate_dkt_grid.jl"
+    if not grid_script.is_file():
+        raise FileNotFoundError(
+            f"Julia grid simulation script not found: {grid_script}"
+        )
+
+    julia = os.environ.get("JULIA") or shutil.which("julia")
+    if not julia:
+        raise FileNotFoundError(
+            "Julia executable was not found. Install Julia or set the JULIA "
+            "environment variable to its executable path."
+        )
+
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    run_dir = Path(tempfile.mkdtemp(prefix="dkt_grid_", dir=RESULTS_DIR))
+    output_csv = run_dir / "phase_space.csv"
+
+    command = [
+        julia,
+        f"--project={JULIA_PROJECT}",
+        str(grid_script),
+        str(kr),
+        str(ktheta),
+        str(p),
+        str(grid_size),
+        str(nsteps),
+        str(output_csv),
+    ]
+
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise TimeoutError(
+            f"DKT grid simulation exceeded the {timeout}-second timeout."
+        ) from exc
+
+    if completed.returncode != 0:
+        raise RuntimeError(
+            "Julia DKT grid simulation failed.\\n"
+            f"Command: {' '.join(command)}\\n"
+            f"STDOUT:\\n{completed.stdout}\\n"
+            f"STDERR:\\n{completed.stderr}"
+        )
+
+    if not output_csv.is_file():
+        raise RuntimeError(
+            "Julia returned successfully but did not create the grid CSV.\\n"
+            f"STDOUT:\\n{completed.stdout}\\n"
+            f"STDERR:\\n{completed.stderr}"
+        )
+
+    expected_columns = {
+        "grid_i", "grid_j", "kick", "theta0", "phi0",
+        "theta", "phi", "X", "Y", "Z", "norm",
+    }
+
+    orbit_points: list[dict[str, float | int]] = []
+    seen_samples: set[tuple[int, int, int]] = set()
+
+    with output_csv.open("r", newline="", encoding="utf-8") as csv_file:
+        reader = csv.DictReader(csv_file)
+
+        if not reader.fieldnames or not expected_columns.issubset(
+            reader.fieldnames
+        ):
+            raise RuntimeError(
+                "Grid CSV has an unexpected header. "
+                f"Found: {reader.fieldnames}"
+            )
+
+        for row in reader:
+            point: dict[str, float | int] = {
+                "grid_i": int(row["grid_i"]),
+                "grid_j": int(row["grid_j"]),
+                "kick": int(row["kick"]),
+                "theta0": float(row["theta0"]),
+                "phi0": float(row["phi0"]),
+                "theta": float(row["theta"]),
+                "phi": float(row["phi"]),
+                "X": float(row["X"]),
+                "Y": float(row["Y"]),
+                "Z": float(row["Z"]),
+                "norm": float(row["norm"]),
+            }
+
+            numeric_values = [
+                value for key, value in point.items()
+                if key not in ("grid_i", "grid_j", "kick")
+            ]
+            if not all(math.isfinite(value) for value in numeric_values):
+                raise RuntimeError("Grid CSV contains non-finite values.")
+
+            i = int(point["grid_i"])
+            j = int(point["grid_j"])
+            kick = int(point["kick"])
+
+            if not (1 <= i <= grid_size and 1 <= j <= grid_size):
+                raise RuntimeError(f"Invalid grid index: ({i}, {j}).")
+            if not (0 <= kick <= nsteps):
+                raise RuntimeError(f"Invalid kick index: {kick}.")
+
+            sample_id = (i, j, kick)
+            if sample_id in seen_samples:
+                raise RuntimeError(f"Duplicate orbit sample: {sample_id}.")
+
+            seen_samples.add(sample_id)
+            orbit_points.append(point)
+
+    expected_samples = grid_size**2 * (nsteps + 1)
+    if len(orbit_points) != expected_samples:
+        raise RuntimeError(
+            f"Expected {expected_samples} orbit samples, "
+            f"but found {len(orbit_points)}."
+        )
+
+    max_norm_error = max(
+        abs(float(point["norm"]) - 1.0) for point in orbit_points
+    )
+
+    return {
+        "status": "success",
+        "parameters": {
+            "kr": kr,
+            "ktheta": ktheta,
+            "k": kr + ktheta,
+            "kprime": kr - ktheta,
+            "p": p,
+            "grid_size": grid_size,
+            "initial_conditions": grid_size**2,
+            "nsteps": nsteps,
+        },
+        "grid_points": len(orbit_points),
+        "max_norm_error": max_norm_error,
+        "phase_space_csv": str(output_csv),
+        "orbit_points": orbit_points,
+        "julia_stdout": completed.stdout.strip(),
+    }
+
+
+
+def find_dkt_fixed_points(
+    kr: float,
+    ktheta: float = 0.0,
+    p: float = math.pi / 2,
+    nseeds: int = 200,
+    tolerance: float = 1e-10,
+    max_iterations: int = 100,
+    timeout: int = 300,
+) -> dict[str, Any]:
+    """Find DKT fixed points and classify their local linear stability.
+
+    This is a finite numerical seed search, not a proof of completeness.
+    """
+    kr = _validate_finite("kr", kr)
+    ktheta = _validate_finite("ktheta", ktheta)
+    p = _validate_finite("p", p)
+    tolerance = _validate_finite("tolerance", tolerance)
+
+    for name, value, minimum in (
+        ("nseeds", nseeds, 4),
+        ("max_iterations", max_iterations, 1),
+        ("timeout", timeout, 1),
+    ):
+        if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+            raise ValueError(f"{name} must be an integer >= {minimum}.")
+    if tolerance <= 0:
+        raise ValueError("tolerance must be positive.")
+
+    if not JULIA_PROJECT.is_dir():
+        raise FileNotFoundError(f"Julia project not found: {JULIA_PROJECT}")
+    if not FIXED_POINTS_SCRIPT.is_file():
+        raise FileNotFoundError(
+            f"Julia fixed-point script not found: {FIXED_POINTS_SCRIPT}"
+        )
+
+    julia = os.environ.get("JULIA") or shutil.which("julia")
+    if not julia:
+        raise FileNotFoundError(
+            "Julia executable was not found. Install Julia or set JULIA."
+        )
+
+    FIXED_POINTS_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    run_dir = Path(tempfile.mkdtemp(
+        prefix="dkt_fixed_points_", dir=FIXED_POINTS_RESULTS_DIR
+    ))
+    output_csv = run_dir / "fixed_points.csv"
+
+    command = [
+        julia,
+        f"--project={JULIA_PROJECT}",
+        str(FIXED_POINTS_SCRIPT),
+        str(kr),
+        str(ktheta),
+        str(p),
+        str(nseeds),
+        str(tolerance),
+        str(max_iterations),
+        str(output_csv),
+    ]
+
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise TimeoutError(
+            f"Fixed-point analysis exceeded the {timeout}-second timeout."
+        ) from exc
+
+    if completed.returncode != 0:
+        raise RuntimeError(
+            "Julia fixed-point analysis failed.\n"
+            f"STDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}"
+        )
+    if not output_csv.is_file():
+        raise RuntimeError(
+            "Julia did not create the fixed-point CSV.\n"
+            f"STDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}"
+        )
+
+    diagnostics = {}
+    for line in completed.stdout.splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            diagnostics[key.strip()] = value.strip()
+
+    expected = {
+        "fixed_point", "X", "Y", "Z", "residual", "iterations",
+        "stability", "lambda1_real", "lambda1_imag",
+        "lambda2_real", "lambda2_imag", "determinant",
+    }
+    float_columns = (
+        "X", "Y", "Z", "residual", "lambda1_real", "lambda1_imag",
+        "lambda2_real", "lambda2_imag", "determinant",
+    )
+    fixed_points = []
+
+    with output_csv.open("r", newline="", encoding="utf-8") as csv_file:
+        reader = csv.DictReader(csv_file)
+        if not reader.fieldnames or not expected.issubset(reader.fieldnames):
+            raise RuntimeError(
+                f"Unexpected fixed-point CSV header: {reader.fieldnames}"
+            )
+
+        for row in reader:
+            try:
+                point = {
+                    "fixed_point": int(row["fixed_point"]),
+                    "iterations": int(row["iterations"]),
+                    "stability": row["stability"],
+                }
+                point.update({key: float(row[key]) for key in float_columns})
+            except (TypeError, ValueError, KeyError) as exc:
+                raise RuntimeError("Invalid row in fixed-point CSV.") from exc
+
+            if not all(math.isfinite(point[key]) for key in float_columns):
+                raise RuntimeError("Fixed-point CSV contains non-finite values.")
+
+            norm = math.sqrt(
+                point["X"]**2 + point["Y"]**2 + point["Z"]**2
+            )
+            if abs(norm - 1.0) > 1e-7:
+                raise RuntimeError(
+                    f"Fixed point {point['fixed_point']} is not on the unit sphere."
+                )
+            if not point["stability"]:
+                raise RuntimeError("Empty stability label in fixed-point CSV.")
+
+            fixed_points.append(point)
+
+    if not fixed_points:
+        raise RuntimeError("No validated fixed points were returned.")
+
+    return {
+        "status": "success",
+        "parameters": {
+            "kr": kr,
+            "ktheta": ktheta,
+            "k": kr + ktheta,
+            "kprime": kr - ktheta,
+            "p": p,
+            "nseeds": nseeds,
+            "tolerance": tolerance,
+            "max_iterations": max_iterations,
+        },
+        "converged_seeds": int(diagnostics.get("converged_seeds", "0")),
+        "unique_fixed_points": len(fixed_points),
+        "fixed_points": fixed_points,
+        "fixed_points_csv": str(output_csv),
+        "julia_stdout": completed.stdout.strip(),
+    }
 
 
 def compare_dkt_trajectories(

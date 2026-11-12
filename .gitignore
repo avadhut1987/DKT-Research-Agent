@@ -161,3 +161,10 @@ cython_debug/
 
 # Generated DKT simulation results
 results/
+
+# Local backups
+*.bak
+*.backup
+
+# Streamlit secrets
+.streamlit/secrets.toml
