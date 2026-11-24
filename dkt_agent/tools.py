@@ -754,7 +754,7 @@ ENTANGLEMENT_DYNAMICS_SCRIPT = PROJECT_ROOT / "scripts" / "julia" / "run_entangl
 ENTANGLEMENT_HEATMAP_SCRIPT = PROJECT_ROOT / "scripts" / "julia" / "run_entropy_heatmap.jl"
 
 
-def _run_entanglement_julia(script: Path, arguments: list[str], timeout: int) -> tuple[Path, str]:
+def _run_entanglement_julia(script: Path, arguments: list[str], timeout: int, p: float) -> tuple[Path, str]:
     if isinstance(timeout, bool) or not isinstance(timeout, int) or timeout < 1:
         raise ValueError("timeout must be a positive integer.")
     if not JULIA_PROJECT.is_dir():
@@ -767,7 +767,7 @@ def _run_entanglement_julia(script: Path, arguments: list[str], timeout: int) ->
     ENTANGLEMENT_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     run_dir = Path(tempfile.mkdtemp(prefix="entanglement_", dir=ENTANGLEMENT_RESULTS_DIR))
     output = run_dir / "results.csv"
-    command = [julia, f"--project={JULIA_PROJECT}", str(script), *arguments, str(output)]
+    command = [julia, f"--project={JULIA_PROJECT}", str(script), *arguments, str(output), str(p)]
     try:
         completed = subprocess.run(command, cwd=PROJECT_ROOT, capture_output=True,
                                    text=True, timeout=timeout, check=False)
@@ -802,7 +802,7 @@ def run_entanglement_dynamics(
     output, stdout = _run_entanglement_julia(
         ENTANGLEMENT_DYNAMICS_SCRIPT,
         [str(s), str(kr), str(ktheta), str(theta0), str(phi0),
-         str(nsteps), str(rdm_dim)], timeout)
+         str(nsteps), str(rdm_dim)], timeout, p)
     rows = []
     with output.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
@@ -852,7 +852,7 @@ def run_entanglement_heatmap(
     output, stdout = _run_entanglement_julia(
         ENTANGLEMENT_HEATMAP_SCRIPT,
         [str(s), str(kr), str(ktheta), str(nsteps), str(transient),
-         str(rdm_dim), str(grid_size)], timeout)
+         str(rdm_dim), str(grid_size)], timeout, p)
     rows = []
     with output.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
