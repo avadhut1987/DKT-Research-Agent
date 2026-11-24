@@ -245,3 +245,31 @@ def find_dkt_fixed_points(
         max_iterations=max_iterations,
     )
     return json.dumps(result, indent=2)
+
+
+from dkt_agent.tools import (
+    run_entanglement_dynamics as _run_entanglement_dynamics,
+    run_entanglement_heatmap as _run_entanglement_heatmap,
+)
+
+
+@tool
+def run_quantum_entanglement_dynamics(
+    s: float, kr: float, ktheta: float, theta0: float, phi0: float,
+    nsteps: int, rdm_dim: int, p: float = 1.5707963267948966,
+) -> str:
+    """Compute normalized von Neumann entanglement entropy at every kick 0..nsteps for one coherent initial state."""
+    return json.dumps(_run_entanglement_dynamics(
+        s=s, kr=kr, ktheta=ktheta, theta0=theta0, phi0=phi0,
+        nsteps=nsteps, rdm_dim=rdm_dim, p=p), indent=2)
+
+
+@tool
+def run_quantum_entanglement_heatmap(
+    s: float, kr: float, ktheta: float, nsteps: int, transient: int,
+    rdm_dim: int, grid_size: int = 15, p: float = 1.5707963267948966,
+) -> str:
+    """Compute normalized long-time-average coherent-state entanglement heatmap, discarding kicks 0..transient."""
+    return json.dumps(_run_entanglement_heatmap(
+        s=s, kr=kr, ktheta=ktheta, nsteps=nsteps, transient=transient,
+        rdm_dim=rdm_dim, grid_size=grid_size, p=p), indent=2)
