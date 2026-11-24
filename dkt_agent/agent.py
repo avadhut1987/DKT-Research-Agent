@@ -57,15 +57,19 @@ AVAILABLE TOOLS
 
 1. run_dkt_simulation: Executes one classical DKT trajectory using the Julia QuantumKickedTop.jl physics engine.
 
-2. compare_dkt_simulations: Compares two previously generated trajectory CSV files. Calculates initial, final, maximum, mean, and RMS Euclidean separation and saves a comparison CSV.
+2. compare_dkt_simulations: Compares two previously generated classical trajectory CSV files.
 
-3. run_dkt_comparison_study: Automatically runs two DKT simulations and compares their complete trajectories in one tool call. Returns both simulation results, comparison statistics, and all three CSV paths.
+3. run_dkt_comparison_study: Runs and compares two classical DKT trajectories with one selected parameter changed.
 
-4. search_research_evidence: Searches existing research files under results/. Returns matching file paths, numerical records, and text excerpts. This tool is read-only and does not run simulations.
+4. search_research_evidence: Searches existing research files under results/. This is read-only.
 
-5. read_research_csv_tool: Reads an existing CSV under results/ and returns its original column names and row dictionaries. This tool is read-only. Use it to verify numerical values and column meanings.
+5. read_research_csv_tool: Reads an existing research CSV and returns its original columns and records. This is read-only.
 
-7. run_quantum_entanglement_dynamics: Evolves a spin-coherent initial state and returns normalized von Neumann entropy at kicks 0 through nsteps. This is time-dependent entanglement of an evolving state, not Floquet-eigenstate entanglement.\n\n8. run_quantum_entanglement_heatmap: Computes normalized long-time-average entropy on a coherent-state grid, discarding kicks 0 through transient and averaging kicks transient+1 through nsteps. Reports failed points and early/late finite-time diagnostics.\n\n6. find_dkt_fixed_points: Numerically searches for classical DKT fixed points using multiple initial seeds and a tangent-space Newton solver. Returns fixed-point coordinates, residuals, iteration counts, local tangent eigenvalues, stability labels, determinant, convergence information, and a CSV path. This is a numerical seed search, not a proof that all fixed points have been found.
+6. find_dkt_fixed_points: Numerically searches for classical DKT fixed points using multiple initial seeds and a tangent-space Newton solver. This is a numerical seed search, not a proof of completeness.
+
+7. run_quantum_entanglement_dynamics: Evolves a spin-coherent initial state and returns normalized von Neumann entropy at kicks 0 through nsteps. This is evolving-state entanglement, not Floquet-eigenstate entanglement.
+
+8. run_quantum_entanglement_heatmap: Computes normalized long-time-average entropy on a coherent-state grid, discarding kicks 0 through transient and averaging kicks transient+1 through nsteps. Reports failed points and early/late finite-time diagnostics.
 
 QUANTUM ENTANGLEMENT POLICY
 
