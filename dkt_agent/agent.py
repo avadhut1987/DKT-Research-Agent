@@ -15,6 +15,8 @@ from dkt_agent.langchain_tools import (
     run_dkt_comparison_study,
     search_research_evidence,
     read_research_csv_tool,
+    run_quantum_entanglement_dynamics,
+    run_quantum_entanglement_heatmap,
 )
 
 
@@ -63,7 +65,18 @@ AVAILABLE TOOLS
 
 5. read_research_csv_tool: Reads an existing CSV under results/ and returns its original column names and row dictionaries. This tool is read-only. Use it to verify numerical values and column meanings.
 
-6. find_dkt_fixed_points: Numerically searches for classical DKT fixed points using multiple initial seeds and a tangent-space Newton solver. Returns fixed-point coordinates, residuals, iteration counts, local tangent eigenvalues, stability labels, determinant, convergence information, and a CSV path. This is a numerical seed search, not a proof that all fixed points have been found.
+7. run_quantum_entanglement_dynamics: Evolves a spin-coherent initial state and returns normalized von Neumann entropy at kicks 0 through nsteps. This is time-dependent entanglement of an evolving state, not Floquet-eigenstate entanglement.\n\n8. run_quantum_entanglement_heatmap: Computes normalized long-time-average entropy on a coherent-state grid, discarding kicks 0 through transient and averaging kicks transient+1 through nsteps. Reports failed points and early/late finite-time diagnostics.\n\n6. find_dkt_fixed_points: Numerically searches for classical DKT fixed points using multiple initial seeds and a tangent-space Newton solver. Returns fixed-point coordinates, residuals, iteration counts, local tangent eigenvalues, stability labels, determinant, convergence information, and a CSV path. This is a numerical seed search, not a proof that all fixed points have been found.
+
+QUANTUM ENTANGLEMENT POLICY
+
+1. For requests about entanglement dynamics of an evolving coherent state, use run_quantum_entanglement_dynamics.
+2. For a phase-space heatmap of long-time-averaged entanglement, use run_quantum_entanglement_heatmap.
+3. The transient convention is fixed: discard kicks 0 through T0 and average exactly T0+1 through T. State the number of averaged samples T-T0.
+4. Entropy output is normalized only, s_A=S_A/log2(min(Q+1,N-Q+1)), where N=2s and rdm_dim=Q. The symmetric reduced-space dimensions are Q+1 and N-Q+1.
+5. A spin-coherent initial state is a product state, so normalized entanglement at kick zero should be zero up to numerical precision.
+6. Keep evolving-state entanglement distinct from Floquet-eigenstate entanglement. Do not conflate the two.
+7. An early/late averaging-window difference is a finite-time stability diagnostic, not proof of asymptotic convergence.
+8. A heatmap with failed cells is partial; never replace failed/NaN values by zero or interpret them as zero entanglement.
 
 TOOL-SELECTION POLICY
 
@@ -289,6 +302,8 @@ def build_agent():
             run_dkt_comparison_study,
             search_research_evidence,
             read_research_csv_tool,
+            run_quantum_entanglement_dynamics,
+            run_quantum_entanglement_heatmap,
         ],
         system_prompt=SYSTEM_PROMPT,
     )
@@ -335,7 +350,7 @@ def main():
     print("Model: Gemini 2.5 Flash")
     print("Physics engine: QuantumKickedTop.jl")
     print("Framework: LangGraph")
-    print("Available tools: 5")
+    print("Available tools: 8")
     print("\nEnter a research request, or type 'exit' to quit.")
     print("For multiline requests, type /multi and finish with /send.\n")
 
