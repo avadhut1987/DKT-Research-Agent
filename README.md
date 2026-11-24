@@ -258,3 +258,17 @@ streamlit run app.py --server.port 8502
 ## Development Status
 
 This project is under active development. Simulation capabilities, numerical analysis tools, visualizations, and AI research-agent functionality are evolving as the research progresses.
+
+
+## Quantum entanglement dynamics
+
+The agent provides two additional Julia-backed calculations:
+
+- **Entropy versus kick number:** evolves one spin-coherent initial state and records normalized von Neumann entropy for kicks $0,1,\ldots,T$.
+- **Long-time-averaged entropy heatmap:** evaluates a grid of coherent initial states, discards kicks $0:T_0$, and averages exactly kicks $T_0+1:T$.
+
+The normalized entropy is $s_A=S_A/\log_2[\min(Q+1,N-Q+1)]$, with $N=2s$ and rdm_dim=$Q$. The initial coherent product state has zero entanglement up to numerical precision. This evolving-state analysis is distinct from Floquet-eigenstate entanglement.
+
+The Streamlit sidebar has a **Quantum entanglement** section for both calculations. Results include plots, CSV downloads, parameter metadata, state-norm checks, and heatmap failure counts. The AI agent can invoke the same tools from chat, and the interface renders their returned time-series or heatmap artifacts.
+
+For heatmaps, the transient convention is fixed: discard $0:T_0$ and average $T_0+1:T$. Failed cells remain missing (NaN), never zero. Early/late averaging-window differences are finite-time diagnostics and must not be presented as proof of asymptotic convergence.
