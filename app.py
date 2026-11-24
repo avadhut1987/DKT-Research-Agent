@@ -65,10 +65,16 @@ def render_tool_result(tool: dict[str, Any]) -> None:
         payload = json.loads(raw) if isinstance(raw, str) else raw
     except (TypeError, json.JSONDecodeError):
         payload = None
-    if not isinstance(payload, dict) or "data" not in payload:
+    if not isinstance(payload, dict):
         st.text(content_to_text(raw))
         return
-    frame = pd.DataFrame(payload["data"])
+    if "data" in payload:
+        frame = pd.DataFrame(payload["data"])
+    elif payload.get("csv_path"):
+        frame = pd.read_csv(payload["csv_path"])
+    else:
+        st.text(content_to_text(raw))
+        return
     if tool.get("name") == "run_quantum_entanglement_dynamics" and not frame.empty:
         st.line_chart(frame.set_index("kick")[["normalized_entropy"]])
         st.caption("Normalized von Neumann entropy versus kick number.")
