@@ -259,9 +259,11 @@ def run_quantum_entanglement_dynamics(
     nsteps: int, rdm_dim: int, p: float = 1.5707963267948966,
 ) -> str:
     """Compute normalized von Neumann entanglement entropy at every kick 0..nsteps for one coherent initial state."""
-    return json.dumps(_run_entanglement_dynamics(
+    result = _run_entanglement_dynamics(
         s=s, kr=kr, ktheta=ktheta, theta0=theta0, phi0=phi0,
-        nsteps=nsteps, rdm_dim=rdm_dim, p=p), indent=2)
+        nsteps=nsteps, rdm_dim=rdm_dim, p=p)
+    result.pop("data", None)
+    return json.dumps(result, indent=2)
 
 
 @tool
@@ -270,6 +272,8 @@ def run_quantum_entanglement_heatmap(
     rdm_dim: int, grid_size: int = 15, p: float = 1.5707963267948966,
 ) -> str:
     """Compute normalized long-time-average coherent-state entanglement heatmap, discarding kicks 0..transient."""
-    return json.dumps(_run_entanglement_heatmap(
+    result = _run_entanglement_heatmap(
         s=s, kr=kr, ktheta=ktheta, nsteps=nsteps, transient=transient,
-        rdm_dim=rdm_dim, grid_size=grid_size, p=p), indent=2)
+        rdm_dim=rdm_dim, grid_size=grid_size, p=p)
+    result.pop("data", None)
+    return json.dumps(result, indent=2)
