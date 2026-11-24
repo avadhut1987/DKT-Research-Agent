@@ -88,7 +88,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                                 values="normalized_average_entropy")
             fig, ax = plt.subplots(figsize=(8, 4.5))
             mesh = ax.pcolormesh(matrix.columns.to_numpy(), matrix.index.to_numpy(),
-                                 matrix.to_numpy(), shading="auto", vmin=0, vmax=1)
+                                 matrix.to_numpy(), shading="auto", cmap="jet", vmin=0, vmax=1)
             fig.colorbar(mesh, ax=ax, label="Normalized average entropy")
             ax.set_xlabel(r"$\phi_0$")
             ax.set_ylabel(r"$\theta_0$")
@@ -122,169 +122,177 @@ with st.sidebar:
     )
 
 
-    with st.expander("Interactive DKT simulation", expanded=True):
-        with st.form("dkt_simulation_form"):
-            st.caption("Run the classical DKT Julia simulation.")
-
-            sim_kr = st.number_input(
-                r"Average kicking strength $k_r$",
-                min_value=0.0,
-                max_value=100.0,
-                value=1.0,
-                step=0.1,
-            )
-
-            sim_ktheta = st.number_input(
-                r"Asymmetry parameter $k_\theta$",
-                min_value=-1000000.0,
-                max_value=1000000.0,
-                value=0.0,
-                step=100.0,
-                format="%.4f",
-            )
-
-            sim_theta0 = st.number_input(
-                "Initial theta (radians)",
-                min_value=0.0,
-                max_value=3.141592653589793,
-                value=0.75,
-                step=0.05,
-            )
-
-            sim_phi0 = st.number_input(
-                "Initial phi (radians)",
-                min_value=-3.141592653589793,
-                max_value=3.141592653589793,
-                value=-1.0,
-                step=0.05,
-            )
-
-            sim_nsteps = st.number_input(
-                "Number of kicks",
-                min_value=1,
-                max_value=50000,
-                value=1000,
-                step=100,
-            )
-
-            sim_p = st.number_input(
-                r"Rotation angle $p$ (radians)",
-                min_value=0.0,
-                max_value=6.283185307179586,
-                value=1.5707963267948966,
-                step=0.05,
-            )
-
-            sim_timeout = st.number_input(
-                "Timeout (seconds)",
-                min_value=1,
-                max_value=1800,
-                value=300,
-                step=30,
-            )
-
-            run_simulation = st.form_submit_button(
-                "Run DKT Simulation",
-                use_container_width=True,
-            )
-
-        if run_simulation:
-            try:
-                with st.spinner("Running DKT simulation using Julia..."):
-                    result = simulate_dkt(
-                        kr=float(sim_kr),
-                        ktheta=float(sim_ktheta),
-                        theta0=float(sim_theta0),
-                        phi0=float(sim_phi0),
-                        nsteps=int(sim_nsteps),
-                        p=float(sim_p),
-                        timeout=int(sim_timeout),
-                        include_trajectory=True,
-                    )
-
-                st.session_state["simulation_result"] = result
-                st.session_state.pop("simulation_error", None)
-
-            except Exception as exc:
-                st.session_state["simulation_error"] = str(exc)
-
-    with st.expander("Theta-phi phase-space grid", expanded=False):
-        st.caption(
-            "Evolve a spherical grid of initial conditions and display "
-            "all orbit points from kick 0 through the final kick."
+    with st.expander("Classical DKT dynamics", expanded=True):
+        st.caption("Classical trajectory evolution and phase-space grid exploration.")
+        simulation_tab, phase_grid_tab = st.tabs(
+            ["Interactive DKT simulation", "θ–φ phase grid"]
         )
 
-        with st.form("dkt_grid_simulation_form"):
-            grid_resolution = st.number_input(
-                "Grid resolution (N × N)",
-                min_value=5,
-                max_value=50,
-                value=15,
-                step=1,
-                help="Enter the number of initial points along each angular direction (5–50).",
-            )
+        with simulation_tab:
+                    with st.form("dkt_simulation_form"):
+                        st.caption("Run the classical DKT Julia simulation.")
 
-            grid_kr = st.number_input(
-                r"Average kicking strength $k_r$",
-                min_value=0.0,
-                max_value=100.0,
-                value=1.0,
-                step=0.1,
-                key="grid_kr",
-            )
+                        sim_kr = st.number_input(
+                            r"Average kicking strength $k_r$",
+                            min_value=0.0,
+                            max_value=100.0,
+                            value=1.0,
+                            step=0.1,
+                        )
 
-            grid_ktheta = st.number_input(
-                r"Asymmetry parameter $k_\theta$",
-                min_value=-1000000.0,
-                max_value=1000000.0,
-                value=0.0,
-                step=100.0,
-                format="%.4f",
-                key="grid_ktheta",
-            )
+                        sim_ktheta = st.number_input(
+                            r"Asymmetry parameter $k_\theta$",
+                            min_value=-1000000.0,
+                            max_value=1000000.0,
+                            value=0.0,
+                            step=100.0,
+                            format="%.4f",
+                        )
 
-            grid_p = st.number_input(
-                r"Rotation angle $p$ (radians)",
-                min_value=0.0,
-                max_value=6.283185307179586,
-                value=1.5707963267948966,
-                step=0.05,
-                key="grid_p",
-            )
+                        sim_theta0 = st.number_input(
+                            "Initial theta (radians)",
+                            min_value=0.0,
+                            max_value=3.141592653589793,
+                            value=0.75,
+                            step=0.05,
+                        )
 
-            grid_nsteps = st.number_input(
-                "Number of kicks",
-                min_value=1,
-                max_value=10000,
-                value=120,
-                step=10,
-                key="grid_nsteps",
-            )
+                        sim_phi0 = st.number_input(
+                            "Initial phi (radians)",
+                            min_value=-3.141592653589793,
+                            max_value=3.141592653589793,
+                            value=-1.0,
+                            step=0.05,
+                        )
 
-            run_grid_simulation = st.form_submit_button(
-                "Run phase-space grid",
-                use_container_width=True,
-            )
+                        sim_nsteps = st.number_input(
+                            "Number of kicks",
+                            min_value=1,
+                            max_value=50000,
+                            value=1000,
+                            step=100,
+                        )
 
-        if run_grid_simulation:
-            try:
-                with st.spinner(
-                    "Evolving the phase-space grid using Julia..."
-                ):
-                    grid_result = simulate_dkt_grid(
-                        kr=float(grid_kr),
-                        ktheta=float(grid_ktheta),
-                        grid_size=int(grid_resolution),
-                        nsteps=int(grid_nsteps),
-                        p=float(grid_p),
-                        timeout=300,
+                        sim_p = st.number_input(
+                            r"Rotation angle $p$ (radians)",
+                            min_value=0.0,
+                            max_value=6.283185307179586,
+                            value=1.5707963267948966,
+                            step=0.05,
+                        )
+
+                        sim_timeout = st.number_input(
+                            "Timeout (seconds)",
+                            min_value=1,
+                            max_value=1800,
+                            value=300,
+                            step=30,
+                        )
+
+                        run_simulation = st.form_submit_button(
+                            "Run DKT Simulation",
+                            use_container_width=True,
+                        )
+
+                    if run_simulation:
+                        try:
+                            with st.spinner("Running DKT simulation using Julia..."):
+                                result = simulate_dkt(
+                                    kr=float(sim_kr),
+                                    ktheta=float(sim_ktheta),
+                                    theta0=float(sim_theta0),
+                                    phi0=float(sim_phi0),
+                                    nsteps=int(sim_nsteps),
+                                    p=float(sim_p),
+                                    timeout=int(sim_timeout),
+                                    include_trajectory=True,
+                                )
+
+                            st.session_state["simulation_result"] = result
+                            st.session_state.pop("simulation_error", None)
+
+                        except Exception as exc:
+                            st.session_state["simulation_error"] = str(exc)
+
+
+        with phase_grid_tab:
+                    st.caption(
+                        "Evolve a spherical grid of initial conditions and display "
+                        "all orbit points from kick 0 through the final kick."
                     )
 
-                st.session_state["grid_simulation_result"] = grid_result
-                st.session_state.pop("grid_simulation_error", None)
+                    with st.form("dkt_grid_simulation_form"):
+                        grid_resolution = st.number_input(
+                            "Grid resolution (N × N)",
+                            min_value=5,
+                            max_value=50,
+                            value=15,
+                            step=1,
+                            help="Enter the number of initial points along each angular direction (5–50).",
+                        )
 
-            except Exception as exc:
-                st.session_state["grid_simulation_error"] = str(exc)
+                        grid_kr = st.number_input(
+                            r"Average kicking strength $k_r$",
+                            min_value=0.0,
+                            max_value=100.0,
+                            value=1.0,
+                            step=0.1,
+                            key="grid_kr",
+                        )
+
+                        grid_ktheta = st.number_input(
+                            r"Asymmetry parameter $k_\theta$",
+                            min_value=-1000000.0,
+                            max_value=1000000.0,
+                            value=0.0,
+                            step=100.0,
+                            format="%.4f",
+                            key="grid_ktheta",
+                        )
+
+                        grid_p = st.number_input(
+                            r"Rotation angle $p$ (radians)",
+                            min_value=0.0,
+                            max_value=6.283185307179586,
+                            value=1.5707963267948966,
+                            step=0.05,
+                            key="grid_p",
+                        )
+
+                        grid_nsteps = st.number_input(
+                            "Number of kicks",
+                            min_value=1,
+                            max_value=10000,
+                            value=120,
+                            step=10,
+                            key="grid_nsteps",
+                        )
+
+                        run_grid_simulation = st.form_submit_button(
+                            "Run phase-space grid",
+                            use_container_width=True,
+                        )
+
+                    if run_grid_simulation:
+                        try:
+                            with st.spinner(
+                                "Evolving the phase-space grid using Julia..."
+                            ):
+                                grid_result = simulate_dkt_grid(
+                                    kr=float(grid_kr),
+                                    ktheta=float(grid_ktheta),
+                                    grid_size=int(grid_resolution),
+                                    nsteps=int(grid_nsteps),
+                                    p=float(grid_p),
+                                    timeout=300,
+                                )
+
+                            st.session_state["grid_simulation_result"] = grid_result
+                            st.session_state.pop("grid_simulation_error", None)
+
+                        except Exception as exc:
+                            st.session_state["grid_simulation_error"] = str(exc)
+
 
 
 
@@ -454,164 +462,169 @@ if "chat_history" not in st.session_state:
 
 
 
-if st.session_state.get("simulation_error"):
-    st.error(
-        "DKT simulation failed: "
-        + st.session_state["simulation_error"]
+with st.expander("Classical DKT results", expanded=True):
+    simulation_results_tab, phase_grid_results_tab = st.tabs(
+        ["Interactive DKT simulation", "θ–φ phase grid"]
     )
 
-if "simulation_result" in st.session_state:
-    result = st.session_state["simulation_result"]
-
-    st.divider()
-    st.header("DKT Simulation Results")
-
-    metrics = st.columns(3)
-    metrics[0].metric(
-        "Trajectory points",
-        result["trajectory_rows"],
-    )
-    metrics[1].metric(
-        "Initial norm",
-        f'{result["initial_norm"]:.12f}',
-    )
-    metrics[2].metric(
-        "Maximum norm error",
-        f'{result["max_norm_error"]:.3e}',
-    )
-
-    with st.expander("Simulation parameters", expanded=False):
-        st.json(result["parameters"])
-
-    state_columns = st.columns(2)
-
-    with state_columns[0]:
-        st.markdown("**Initial state**")
-        st.json(result["initial_state"])
-
-    with state_columns[1]:
-        st.markdown("**Final state**")
-        st.json(result["final_state"])
-
-    trajectory = pd.DataFrame(result.get("trajectory", []))
-
-    if not trajectory.empty:
-        st.subheader("Classical trajectory")
-        st.caption("Evolution of the Cartesian components X, Y and Z.")
-
-        plot_data = trajectory.set_index("step")[["X", "Y", "Z"]]
-        st.line_chart(plot_data)
-
-        with st.expander("Trajectory data", expanded=False):
-            st.dataframe(
-                trajectory.head(20),
-                use_container_width=True,
+    with simulation_results_tab:
+        if st.session_state.get("simulation_error"):
+            st.error(
+                "DKT simulation failed: "
+                + st.session_state["simulation_error"]
             )
+
+        if "simulation_result" in st.session_state:
+            result = st.session_state["simulation_result"]
+
+            st.divider()
+            st.header("DKT Simulation Results")
+
+            metrics = st.columns(3)
+            metrics[0].metric(
+                "Trajectory points",
+                result["trajectory_rows"],
+            )
+            metrics[1].metric(
+                "Initial norm",
+                f'{result["initial_norm"]:.12f}',
+            )
+            metrics[2].metric(
+                "Maximum norm error",
+                f'{result["max_norm_error"]:.3e}',
+            )
+
+            with st.expander("Simulation parameters", expanded=False):
+                st.json(result["parameters"])
+
+            state_columns = st.columns(2)
+
+            with state_columns[0]:
+                st.markdown("**Initial state**")
+                st.json(result["initial_state"])
+
+            with state_columns[1]:
+                st.markdown("**Final state**")
+                st.json(result["final_state"])
+
+            trajectory = pd.DataFrame(result.get("trajectory", []))
+
+            if not trajectory.empty:
+                st.subheader("Classical trajectory")
+                st.caption("Evolution of the Cartesian components X, Y and Z.")
+
+                plot_data = trajectory.set_index("step")[["X", "Y", "Z"]]
+                st.line_chart(plot_data)
+
+                with st.expander("Trajectory data", expanded=False):
+                    st.dataframe(
+                        trajectory.head(20),
+                        use_container_width=True,
+                    )
+                    st.caption(
+                        f"Showing the first 20 of {len(trajectory)} trajectory rows."
+                    )
+
+                csv_data = trajectory.to_csv(index=False).encode("utf-8")
+
+                st.download_button(
+                    "Download trajectory CSV",
+                    data=csv_data,
+                    file_name="dkt_trajectory.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+            else:
+                st.warning("The simulation returned no trajectory data.")
+
             st.caption(
-                f"Showing the first 20 of {len(trajectory)} trajectory rows."
+                "Scientific interpretation: kr controls the degree of classical "
+                "chaos; ktheta changes phase-space geometry, not the degree of chaos."
             )
 
-        csv_data = trajectory.to_csv(index=False).encode("utf-8")
+    with phase_grid_results_tab:
+        if st.session_state.get("grid_simulation_error"):
+            st.error(
+                "Phase-space grid simulation failed: "
+                + st.session_state["grid_simulation_error"]
+            )
 
-        st.download_button(
-            "Download trajectory CSV",
-            data=csv_data,
-            file_name="dkt_trajectory.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-    else:
-        st.warning("The simulation returned no trajectory data.")
+        if "grid_simulation_result" in st.session_state:
+            grid_result = st.session_state["grid_simulation_result"]
+            grid_parameters = grid_result["parameters"]
+            grid_data = pd.DataFrame(grid_result["orbit_points"])
 
-    st.caption(
-        "Scientific interpretation: kr controls the degree of classical "
-        "chaos; ktheta changes phase-space geometry, not the degree of chaos."
-    )
+            st.divider()
+            st.header("Final theta-phi phase-space portrait")
+            st.success("Phase-space grid simulation completed successfully.")
 
-if st.session_state.get("grid_simulation_error"):
-    st.error(
-        "Phase-space grid simulation failed: "
-        + st.session_state["grid_simulation_error"]
-    )
+            grid_metrics = st.columns(3)
+            grid_metrics[0].metric(
+                "Grid resolution",
+                f'{grid_parameters["grid_size"]} × '
+                f'{grid_parameters["grid_size"]}',
+            )
+            grid_metrics[1].metric(
+                "Number of kicks",
+                grid_parameters["nsteps"],
+            )
+            grid_metrics[2].metric(
+                "Maximum norm error",
+                f'{grid_result["max_norm_error"]:.3e}',
+            )
 
-if "grid_simulation_result" in st.session_state:
-    grid_result = st.session_state["grid_simulation_result"]
-    grid_parameters = grid_result["parameters"]
-    grid_data = pd.DataFrame(grid_result["orbit_points"])
+            with st.expander("Grid simulation parameters", expanded=False):
+                st.json(grid_parameters)
 
-    st.divider()
-    st.header("Final theta-phi phase-space portrait")
-    st.success("Phase-space grid simulation completed successfully.")
+            if not grid_data.empty:
+                fig, ax = plt.subplots(figsize=(10, 6))
 
-    grid_metrics = st.columns(3)
-    grid_metrics[0].metric(
-        "Grid resolution",
-        f'{grid_parameters["grid_size"]} × '
-        f'{grid_parameters["grid_size"]}',
-    )
-    grid_metrics[1].metric(
-        "Number of kicks",
-        grid_parameters["nsteps"],
-    )
-    grid_metrics[2].metric(
-        "Maximum norm error",
-        f'{grid_result["max_norm_error"]:.3e}',
-    )
+                scatter = ax.scatter(
+                    grid_data["phi"],
+                    grid_data["theta"],
+                    c=grid_data["kick"],
+                    cmap="viridis",
+                    s=2,
+                    alpha=0.65,
+                    linewidths=0,
+                    rasterized=True,
+                )
 
-    with st.expander("Grid simulation parameters", expanded=False):
-        st.json(grid_parameters)
+                colorbar = fig.colorbar(scatter, ax=ax, pad=0.02)
+                colorbar.set_label("Kick number")
 
-    if not grid_data.empty:
-        fig, ax = plt.subplots(figsize=(10, 6))
+                ax.set_xlim(-3.141592653589793, 3.141592653589793)
+                ax.set_ylim(0.0, 3.141592653589793)
+                ax.set_xlabel(r"$\phi$", fontsize=13)
+                ax.set_ylabel(r"$\theta$", fontsize=13)
+                ax.set_title("Phase-space evolution: all orbit points")
+                ax.grid(alpha=0.2)
+                fig.tight_layout()
 
-        scatter = ax.scatter(
-            grid_data["phi"],
-            grid_data["theta"],
-            c=grid_data["kick"],
-            cmap="viridis",
-            s=2,
-            alpha=0.65,
-            linewidths=0,
-            rasterized=True,
-        )
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
 
-        colorbar = fig.colorbar(scatter, ax=ax, pad=0.02)
-        colorbar.set_label("Kick number")
+                st.caption(
+                    "Each point represents the final state of one initial "
+                    "condition. The initial grid and intermediate trajectories "
+                    "are not plotted."
+                )
 
-        ax.set_xlim(-3.141592653589793, 3.141592653589793)
-        ax.set_ylim(0.0, 3.141592653589793)
-        ax.set_xlabel(r"$\phi$", fontsize=13)
-        ax.set_ylabel(r"$\theta$", fontsize=13)
-        ax.set_title("Phase-space evolution: all orbit points")
-        ax.grid(alpha=0.2)
-        fig.tight_layout()
+                csv_data = grid_data.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "Download phase-space CSV",
+                    data=csv_data,
+                    file_name="dkt_phase_space_grid.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+            else:
+                st.warning("The grid simulation returned no final states.")
 
-        st.pyplot(fig, use_container_width=True)
-        plt.close(fig)
-
-        st.caption(
-            "Each point represents the final state of one initial "
-            "condition. The initial grid and intermediate trajectories "
-            "are not plotted."
-        )
-
-        csv_data = grid_data.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            "Download phase-space CSV",
-            data=csv_data,
-            file_name="dkt_phase_space_grid.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-    else:
-        st.warning("The grid simulation returned no final states.")
-
-    st.caption(
-        "Scientific interpretation: kr controls the degree of classical "
-        "chaos; ktheta changes phase-space geometry, not the degree of chaos."
-    )
-
-
+            st.caption(
+                "Scientific interpretation: kr controls the degree of classical "
+                "chaos; ktheta changes phase-space geometry, not the degree of chaos."
+            )
 
 if st.session_state.get("entanglement_dynamics_error"):
     st.error("Entanglement dynamics failed: " + st.session_state["entanglement_dynamics_error"])
@@ -650,7 +663,7 @@ if "entanglement_heatmap_result" in st.session_state:
         pivot = good.pivot(index="theta", columns="phi", values="normalized_average_entropy")
         fig, ax = plt.subplots(figsize=(9, 5))
         mesh = ax.pcolormesh(pivot.columns.to_numpy(), pivot.index.to_numpy(),
-                             pivot.to_numpy(), shading="auto", vmin=0, vmax=1)
+                             pivot.to_numpy(), shading="auto", cmap="jet", vmin=0, vmax=1)
         fig.colorbar(mesh, ax=ax, label="Normalized average entropy")
         ax.set_xlabel(r"$\phi_0$")
         ax.set_ylabel(r"$\theta_0$")
