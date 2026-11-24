@@ -8,7 +8,7 @@ import pandas as pd
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from dkt_agent.agent import build_agent
-from dkt_agent.tools import simulate_dkt, simulate_dkt_grid
+from dkt_agent.tools import (simulate_dkt, simulate_dkt_grid, run_entanglement_dynamics, run_entanglement_heatmap)
 import matplotlib.pyplot as plt
 
 st.set_page_config(
@@ -241,6 +241,52 @@ with st.sidebar:
             except Exception as exc:
                 st.session_state["grid_simulation_error"] = str(exc)
 
+
+
+    with st.expander("Quantum entanglement", expanded=False):
+        st.caption("Evolving coherent-state entanglement and its long-time phase-space average. Entropy is normalized to [0, 1].")
+        with st.form("entanglement_dynamics_form"):
+            st.markdown("**Entropy versus kick number**")
+            ed_s = st.number_input("Spin s", min_value=1.0, max_value=100.0, value=5.0, step=0.5, key="ed_s")
+            ed_kr = st.number_input(r"$k_r$", value=1.0, step=0.1, key="ed_kr")
+            ed_kt = st.number_input(r"$k_\theta$", value=0.0, step=100.0, key="ed_kt")
+            ed_theta = st.number_input(r"Initial $\theta_0$", min_value=0.0, max_value=3.141592653589793, value=0.75, key="ed_theta")
+            ed_phi = st.number_input(r"Initial $\phi_0$", min_value=-3.141592653589793, max_value=3.141592653589793, value=-1.0, key="ed_phi")
+            ed_q = st.number_input("Subsystem size Q (rdm_dim)", min_value=1, max_value=99, value=2, step=1, key="ed_q")
+            ed_n = st.number_input("Number of kicks T", min_value=1, max_value=50000, value=1000, step=100, key="ed_n")
+            ed_run = st.form_submit_button("Run entropy dynamics", use_container_width=True)
+        if ed_run:
+            try:
+                with st.spinner("Computing quantum entanglement dynamics in Julia..."):
+                    st.session_state["entanglement_dynamics_result"] = run_entanglement_dynamics(
+                        s=float(ed_s), kr=float(ed_kr), ktheta=float(ed_kt),
+                        theta0=float(ed_theta), phi0=float(ed_phi),
+                        nsteps=int(ed_n), rdm_dim=int(ed_q))
+                    st.session_state.pop("entanglement_dynamics_error", None)
+            except Exception as exc:
+                st.session_state["entanglement_dynamics_error"] = str(exc)
+
+        st.divider()
+        with st.form("entanglement_heatmap_form"):
+            st.markdown("**Long-time-averaged entropy heatmap**")
+            hm_s = st.number_input("Spin s", min_value=1.0, max_value=100.0, value=5.0, step=0.5, key="hm_s")
+            hm_kr = st.number_input(r"$k_r$", value=1.0, step=0.1, key="hm_kr")
+            hm_kt = st.number_input(r"$k_\theta$", value=0.0, step=100.0, key="hm_kt")
+            hm_q = st.number_input("Subsystem size Q (rdm_dim)", min_value=1, max_value=99, value=2, step=1, key="hm_q")
+            hm_n = st.number_input("Final kick T", min_value=2, max_value=50000, value=1000, step=100, key="hm_n")
+            hm_t0 = st.number_input("Discard transient T0", min_value=0, max_value=49999, value=100, step=10, key="hm_t0")
+            hm_grid = st.number_input("Grid resolution", min_value=2, max_value=100, value=15, step=1, key="hm_grid")
+            hm_run = st.form_submit_button("Run averaged entropy heatmap", use_container_width=True)
+        if hm_run:
+            try:
+                with st.spinner("Computing long-time entropy heatmap in Julia..."):
+                    st.session_state["entanglement_heatmap_result"] = run_entanglement_heatmap(
+                        s=float(hm_s), kr=float(hm_kr), ktheta=float(hm_kt),
+                        nsteps=int(hm_n), transient=int(hm_t0), rdm_dim=int(hm_q),
+                        grid_size=int(hm_grid))
+                    st.session_state.pop("entanglement_heatmap_error", None)
+            except Exception as exc:
+                st.session_state["entanglement_heatmap_error"] = str(exc)
 
     st.divider()
     st.subheader("DKT Research Capabilities")
@@ -520,6 +566,60 @@ if "grid_simulation_result" in st.session_state:
         "chaos; ktheta changes phase-space geometry, not the degree of chaos."
     )
 
+
+
+if st.session_state.get("entanglement_dynamics_error"):
+    st.error("Entanglement dynamics failed: " + st.session_state["entanglement_dynamics_error"])
+if "entanglement_dynamics_result" in st.session_state:
+    er = st.session_state["entanglement_dynamics_result"]
+    edf = pd.DataFrame(er["data"])
+    st.divider()
+    st.header("Quantum entanglement dynamics")
+    st.caption("Normalized von Neumann entropy of an evolving spin-coherent state; the initial product state at kick zero is included.")
+    m = st.columns(3)
+    m[0].metric("Time samples", er["rows"])
+    m[1].metric("Initial normalized entropy", f'{er["initial_entropy"]:.5g}')
+    m[2].metric("Maximum norm error", f'{er["max_norm_error"]:.3e}')
+    st.line_chart(edf.set_index("kick")[["normalized_entropy"]])
+    with st.expander("Entropy time-series data"):
+        st.dataframe(edf, use_container_width=True)
+    st.download_button("Download entropy dynamics CSV", edf.to_csv(index=False).encode("utf-8"),
+                       "quantum_entanglement_dynamics.csv", "text/csv")
+    with st.expander("Calculation parameters"):
+        st.json(er["parameters"])
+
+if st.session_state.get("entanglement_heatmap_error"):
+    st.error("Entanglement heatmap failed: " + st.session_state["entanglement_heatmap_error"])
+if "entanglement_heatmap_result" in st.session_state:
+    hr = st.session_state["entanglement_heatmap_result"]
+    hdf = pd.DataFrame(hr["data"])
+    st.divider()
+    st.header("Long-time-averaged quantum entanglement")
+    st.caption(f'Discarded kicks 0 through {hr["parameters"]["transient_discarded"]}; averaged kicks {hr["parameters"]["averaging_kicks"]}. Early/late differences are finite-time stability diagnostics only.')
+    m = st.columns(3)
+    m[0].metric("Successful grid points", hr["successful_points"])
+    m[1].metric("Failed grid points", hr["failed_points"])
+    m[2].metric("Averaged kicks per point", hr["parameters"]["post_transient_samples"])
+    good = hdf[hdf["status"] == "success"]
+    if not good.empty:
+        pivot = good.pivot(index="theta", columns="phi", values="normalized_average_entropy")
+        fig, ax = plt.subplots(figsize=(9, 5))
+        mesh = ax.pcolormesh(pivot.columns.to_numpy(), pivot.index.to_numpy(),
+                             pivot.to_numpy(), shading="auto", vmin=0, vmax=1)
+        fig.colorbar(mesh, ax=ax, label="Normalized average entropy")
+        ax.set_xlabel(r"$\\phi_0$")
+        ax.set_ylabel(r"$\\theta_0$")
+        ax.set_title("Long-time-averaged normalized von Neumann entropy")
+        fig.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+    else:
+        st.warning("No successful heatmap cells; failed values have not been replaced by zero.")
+    with st.expander("Heatmap data and diagnostics"):
+        st.dataframe(hdf, use_container_width=True)
+        st.json({k:v for k,v in hr.items() if k not in ("data","julia_stdout")})
+    st.download_button("Download entropy heatmap CSV", hdf.to_csv(index=False).encode("utf-8"),
+                       "quantum_entanglement_heatmap.csv", "text/csv")
 
 for item in st.session_state.chat_history:
     with st.chat_message(item["role"]):
