@@ -776,7 +776,7 @@ if prompt:
                                 language="json",
                             )
                         if tool["result"]:
-                            st.text(content_to_text(tool["result"]))
+                            render_tool_result(tool)
 
             st.session_state.chat_history.append({
                 "role": "assistant",
