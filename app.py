@@ -652,8 +652,8 @@ if "entanglement_heatmap_result" in st.session_state:
         mesh = ax.pcolormesh(pivot.columns.to_numpy(), pivot.index.to_numpy(),
                              pivot.to_numpy(), shading="auto", vmin=0, vmax=1)
         fig.colorbar(mesh, ax=ax, label="Normalized average entropy")
-        ax.set_xlabel(r"$\\phi_0$")
-        ax.set_ylabel(r"$\\theta_0$")
+        ax.set_xlabel(r"$\phi_0$")
+        ax.set_ylabel(r"$\theta_0$")
         ax.set_title("Long-time-averaged normalized von Neumann entropy")
         fig.tight_layout()
         st.pyplot(fig, use_container_width=True)
