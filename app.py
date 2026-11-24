@@ -58,6 +58,45 @@ def content_to_text(content: Any) -> str:
     return str(content)
 
 
+def render_tool_result(tool: dict[str, Any]) -> None:
+    """Render numerical artifacts returned by entanglement agent tools."""
+    raw = tool.get("result", "")
+    try:
+        payload = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, json.JSONDecodeError):
+        payload = None
+    if not isinstance(payload, dict) or "data" not in payload:
+        st.text(content_to_text(raw))
+        return
+    frame = pd.DataFrame(payload["data"])
+    if tool.get("name") == "run_quantum_entanglement_dynamics" and not frame.empty:
+        st.line_chart(frame.set_index("kick")[["normalized_entropy"]])
+        st.caption("Normalized von Neumann entropy versus kick number.")
+        st.download_button("Download tool entropy CSV", frame.to_csv(index=False).encode("utf-8"),
+                           "quantum_entanglement_dynamics.csv", "text/csv",
+                           key=f"tool_entropy_{len(frame)}_{id(tool)}")
+    elif tool.get("name") == "run_quantum_entanglement_heatmap" and not frame.empty:
+        good = frame[frame["status"] == "success"]
+        if not good.empty:
+            matrix = good.pivot(index="theta", columns="phi",
+                                values="normalized_average_entropy")
+            fig, ax = plt.subplots(figsize=(8, 4.5))
+            mesh = ax.pcolormesh(matrix.columns.to_numpy(), matrix.index.to_numpy(),
+                                 matrix.to_numpy(), shading="auto", vmin=0, vmax=1)
+            fig.colorbar(mesh, ax=ax, label="Normalized average entropy")
+            ax.set_xlabel(r"$\phi_0$")
+            ax.set_ylabel(r"$\theta_0$")
+            fig.tight_layout()
+            st.pyplot(fig, use_container_width=True)
+            plt.close(fig)
+        st.caption(f"Successful points: {payload.get('successful_points', 0)}; failed points: {payload.get('failed_points', 0)}.")
+        st.download_button("Download tool heatmap CSV", frame.to_csv(index=False).encode("utf-8"),
+                           "quantum_entanglement_heatmap.csv", "text/csv",
+                           key=f"tool_heatmap_{len(frame)}_{id(tool)}")
+    else:
+        st.text(content_to_text(raw))
+
+
 @st.cache_resource(show_spinner=False)
 def get_agent():
     return build_agent()
@@ -640,7 +679,7 @@ for item in st.session_state.chat_history:
                             language="json",
                         )
                     if tool.get("result"):
-                        st.text(content_to_text(tool["result"]))
+                        render_tool_result(tool)
 
 
 prompt = st.chat_input(
