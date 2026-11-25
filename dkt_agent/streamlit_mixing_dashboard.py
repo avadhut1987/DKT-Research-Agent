@@ -47,8 +47,8 @@ def render_mixing_hierarchy_dashboard() -> None:
     st.divider()
     st.header("Ergodic Hierarchy — Visual Dashboard")
     st.caption(
-        "Generate and save a reproducible DKT ensemble, then calculate finite-data "
-        "Birkhoff-average, autocorrelation/Cesàro, and finite-partition alpha diagnostics."
+        "Generate, save, and analyse a reproducible DKT ensemble in one step; "
+        "the application handles the trajectory files and metadata automatically."
     )
 
     with st.expander("Generate and save a DKT trajectory ensemble", expanded=True):
@@ -66,7 +66,7 @@ def render_mixing_hierarchy_dashboard() -> None:
                 )
             with g2:
                 gen_ktheta = st.number_input(
-                    r"Asymmetry $k_\theta$", value=0.0, step=1.0,
+                    "Asymmetry parameter (kθ)", value=0.0, step=1.0,
                     key="mix_gen_ktheta",
                 )
             with g3:
@@ -88,8 +88,29 @@ def render_mixing_hierarchy_dashboard() -> None:
                     "Kicks per trajectory", min_value=10, max_value=5000,
                     value=1000, step=100, key="mix_gen_nsteps",
                 )
+            st.divider()
+            st.markdown("**Diagnostic settings**")
+            d1, d2, d3 = st.columns(3)
+            with d1:
+                gen_transient = st.number_input(
+                    "Transient kicks to discard", min_value=0, value=0,
+                    step=10, key="mix_gen_transient",
+                )
+            with d2:
+                gen_max_lag = st.number_input(
+                    "Maximum autocorrelation lag", min_value=2, max_value=5000,
+                    value=500, step=50, key="mix_gen_max_lag",
+                )
+            with d3:
+                gen_partition = st.selectbox(
+                    "Spherical partition",
+                    options=[(2, 4), (2, 3), (1, 4), (1, 2), (4, 4)],
+                    index=0,
+                    format_func=lambda item: f"{item[0]} z-bins × {item[1]} azimuth-bins",
+                    key="mix_gen_partition",
+                )
             generate_submitted = st.form_submit_button(
-                "Generate and save ensemble",
+                "Generate, save & run diagnostics",
                 type="primary",
                 use_container_width=True,
             )
@@ -97,7 +118,7 @@ def render_mixing_hierarchy_dashboard() -> None:
     if generate_submitted:
         try:
             with st.spinner(
-                f"Running the Julia DKT grid simulation ({grid_size**2} trajectories)..."
+                f"Generating {grid_size**2} trajectories and calculating diagnostics..."
             ):
                 generated = generate_dkt_ensemble(
                     kr=float(gen_kr),
@@ -106,14 +127,39 @@ def render_mixing_hierarchy_dashboard() -> None:
                     grid_size=int(grid_size),
                     nsteps=int(nsteps),
                 )
+                paths = [
+                    str((PROJECT_ROOT / relative_path).resolve())
+                    for relative_path in generated["trajectory_files"]
+                ]
+                raw = diagnose_mixing_hierarchy.invoke({
+                    "trajectory_csvs": paths,
+                    "transient": int(gen_transient),
+                    "max_lag": int(gen_max_lag),
+                    "n_z": int(gen_partition[0]),
+                    "n_phi": int(gen_partition[1]),
+                })
+            result = _load_result(raw)
+            manifest = json.loads(
+                Path(generated["manifest_path"]).read_text(encoding="utf-8")
+            )
+            result["dashboard_declared_map_parameters"] = {
+                "kr": float(gen_kr),
+                "ktheta": float(gen_ktheta),
+                "p": float(gen_p),
+            }
+            result["dashboard_ensemble_manifest"] = manifest
+            result["dashboard_ensemble_manifest_path"] = generated["manifest_path"]
+            st.session_state["mixing_hierarchy_dashboard_result"] = result
+            st.session_state["mixing_hierarchy_dashboard_files"] = paths
             st.session_state["mixing_hierarchy_last_manifest"] = generated["manifest_path"]
             st.session_state["mixing_hierarchy_generation_notice"] = (
-                f"Saved {generated['n_trajectories']} trajectories "
-                f"({generated['nsteps']} kicks each) to {generated['ensemble_directory']}."
+                f"Generated and saved {generated['n_trajectories']} trajectories "
+                f"({generated['nsteps']} kicks each), then completed the diagnostics. "
+                f"Files: {generated['ensemble_directory']}"
             )
             st.rerun()
         except Exception as exc:
-            st.error(f"Ensemble generation failed: {type(exc).__name__}: {exc}")
+            st.error(f"Generation or diagnostic run failed: {type(exc).__name__}: {exc}")
 
     notice = st.session_state.pop("mixing_hierarchy_generation_notice", None)
     if notice:
