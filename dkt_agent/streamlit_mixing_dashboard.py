@@ -69,7 +69,7 @@ def render_mixing_hierarchy_dashboard() -> None:
                 )
             with g5:
                 nsteps = st.number_input(
-                    "Kicks per trajectory", min_value=10, max_value=100000,
+                    "Kicks per trajectory", min_value=10, max_value=5000,
                     value=1000, step=100, key="mix_gen_nsteps",
                 )
             generate_submitted = st.form_submit_button(
