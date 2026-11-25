@@ -53,8 +53,6 @@ class TestMeanErgodicDiagnostic(unittest.TestCase):
 class TestWeakMixingDiagnostic(unittest.TestCase):
     def test_periodic_observable_has_nonzero_cesaro_envelope(self):
         t = np.arange(4096)
-        series = np.column_stack((np.cos(2*np.pi*t/16), np.sin(2*np.pi*t/16),
-                                  np.zeros_like(t)))
         # Embed periodic coordinates on the unit sphere.
         points = np.column_stack((np.cos(2*np.pi*t/16), np.sin(2*np.pi*t/16),
                                   np.zeros_like(t)))
