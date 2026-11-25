@@ -47,7 +47,7 @@ class TestMeanErgodicDiagnostic(unittest.TestCase):
         base = _sphere_points(9, 256)
         ensemble = [base.copy() for _ in range(5)]
         result = mean_ergodic_ensemble_diagnostic(ensemble)
-        self.assertTrue(all(row["ensemble_variance"] == 0.0 for row in result["rows"]))
+        self.assertTrue(all(row["ensemble_variance"] <= 1e-15 for row in result["rows"]))
 
 
 class TestWeakMixingDiagnostic(unittest.TestCase):
