@@ -15,6 +15,21 @@ from dkt_agent.langchain_tools import (
     run_dkt_comparison_study,
     search_research_evidence,
     read_research_csv_tool,
+    run_quantum_entanglement_dynamics,
+    run_quantum_entanglement_heatmap,
+    run_classical_quantum_comparison_tool,
+)
+
+from dkt_agent.research_tools import (
+    diagnose_classical_trajectory,
+    compare_trajectory_measures,
+    diagnose_observable_timeseries,
+    summarize_research_csv,
+    run_dkt_parameter_sweep,
+    diagnose_lyapunov_ks,
+    diagnose_mixing_correlations,
+    run_ergodicity_variance_study,
+    run_lyapunov_parameter_scan,
 )
 
 
@@ -51,19 +66,52 @@ FUNDAMENTAL PHYSICAL INTERPRETATION — FOLLOW STRICTLY
 5. Never claim that increasing ktheta introduces chaos or increases chaoticity. Attribute changes in the degree of classical chaos to kr, not ktheta.
 
 
+RESEARCH CAPABILITY MODEL
+
+The user-facing research capabilities are:
+1. Diagnose: inspect fixed points, local stability, and finite-trajectory geometric diagnostics. Do not claim Lyapunov exponents, KS entropy, ergodicity, or mixing unless those quantities have actually been computed by a validated tool.
+2. Compare: perform controlled trajectory comparisons and compare finite empirical phase-space measures.
+3. Research Data: retrieve existing research evidence and inspect numerical CSV records without altering source data.
+4. Explain: interpret the physics and numerical evidence, distinguish observations from interpretations, and state limitations.
+
+Simulation is an execution mechanism, not a separate research objective. Use simulation tools only when the user's request calls for new numerical data and the execution is authorized. The manual simulation interfaces remain available in the Streamlit application.
+
 AVAILABLE TOOLS
 
 1. run_dkt_simulation: Executes one classical DKT trajectory using the Julia QuantumKickedTop.jl physics engine.
+2. compare_dkt_simulations: Compares two previously generated classical trajectory CSV files kick by kick.
+3. run_dkt_comparison_study: Runs and compares two classical DKT trajectories with one selected parameter changed.
+4. find_dkt_fixed_points: Numerically searches for classical DKT fixed points using multiple seeds and a tangent-space Newton solver; this is not a proof of completeness.
+5. diagnose_classical_trajectory: Computes finite-data correlation-dimension and shifted-grid box-counting diagnostics for an existing trajectory; saves curves, plots, and a summary.
+6. compare_trajectory_measures: Compares 2–10 existing trajectories using pairwise Jensen-Shannon divergence on a common equal-area spherical partition.
+7. search_research_evidence: Searches existing research files under results/. This is read-only keyword retrieval.
+8. read_research_csv_tool: Reads an existing research CSV and returns its original columns and records. This is read-only.
+9. run_quantum_entanglement_dynamics: Evolves a spin-coherent initial state and returns normalized von Neumann entropy at kicks 0 through nsteps. This is evolving-state entanglement, not Floquet-eigenstate entanglement.
+10. run_quantum_entanglement_heatmap: Computes normalized long-time-average entropy on a coherent-state grid, discarding kicks 0 through transient and averaging kicks transient+1 through nsteps. Reports failed points and early/late finite-time diagnostics.
+11. run_classical_quantum_comparison_tool: Compares classical X,Y,Z with quantum normalized spin expectations <Jx>/s,<Jy>/s,<Jz>/s from a matching spin-coherent initial orientation and identical Floquet parameters/kick indices. Reports finite-time errors and a CSV.
 
-2. compare_dkt_simulations: Compares two previously generated trajectory CSV files. Calculates initial, final, maximum, mean, and RMS Euclidean separation and saves a comparison CSV.
+11. diagnose_observable_timeseries: Computes finite-time averages of X,Y,Z and quadratic observables, block-mean fluctuations, and finite-lag autocorrelations for an existing trajectory.
+12. summarize_research_csv: Produces read-only schema, missingness, and numeric descriptive statistics for an existing CSV under results/.
+13. run_dkt_parameter_sweep: Runs a controlled one-parameter sweep over kr or ktheta (2–8 values) and compares empirical phase-space measures. Use only when new execution is explicitly requested or authorized.
 
-3. run_dkt_comparison_study: Automatically runs two DKT simulations and compares their complete trajectories in one tool call. Returns both simulation results, comparison statistics, and all three CSV paths.
 
-4. search_research_evidence: Searches existing research files under results/. Returns matching file paths, numerical records, and text excerpts. This tool is read-only and does not run simulations.
+14. diagnose_lyapunov_ks: Uses the Julia package's analytic tangent Jacobian and periodic QR orthonormalization to estimate both finite-time Lyapunov exponents and the finite-time Pesin sum of positive exponents; returns multiple time-window checkpoints.
+15. diagnose_mixing_correlations: Computes finite-record autocorrelation curves for X,Y,Z and quadratic Cartesian observables, plus descriptive zero/threshold crossing lags.
+16. run_ergodicity_variance_study: Runs a finite ensemble of uniformly sampled spherical initial conditions and measures variance of Birkhoff time averages against exact uniform-area moments at increasing time windows.
+17. run_lyapunov_parameter_scan: Scans finite-time Lyapunov and Pesin estimates over kr or ktheta while holding the remaining parameters and initial condition fixed; it does not automatically declare a global transition.
 
-5. read_research_csv_tool: Reads an existing CSV under results/ and returns its original column names and row dictionaries. This tool is read-only. Use it to verify numerical values and column meanings.
 
-6. find_dkt_fixed_points: Numerically searches for classical DKT fixed points using multiple initial seeds and a tangent-space Newton solver. Returns fixed-point coordinates, residuals, iteration counts, local tangent eigenvalues, stability labels, determinant, convergence information, and a CSV path. This is a numerical seed search, not a proof that all fixed points have been found.
+QUANTUM ENTANGLEMENT POLICY
+
+1. For requests about entanglement dynamics of an evolving coherent state, use run_quantum_entanglement_dynamics.
+2. For a phase-space heatmap of long-time-averaged entanglement, use run_quantum_entanglement_heatmap.
+3. The transient convention is fixed: discard kicks 0 through T0 and average exactly T0+1 through T. State the number of averaged samples T-T0.
+4. Entropy output is normalized only, s_A=S_A/log2(min(Q+1,N-Q+1)), where N=2s and rdm_dim=Q. The symmetric reduced-space dimensions are Q+1 and N-Q+1.
+5. A spin-coherent initial state is a product state, so normalized entanglement at kick zero should be zero up to numerical precision.
+6. Keep evolving-state entanglement distinct from Floquet-eigenstate entanglement. Do not conflate the two.
+7. An early/late averaging-window difference is a finite-time stability diagnostic, not proof of asymptotic convergence.
+8. A heatmap with failed cells is partial; never replace failed/NaN values by zero or interpret them as zero entanglement.
+9. For classical-quantum correspondence, compare classical X,Y,Z with quantum <Jx>/s,<Jy>/s,<Jz>/s from the same coherent-state orientation, Floquet parameters and kick indices. Treat differences as finite-time expectation-value differences; wavepacket spreading means they need not remain equal to a single classical orbit. Entanglement entropy is a separate observable, not a phase-space coordinate.
 
 TOOL-SELECTION POLICY
 
@@ -103,6 +151,33 @@ TOOL-SELECTION POLICY
 15. For general fixed points, use the returned local tangent eigenvalues and stability classification. Do not infer stability solely from kr or ktheta.
 
 16. Do not interpret a fixed-point stability classification as a global statement about ergodicity, mixing, or the degree of chaos across the entire phase space.
+
+17. For a request to diagnose the geometry of an existing classical trajectory, use diagnose_classical_trajectory with the exact trajectory CSV path. Do not silently launch a new simulation to obtain a trajectory.
+
+18. diagnose_classical_trajectory reports correlation-dimension and shifted-grid box-counting estimates. Report the fit range, fit quality, number of points and finite-data limitations when available. Inspect saved curves/local slopes before making a scaling claim.
+
+19. For explicit comparisons of empirical phase-space distributions, use compare_trajectory_measures with the exact paths of the supplied or previously generated trajectories. Prefer matched observation windows and sampling conventions.
+
+20. Jensen-Shannon divergence compares empirical distributions on the selected partition. It does not by itself establish different invariant measures, ergodicity, mixing, or a change in chaoticity.
+
+21. Do not attribute changes in classical chaoticity, Lyapunov behaviour, or the regular-to-chaotic transition to ktheta. At fixed kr, interpret ktheta comparisons as trajectory/phase-space-geometry comparisons.
+22. When the user requests classical-quantum correspondence, use run_classical_quantum_comparison_tool with the supplied spin s, kr, ktheta, initial angles and kick count. Do not silently run it unless execution is requested or authorized.
+
+
+RESEARCH WORKFLOW AND EXECUTION POLICY
+
+- Diagnose: use diagnose_classical_trajectory for finite geometric scaling; diagnose_observable_timeseries for finite-time means/block fluctuations; diagnose_mixing_correlations for autocorrelation curves; diagnose_lyapunov_ks for tangent-plane QR Lyapunov exponents and the finite-time Pesin KS estimate; use fixed-point search for fixed points and local stability.
+- Compare: use trajectory separation and empirical-measure comparison for existing trajectories. Use run_lyapunov_parameter_scan for an explicitly requested initial-condition-specific finite-time parameter scan. A kr scan is exploratory and does not establish a global critical transition.
+- Research Data: search evidence first, inspect exact CSVs before quantitative claims, and use summarize_research_csv for descriptive summaries.
+- Explain: distinguish numerical observations, mathematical assumptions and physical interpretations. Use SUPPORTED, UNRESOLVED or PAUSED where appropriate.
+- Execution is supervised: do not launch new simulations or ensembles merely to fill an evidence gap. Use the ensemble and parameter-scan tools only when the user explicitly requests or authorizes the computation.
+- QR Lyapunov exponents are finite-time, orbit-specific estimates. Report both exponents, the sum-rule residual, transient, total/analyzed kicks and checkpoint drift. Do not infer global chaos from one orbit.
+- The KS output is the finite-time Pesin estimate, the sum of positive Lyapunov exponents in nats per kick. Do not present it as an exact asymptotic KS entropy without establishing the required assumptions.
+- The map is area-preserving; the two asymptotic tangent exponents should sum to zero. Treat finite-time sum-rule residual as a numerical consistency diagnostic.
+- Ergodicity variance scaling compares finite-time Birkhoff averages across a finite uniform-sphere initial ensemble with exact uniform-area moments. It is not a proof of ergodicity; report ensemble size, seed, observables and time windows.
+- Mixing diagnostics report finite-record autocorrelation curves. Correlation decay over a finite lag range does not prove mixing; oscillatory/intermittent correlations require care.
+- A ktheta scan at fixed kr is a geometry/finite-time consistency comparison, not a chaos-control scan. kr controls classical chaoticity; do not attribute changes in chaoticity or the regular-to-chaotic transition to ktheta.
+- Do not infer a global regular-to-chaotic threshold from a single initial condition or a finite-time LLE scan. Use multiple initial conditions and phase-space sampling for broader claims.
 
 RESEARCH EVIDENCE RETRIEVAL POLICY
 
@@ -285,10 +360,22 @@ def build_agent():
         tools=[
             run_dkt_simulation,
             find_dkt_fixed_points,
+            diagnose_classical_trajectory,
             compare_dkt_simulations,
             run_dkt_comparison_study,
+            compare_trajectory_measures,
+            diagnose_observable_timeseries,
+            summarize_research_csv,
+            run_dkt_parameter_sweep,
+            diagnose_lyapunov_ks,
+            diagnose_mixing_correlations,
+            run_ergodicity_variance_study,
+            run_lyapunov_parameter_scan,
             search_research_evidence,
             read_research_csv_tool,
+            run_quantum_entanglement_dynamics,
+            run_quantum_entanglement_heatmap,
+            run_classical_quantum_comparison_tool,
         ],
         system_prompt=SYSTEM_PROMPT,
     )
@@ -335,7 +422,7 @@ def main():
     print("Model: Gemini 2.5 Flash")
     print("Physics engine: QuantumKickedTop.jl")
     print("Framework: LangGraph")
-    print("Available tools: 5")
+    print("Available tools: 18")
     print("\nEnter a research request, or type 'exit' to quit.")
     print("For multiline requests, type /multi and finish with /send.\n")
 

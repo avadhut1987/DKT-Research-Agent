@@ -675,25 +675,37 @@ def run_dkt_comparison_study(
     nsteps: int = 1000,
     p: float = math.pi / 2,
     timeout: int = 300,
+    comparison_mode: str = "fixed_kr",
+    kr_a: float | None = None,
+    kr_b: float | None = None,
+    ktheta_fixed: float | None = None,
 ) -> dict[str, Any]:
-    """Run two DKT simulations and compare their complete trajectories.
+    """Compare two DKT trajectories while varying either kr or ktheta.
 
-    Both simulations use the same initial condition, rotation angle,
-    kr, and number of kicks. Only ktheta differs.
-    The comparison measures trajectory and phase-space geometric
-    differences, not a change in the degree of classical chaos.
-
-    Returns
-    -------
-    dict
-        Complete results for both simulations, trajectory comparison
-        statistics, and the three generated CSV paths.
+    fixed_kr: same kr, different ktheta values.
+    fixed_ktheta: same ktheta, different kr values.
     """
 
-    # Run simulation A.
+    if comparison_mode == "fixed_kr":
+        parameter_a = {"kr": kr, "ktheta": ktheta_a}
+        parameter_b = {"kr": kr, "ktheta": ktheta_b}
+
+    elif comparison_mode == "fixed_ktheta":
+        if kr_a is None or kr_b is None or ktheta_fixed is None:
+            raise ValueError(
+                "fixed_ktheta mode requires kr_a, kr_b, and ktheta_fixed."
+            )
+        parameter_a = {"kr": kr_a, "ktheta": ktheta_fixed}
+        parameter_b = {"kr": kr_b, "ktheta": ktheta_fixed}
+
+    else:
+        raise ValueError(
+            "comparison_mode must be 'fixed_kr' or 'fixed_ktheta'."
+        )
+
     simulation_a = simulate_dkt(
-        kr=kr,
-        ktheta=ktheta_a,
+        kr=parameter_a["kr"],
+        ktheta=parameter_a["ktheta"],
         theta0=theta0,
         phi0=phi0,
         nsteps=nsteps,
@@ -704,10 +716,9 @@ def run_dkt_comparison_study(
     if simulation_a.get("status") != "success":
         raise RuntimeError("Simulation A did not complete successfully.")
 
-    # Run simulation B.
     simulation_b = simulate_dkt(
-        kr=kr,
-        ktheta=ktheta_b,
+        kr=parameter_b["kr"],
+        ktheta=parameter_b["ktheta"],
         theta0=theta0,
         phi0=phi0,
         nsteps=nsteps,
@@ -718,7 +729,6 @@ def run_dkt_comparison_study(
     if simulation_b.get("status") != "success":
         raise RuntimeError("Simulation B did not complete successfully.")
 
-    # Compare the complete trajectories using their actual CSV files.
     comparison = compare_dkt_trajectories(
         trajectory_csv_1=simulation_a["trajectory_csv"],
         trajectory_csv_2=simulation_b["trajectory_csv"],
@@ -730,9 +740,13 @@ def run_dkt_comparison_study(
     return {
         "status": "success",
         "study_parameters": {
-            "kr": kr,
-            "ktheta_a": ktheta_a,
-            "ktheta_b": ktheta_b,
+            "comparison_mode": comparison_mode,
+            "kr": kr if comparison_mode == "fixed_kr" else None,
+            "ktheta_a": ktheta_a if comparison_mode == "fixed_kr" else ktheta_fixed,
+            "ktheta_b": ktheta_b if comparison_mode == "fixed_kr" else ktheta_fixed,
+            "kr_a": parameter_a["kr"],
+            "kr_b": parameter_b["kr"],
+            "ktheta_fixed": ktheta_fixed,
             "theta0": theta0,
             "phi0": phi0,
             "nsteps": nsteps,
@@ -746,4 +760,287 @@ def run_dkt_comparison_study(
             "simulation_b": simulation_b["trajectory_csv"],
             "comparison": comparison["comparison_csv"],
         },
+    }
+
+
+ENTANGLEMENT_RESULTS_DIR = PROJECT_ROOT / "results" / "quantum_entanglement"
+ENTANGLEMENT_DYNAMICS_SCRIPT = PROJECT_ROOT / "scripts" / "julia" / "run_entanglement_dynamics.jl"
+ENTANGLEMENT_HEATMAP_SCRIPT = PROJECT_ROOT / "scripts" / "julia" / "run_entropy_heatmap.jl"
+
+
+def _run_entanglement_julia(script: Path, arguments: list[str], timeout: int, p: float) -> tuple[Path, str]:
+    if isinstance(timeout, bool) or not isinstance(timeout, int) or timeout < 1:
+        raise ValueError("timeout must be a positive integer.")
+    if not JULIA_PROJECT.is_dir():
+        raise FileNotFoundError(f"Julia project not found: {JULIA_PROJECT}")
+    if not script.is_file():
+        raise FileNotFoundError(f"Julia script not found: {script}")
+    julia = os.environ.get("JULIA") or shutil.which("julia")
+    if not julia:
+        raise FileNotFoundError("Julia executable was not found.")
+    ENTANGLEMENT_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    run_dir = Path(tempfile.mkdtemp(prefix="entanglement_", dir=ENTANGLEMENT_RESULTS_DIR))
+    output = run_dir / "results.csv"
+    command = [julia, f"--project={JULIA_PROJECT}", str(script), *arguments, str(output), str(p)]
+    try:
+        completed = subprocess.run(command, cwd=PROJECT_ROOT, capture_output=True,
+                                   text=True, timeout=timeout, check=False)
+    except subprocess.TimeoutExpired as exc:
+        raise TimeoutError(f"Entanglement calculation exceeded {timeout} seconds.") from exc
+    if completed.returncode != 0:
+        raise RuntimeError("Julia entanglement calculation failed.\\n"
+                           f"STDOUT:\\n{completed.stdout}\\nSTDERR:\\n{completed.stderr}")
+    if not output.is_file():
+        raise RuntimeError("Julia completed without creating the expected CSV.")
+    return output, completed.stdout
+
+
+def run_entanglement_dynamics(
+    s: float, kr: float, ktheta: float, theta0: float, phi0: float,
+    nsteps: int, rdm_dim: int, p: float = math.pi / 2, timeout: int = 600,
+) -> dict[str, Any]:
+    """Compute normalized von Neumann entanglement entropy at kicks 0 through nsteps."""
+    s, kr, ktheta, theta0, phi0, p = (
+        _validate_finite(name, value) for name, value in
+        (("s", s), ("kr", kr), ("ktheta", ktheta), ("theta0", theta0), ("phi0", phi0), ("p", p))
+    )
+    if s <= 0 or not math.isclose(2*s, round(2*s), abs_tol=1e-12):
+        raise ValueError("s must be a positive integer or half-integer.")
+    N = round(2*s)
+    if isinstance(rdm_dim, bool) or not isinstance(rdm_dim, int) or not 1 <= rdm_dim < N:
+        raise ValueError("rdm_dim must be an integer satisfying 1 <= rdm_dim < 2s.")
+    if isinstance(nsteps, bool) or not isinstance(nsteps, int) or nsteps < 0:
+        raise ValueError("nsteps must be a non-negative integer.")
+    if not 0 <= theta0 <= math.pi or not -math.pi <= phi0 <= math.pi:
+        raise ValueError("theta0 must be in [0, pi] and phi0 in [-pi, pi].")
+    output, stdout = _run_entanglement_julia(
+        ENTANGLEMENT_DYNAMICS_SCRIPT,
+        [str(s), str(kr), str(ktheta), str(theta0), str(phi0),
+         str(nsteps), str(rdm_dim)], timeout, p)
+    rows = []
+    with output.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        expected = {"kick", "normalized_entropy", "state_norm"}
+        if not reader.fieldnames or not expected.issubset(reader.fieldnames):
+            raise RuntimeError(f"Unexpected entanglement CSV header: {reader.fieldnames}")
+        for row in reader:
+            item = {"kick": int(row["kick"]),
+                    "normalized_entropy": float(row["normalized_entropy"]),
+                    "state_norm": float(row["state_norm"])}
+            if not all(math.isfinite(v) for v in item.values()):
+                raise RuntimeError("Entanglement CSV contains non-finite values.")
+            if not -1e-10 <= item["normalized_entropy"] <= 1 + 1e-10:
+                raise RuntimeError("Normalized entropy lies outside [0, 1].")
+            rows.append(item)
+    if len(rows) != nsteps + 1 or [r["kick"] for r in rows] != list(range(nsteps + 1)):
+        raise RuntimeError("Entropy time series must contain exactly kicks 0 through nsteps.")
+    return {"status": "success", "parameters": {"s": s, "N": N, "kr": kr,
+            "ktheta": ktheta, "k": kr+ktheta, "kprime": kr-ktheta,
+            "theta0": theta0, "phi0": phi0, "p": p, "nsteps": nsteps,
+            "rdm_dim": rdm_dim, "transient": "not applied (time series)"},
+            "rows": len(rows), "initial_entropy": rows[0]["normalized_entropy"],
+            "final_entropy": rows[-1]["normalized_entropy"],
+            "max_norm_error": max(abs(r["state_norm"]-1) for r in rows),
+            "csv_path": str(output), "data": rows, "julia_stdout": stdout.strip()}
+
+
+def run_entanglement_heatmap(
+    s: float, kr: float, ktheta: float, nsteps: int, transient: int,
+    rdm_dim: int, grid_size: int = 15, p: float = math.pi/2,
+    timeout: int = 1800,
+) -> dict[str, Any]:
+    """Compute normalized long-time entropy averages on a coherent-state grid."""
+    s, kr, ktheta, p = (_validate_finite(k, v) for k, v in
+                        (("s", s), ("kr", kr), ("ktheta", ktheta), ("p", p)))
+    if s <= 0 or not math.isclose(2*s, round(2*s), abs_tol=1e-12):
+        raise ValueError("s must be a positive integer or half-integer.")
+    N = round(2*s)
+    if isinstance(rdm_dim, bool) or not isinstance(rdm_dim, int) or not 1 <= rdm_dim < N:
+        raise ValueError("rdm_dim must be an integer satisfying 1 <= rdm_dim < 2s.")
+    if isinstance(nsteps, bool) or not isinstance(nsteps, int) or nsteps < 2:
+        raise ValueError("nsteps must be an integer >= 2.")
+    if isinstance(transient, bool) or not isinstance(transient, int) or not 0 <= transient < nsteps:
+        raise ValueError("transient must satisfy 0 <= transient < nsteps.")
+    if isinstance(grid_size, bool) or not isinstance(grid_size, int) or not 2 <= grid_size <= 100:
+        raise ValueError("grid_size must be between 2 and 100.")
+    output, stdout = _run_entanglement_julia(
+        ENTANGLEMENT_HEATMAP_SCRIPT,
+        [str(s), str(kr), str(ktheta), str(nsteps), str(transient),
+         str(rdm_dim), str(grid_size)], timeout, p)
+    rows = []
+    with output.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        expected = {"theta", "phi", "normalized_average_entropy",
+                    "early_late_abs_difference", "status"}
+        if not reader.fieldnames or not expected.issubset(reader.fieldnames):
+            raise RuntimeError(f"Unexpected heatmap CSV header: {reader.fieldnames}")
+        for row in reader:
+            item = {"theta": float(row["theta"]), "phi": float(row["phi"]),
+                    "normalized_average_entropy": float(row["normalized_average_entropy"])
+                    if row["normalized_average_entropy"] not in ("NaN", "nan", "") else math.nan,
+                    "early_late_abs_difference": float(row["early_late_abs_difference"])
+                    if row["early_late_abs_difference"] not in ("NaN", "nan", "") else math.nan,
+                    "status": row["status"]}
+            if not math.isfinite(item["theta"]) or not math.isfinite(item["phi"]):
+                raise RuntimeError("Heatmap coordinates must be finite.")
+            if item["status"] == "success" and not 0 <= item["normalized_average_entropy"] <= 1:
+                raise RuntimeError("Successful heatmap entropy must lie in [0, 1].")
+            rows.append(item)
+    expected_rows = grid_size**2
+    if len(rows) != expected_rows:
+        raise RuntimeError(f"Expected {expected_rows} heatmap cells, found {len(rows)}.")
+    failed = sum(row["status"] != "success" for row in rows)
+    return {"status": "success" if failed == 0 else "partial",
+            "parameters": {"s": s, "N": N, "kr": kr, "ktheta": ktheta,
+            "k": kr+ktheta, "kprime": kr-ktheta, "p": p, "nsteps": nsteps,
+            "transient_discarded": transient, "averaging_kicks": f"{transient+1}:{nsteps}",
+            "post_transient_samples": nsteps-transient, "rdm_dim": rdm_dim,
+            "grid_size": grid_size},
+            "grid_points": len(rows), "successful_points": len(rows)-failed,
+            "failed_points": failed, "csv_path": str(output), "data": rows,
+            "julia_stdout": stdout.strip()}
+
+
+# Classical-quantum correspondence workflow.
+CLASSICAL_QUANTUM_RESULTS_DIR = PROJECT_ROOT / "results" / "classical_quantum"
+CLASSICAL_QUANTUM_SCRIPT = (
+    PROJECT_ROOT / "scripts" / "julia" / "compare_classical_quantum.jl"
+)
+
+
+def run_classical_quantum_comparison(
+    s: float,
+    kr: float,
+    ktheta: float,
+    theta0: float,
+    phi0: float,
+    nsteps: int,
+    p: float = math.pi / 2,
+    timeout: int = 900,
+) -> dict[str, Any]:
+    """Compare classical X,Y,Z with quantum <Jx>/s,<Jy>/s,<Jz>/s.
+
+    Both evolutions start from the same spherical orientation. The quantum
+    initial condition is the package's spin-coherent state. Entanglement
+    entropy is a separate observable and is not used as a phase-space
+    coordinate in this comparison.
+    """
+    s, kr, ktheta, theta0, phi0, p = (
+        _validate_finite(name, value)
+        for name, value in (
+            ("s", s), ("kr", kr), ("ktheta", ktheta),
+            ("theta0", theta0), ("phi0", phi0), ("p", p),
+        )
+    )
+    if s <= 0 or not math.isclose(2 * s, round(2 * s), rel_tol=0, abs_tol=1e-12):
+        raise ValueError("s must be a positive integer or half-integer.")
+    if not 0 <= theta0 <= math.pi:
+        raise ValueError("theta0 must lie in [0, pi].")
+    if not -math.pi <= phi0 <= math.pi:
+        raise ValueError("phi0 must lie in [-pi, pi].")
+    if isinstance(nsteps, bool) or not isinstance(nsteps, int) or nsteps < 0:
+        raise ValueError("nsteps must be a non-negative integer.")
+    if isinstance(timeout, bool) or not isinstance(timeout, int) or timeout < 1:
+        raise ValueError("timeout must be a positive integer.")
+    if not JULIA_PROJECT.is_dir():
+        raise FileNotFoundError(f"Julia project not found: {JULIA_PROJECT}")
+    if not CLASSICAL_QUANTUM_SCRIPT.is_file():
+        raise FileNotFoundError(f"Julia comparison script not found: {CLASSICAL_QUANTUM_SCRIPT}")
+    julia = os.environ.get("JULIA") or shutil.which("julia")
+    if not julia:
+        raise FileNotFoundError("Julia executable was not found.")
+
+    CLASSICAL_QUANTUM_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    run_dir = Path(tempfile.mkdtemp(
+        prefix="cq_comparison_", dir=CLASSICAL_QUANTUM_RESULTS_DIR
+    ))
+    output_csv = run_dir / "classical_quantum_comparison.csv"
+    command = [
+        julia, f"--project={JULIA_PROJECT}", str(CLASSICAL_QUANTUM_SCRIPT),
+        str(s), str(kr), str(ktheta), str(theta0), str(phi0),
+        str(nsteps), str(output_csv), str(p),
+    ]
+    try:
+        completed = subprocess.run(
+            command, cwd=PROJECT_ROOT, capture_output=True, text=True,
+            timeout=timeout, check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise TimeoutError(
+            f"Classical-quantum comparison exceeded {timeout} seconds."
+        ) from exc
+    if completed.returncode != 0:
+        raise RuntimeError(
+            "Julia classical-quantum comparison failed.\n"
+            f"STDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}"
+        )
+    if not output_csv.is_file():
+        raise RuntimeError("Julia completed without creating the comparison CSV.")
+
+    expected = {
+        "kick", "classical_X", "classical_Y", "classical_Z",
+        "quantum_X", "quantum_Y", "quantum_Z",
+        "delta_X", "delta_Y", "delta_Z", "classical_norm",
+        "quantum_spin_norm", "state_norm",
+    }
+    rows: list[dict[str, float | int]] = []
+    with output_csv.open("r", newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        if not reader.fieldnames or not expected.issubset(reader.fieldnames):
+            raise RuntimeError(f"Unexpected comparison CSV header: {reader.fieldnames}")
+        for row in reader:
+            item: dict[str, float | int] = {"kick": int(row["kick"])}
+            for key in expected - {"kick"}:
+                item[key] = float(row[key])
+            if not all(math.isfinite(float(value)) for value in item.values()):
+                raise RuntimeError("Comparison CSV contains non-finite values.")
+            rows.append(item)
+
+    if len(rows) != nsteps + 1 or [r["kick"] for r in rows] != list(range(nsteps + 1)):
+        raise RuntimeError(f"Expected exactly kicks 0 through {nsteps} in the CSV.")
+
+    component_metrics: dict[str, dict[str, float]] = {}
+    for component in ("X", "Y", "Z"):
+        errors = [float(row[f"delta_{component}"]) for row in rows]
+        component_metrics[component] = {
+            "mae": sum(abs(value) for value in errors) / len(errors),
+            "rmse": math.sqrt(sum(value * value for value in errors) / len(errors)),
+            "max_abs_error": max(abs(value) for value in errors),
+        }
+
+    vector_errors = [
+        math.sqrt(sum(float(row[f"delta_{axis}"]) ** 2 for axis in ("X", "Y", "Z")))
+        for row in rows
+    ]
+    stdout_values: dict[str, str] = {}
+    for line in completed.stdout.splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            stdout_values[key.strip()] = value.strip()
+
+    return {
+        "status": "success",
+        "parameters": {
+            "s": s, "hilbert_dimension": int(round(2 * s)) + 1,
+            "kr": kr, "ktheta": ktheta, "k": kr + ktheta,
+            "kprime": kr - ktheta, "p": p,
+            "theta0": theta0, "phi0": phi0, "nsteps": nsteps,
+        },
+        "rows": len(rows),
+        "initial_alignment_error": float(stdout_values.get(
+            "initial_alignment_error", vector_errors[0]
+        )),
+        "final_vector_difference": vector_errors[-1],
+        "maximum_vector_difference": max(vector_errors),
+        "mean_vector_difference": sum(vector_errors) / len(vector_errors),
+        "vector_rmse": math.sqrt(sum(value * value for value in vector_errors) / len(vector_errors)),
+        "component_metrics": component_metrics,
+        "max_classical_norm_error": float(stdout_values.get(
+            "max_classical_norm_error", max(abs(float(r["classical_norm"]) - 1) for r in rows)
+        )),
+        "max_quantum_state_norm_error": float(stdout_values.get(
+            "max_state_norm_error", max(abs(float(r["state_norm"]) - 1) for r in rows)
+        )),
+        "csv_path": str(output_csv),
+        "julia_stdout": completed.stdout.strip(),
     }
