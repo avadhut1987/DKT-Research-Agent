@@ -103,9 +103,14 @@ def mean_ergodic_ensemble_diagnostic(
     }
 
 
-def _autocorrelation(values: np.ndarray, max_lag: int) -> np.ndarray:
+def _autocorrelation(values: np.ndarray, max_lag: int, invariant_mean: float) -> np.ndarray:
+    """Estimate normalized correlation after centering by the known invariant mean.
+
+    Do not subtract each orbit's own sample mean: doing so can remove a
+    trajectory-dependent invariant component and falsely suppress correlations.
+    """
     values = np.asarray(values, dtype=float)
-    centered = values - values.mean()
+    centered = values - float(invariant_mean)
     variance = float(np.mean(centered * centered))
     if variance <= np.finfo(float).eps:
         return np.full(max_lag + 1, np.nan)
@@ -140,7 +145,7 @@ def weak_mixing_cesaro_diagnostic(
         curves = []
         for points in ensemble:
             values = cartesian_observables(points[transient:transient+n])[:, q]
-            curves.append(_autocorrelation(values, lag))
+            curves.append(_autocorrelation(values, lag, AREA_MEANS[q]))
         curve = np.asarray(curves)
         valid = np.isfinite(curve)
         mean_rho2 = np.full(lag + 1, np.nan)
