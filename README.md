@@ -1,42 +1,118 @@
 # DKT Research Agent
 
-An AI-assisted research application for the **Double Kicked Top (DKT)** model, built using Python, LangGraph, Julia, and Streamlit.
+An AI-assisted computational research platform for the **Double Kicked Top (DKT)** model, developed using Python, LangGraph, Julia, and Streamlit.
 
-The project combines classical DKT simulations, numerical analysis, visualization, and AI-assisted research interaction.
+The project integrates classical nonlinear dynamics, quantum entanglement calculations, classical–quantum correspondence, numerical diagnostics, scientific visualization, and AI-assisted research workflows.
 
 ## Features
 
-- Run classical DKT trajectory simulations.
-- Compare DKT simulations under different parameter values.
-- Investigate the effects of varying the asymmetry parameter \(k_\theta\) at fixed \(k_r\).
-- Analyze classical fixed points and their stability.
-- Visualize phase-space trajectories and structures.
-- Search existing research evidence.
-- Read and analyze existing CSV simulation results.
-- Interact with an AI-powered DKT research assistant.
-- Access the research agent through a Streamlit web interface or terminal.
+### 1. Classical DKT Dynamics
 
-## Research Objective
+- Simulate classical DKT trajectories.
+- Compare trajectories under different kicking parameters.
+- Investigate phase-space structures and their dependence on the asymmetry parameter.
+- Generate phase-space portraits and trajectory visualizations.
+- Analyze fixed points and their stability.
+- Perform parameter sweeps and compare trajectory measures.
 
-An important objective of this project is to investigate how increasing \(k_\theta\) affects phase-space structures while keeping \(k_r\) fixed.
+### 2. Ergodicity and Mixing-Related Diagnostics
 
-For example, compare:
+The research tools provide numerical investigations of the ergodic hierarchy, including:
+
+- **Mean ergodicity:** trajectory time averages, observable fluctuations, and variance-based studies across initial conditions.
+- **Correlation analysis:** observable autocorrelation functions and finite-time correlation diagnostics.
+- **Weak-mixing-related diagnostics:** finite-window Cesàro averages of squared correlations.
+- **Mixing-related analysis:** numerical investigation of correlation decay over sampled time intervals.
+- **Lyapunov analysis:** finite-time and long-time numerical estimates of maximal Lyapunov exponents.
+- **Kolmogorov–Sinai (KS) entropy:** numerical estimates associated with the Lyapunov spectrum under applicable assumptions.
+- **Parameter scans:** investigate how selected diagnostics vary with the average kicking parameter.
+
+These calculations provide finite-time numerical evidence, not mathematical proofs of ergodicity, weak mixing, or strong mixing. In particular, correlation decay alone is not sufficient to establish strong mixing.
+
+### 3. Quantum Entanglement Dynamics
+
+The Julia-backed quantum tools provide:
+
+- Entanglement entropy as a function of kick number.
+- Long-time-averaged entanglement entropy heatmaps over grids of spin-coherent initial states.
+- Transient-discarded averaging.
+- State-norm diagnostics and heatmap failure reporting.
+- CSV outputs and visualizations.
+
+The normalized subsystem entropy is
 
 $
-k_\theta=0
-\qquad \text{and} \qquad
-k_\theta=10^4.
+s_A = \frac{S_A}{\log_2[\min(Q+1,N-Q+1)]},
 $
 
-For a meaningful comparison, keep the following parameters identical:
+where $N=2s$ and $Q$ denotes the subsystem size used in the bipartition.
 
-- Average kicking parameter $k_r$.
-- Initial conditions $(\theta_0,\phi_0)$.
-- Parameter $p$.
-- Number of kicks.
-- Numerical resolution, where applicable.
+The evolving-state entanglement calculations are distinct from Floquet-eigenstate entanglement analysis.
 
-The distinction between the two parameters is important: \(k_r\) controls the degree of classical chaos, whereas $k_\theta$ changes the orientation and structure of phase-space features.
+For heatmaps, the transient convention is to discard kicks $0:T_0$ and average kicks $T_0+1:T$. Failed calculations remain missing values rather than being interpreted as zero.
+
+### 4. Classical–Quantum Correspondence
+
+The project includes a Julia-backed comparison of classical DKT trajectories and quantum spin-coherent-state evolution.
+
+The comparison provides:
+
+- Kick-resolved classical coordinates $X,Y,Z$.
+- Normalized quantum spin expectations
+  $\langle J_x\rangle/s$, $\langle J_y\rangle/s$, and $\langle J_z\rangle/s$.
+- Component-wise mean absolute error (MAE).
+- Root mean square error (RMSE).
+- Maximum component-wise error.
+- Vector-difference summaries.
+- CSV output and Streamlit visualizations.
+
+The initial quantum normalized-spin vector is checked against the specified classical initial point before the comparison is accepted.
+
+Finite-time differences between a single classical trajectory and quantum expectation values are not, by themselves, a diagnostic of classical chaos. Entanglement entropy is treated as a separate observable.
+
+### 5. AI-Assisted Research Interface
+
+The LangGraph research agent provides access to simulation and analysis tools through natural-language interaction.
+
+Capabilities include:
+
+- Running authorized DKT simulations.
+- Comparing parameter configurations.
+- Analyzing existing trajectory CSV files.
+- Running numerical research diagnostics.
+- Performing Lyapunov and KS-entropy studies.
+- Investigating correlation and ergodicity-related quantities.
+- Running quantum entanglement calculations.
+- Comparing classical and quantum dynamics.
+- Searching existing research evidence.
+
+The Streamlit interface provides an interactive environment for simulations, research workflows, plots, and downloadable numerical results.
+
+## Scientific Parameter Convention
+
+The DKT kicking parameters are defined as
+
+$
+k_r = \frac{k+k'}{2},
+\qquad
+k_\theta = \frac{k-k'}{2},
+$
+
+so that
+
+$
+k=k_r+k_\theta,
+\qquad
+k'=k_r-k_\theta.
+$
+
+The distinction between these parameters is central to the research:
+
+- $k_r$ controls the degree of classical chaos and the regular-to-chaotic transition.
+- $k_\theta$ changes the geometry, orientation, and structure of phase-space features. It can also break time-reversal symmetry.
+- Increasing $k_\theta$ at fixed $k_r$ should not be interpreted as increasing the degree of classical chaos or changing the Lyapunov behavior.
+
+A useful comparison is to investigate $k_\theta=0$ and $k_\theta=10^4$ while keeping $k_r$, initial conditions, $p$, and the number of kicks fixed.
 
 ## Project Structure
 
@@ -44,18 +120,36 @@ The distinction between the two parameters is important: \(k_r\) controls the de
 DKT-Research-Agent/
 │
 ├── app.py
-├── requirements.txt
 ├── README.md
+├── requirements.txt
 │
 ├── dkt_agent/
 │   ├── agent.py
 │   ├── tools.py
-│   └── langchain_tools.py
+│   ├── langchain_tools.py
+│   ├── classical_analysis.py
+│   ├── evidence.py
+│   └── research_tools.py
 │
 ├── scripts/
 │   └── julia/
+│       ├── simulate_dkt.jl
 │       ├── simulate_dkt_grid.jl
-│       └── analyze_dkt_fixed_points.jl
+│       ├── analyze_dkt_fixed_points.jl
+│       ├── compare_classical_quantum.jl
+│       ├── dkt_lyapunov_ks.jl
+│       ├── run_entanglement_dynamics.jl
+│       └── run_entropy_heatmap.jl
+│
+├── tests/
+│   └── python/
+│       ├── test_agent_tool_flow.py
+│       ├── test_classical_analysis.py
+│       ├── test_classical_quantum_comparison.py
+│       ├── test_dkt_tool.py
+│       ├── test_advanced_diagnostics.py
+│       ├── test_research_capabilities.py
+│       └── test_research_workflows.py
 │
 └── QuantumKickedTop.jl/
     └── Julia simulation package (Git submodule)
@@ -63,193 +157,185 @@ DKT-Research-Agent/
 
 ## Requirements
 
-- Python 3.14 or a compatible version.
-- Julia.
-- Git.
-- Google Gemini API key.
-- Internet connection for installing dependencies and accessing the Gemini API.
+- Python 3.10 or later.
+- Julia (the project has been developed and tested with Julia 1.12).
+- A Google Gemini API key for the AI research agent.
+- Git, including Git submodule support.
 
-Check your installations:
-
-```bash
-python --version
-julia --version
-git --version
-```
+Python dependencies are listed in `requirements.txt`.
 
 ## Installation
 
-### 1. Clone the repository
-
-Clone the repository together with its Julia submodule:
+Clone the repository with its Julia submodule:
 
 ```bash
 git clone --recurse-submodules https://github.com/avadhut1987/DKT-Research-Agent.git
-
 cd DKT-Research-Agent
 ```
 
-If you have already cloned the repository without its submodule:
+If the repository was cloned without submodules, initialize them:
 
 ```bash
 git submodule update --init --recursive
 ```
 
-### 2. Create the Python environment
+Create and activate a Python virtual environment:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 ```
 
-Upgrade pip:
+Install the Python dependencies:
 
 ```bash
-python -m pip install --upgrade pip
-```
-
-Install the required Python packages:
-
-```bash
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 3. Configure the Google Gemini API key
-
-The research agent uses the Google Gemini API. It accepts either `GOOGLE_API_KEY` or `GEMINI_API_KEY`.
-
-On Linux, configure one of the following environment variables:
-
-```bash
-export GOOGLE_API_KEY="YOUR_API_KEY"
-```
-
-Alternatively:
-
-```bash
-export GEMINI_API_KEY="YOUR_API_KEY"
-```
-
-Replace `YOUR_API_KEY` with your actual Gemini API key.
-
-Do not commit API keys or other credentials to GitHub.
-
-### 4. Initialize Julia dependencies
-
-The classical simulation tools use the Julia package maintained in the `QuantumKickedTop.jl` submodule.
-
-Initialize its dependencies:
+Instantiate the Julia project dependencies:
 
 ```bash
 julia --project=QuantumKickedTop.jl -e 'using Pkg; Pkg.instantiate()'
 ```
 
-## Running the Application
-
-There are two ways to use the DKT Research Agent.
-
-### Option 1: Streamlit Web Application (Recommended)
-
-Activate the Python environment:
+Set the Google Gemini API key:
 
 ```bash
-source .venv/bin/activate
+export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"
 ```
 
-Launch the application:
+Replace the placeholder with your own API key. Do not commit API keys or other credentials to the repository.
+
+## Running the Application
+
+Launch the Streamlit interface:
 
 ```bash
 streamlit run app.py
 ```
 
-Open the following address in your browser:
+Streamlit will display the local application URL in the terminal. Open that URL in your browser.
 
-```text
-http://localhost:8501
-```
+The application provides an interactive interface for DKT simulations, parameter studies, numerical diagnostics, and quantum research workflows.
 
-The Streamlit interface provides access to the research agent and its available simulation and analysis tools.
+## Running the Research Agent
 
-### Option 2: Terminal-Based Research Agent
-
-The original LangGraph research agent can also be launched directly from the terminal:
+The agent can also be launched from the terminal:
 
 ```bash
-source .venv/bin/activate
-
 PYTHONPATH=. python -m dkt_agent.agent
 ```
 
-This starts an interactive research-agent session in the terminal.
+Ensure that the virtual environment is activated and the Gemini API key is available in the environment.
 
-## Running Julia Scripts Independently
+## Julia Simulation Scripts
 
-Julia scripts can also be executed directly from the repository root.
+The Julia scripts in `scripts/julia/` provide standalone entry points for selected numerical workflows, including:
 
-For example, the classical DKT grid simulation:
+- Classical DKT trajectory simulation.
+- Grid-based trajectory simulation.
+- Fixed-point analysis.
+- Classical–quantum comparison.
+- Lyapunov exponent and KS-entropy diagnostics.
+- Entanglement entropy dynamics.
+- Entanglement entropy heatmap calculations.
+
+Some scripts require input parameters or output paths. Consult the corresponding script for its expected arguments and configuration.
+
+## Running Tests
+
+Run the Python test suite from the repository root:
 
 ```bash
-julia --project=QuantumKickedTop.jl \
-    scripts/julia/simulate_dkt_grid.jl
+PYTHONPATH=. python -m pytest tests/python/
 ```
 
-The script may require command-line arguments. Refer to its argument definitions before running it without arguments.
+The tests cover agent-tool integration, classical analysis, classical–quantum comparison, research diagnostics, and research workflows.
 
-Fixed-point analysis:
+## Suggested Research Workflows
 
-```bash
-julia --project=QuantumKickedTop.jl \
-    scripts/julia/analyze_dkt_fixed_points.jl
-```
+### Classical dynamics
 
-## Suggested Research Workflow
+1. Select $k_r$, $k_\theta$, and the initial conditions.
+2. Generate classical trajectories or phase-space portraits.
+3. Compare trajectory structures for selected parameter configurations.
+4. Examine Lyapunov and other numerical diagnostics where appropriate.
 
-To investigate the effects of increasing $k_\theta$:
+### Ergodicity and mixing-related investigations
 
-1. Choose a fixed value of $k_r$.
-2. Specify the initial conditions and number of kicks.
-3. Run the simulation for $k_\theta=0$.
-4. Repeat for larger values of $k_\theta$, keeping the other parameters unchanged.
-5. Compare trajectories and phase-space structures.
-6. Examine changes in stretching, rotation, and orientation.
-7. Analyze the numerical results and interpret the observations.
+1. Select observables and initial conditions.
+2. Calculate finite-time trajectory averages and fluctuations.
+3. Investigate observable autocorrelation functions.
+4. Examine finite-window Cesàro correlation diagnostics.
+5. Compare the behavior across parameter configurations and observation windows.
+6. Interpret results with appropriate finite-time and numerical limitations.
 
-The objective is to distinguish changes in phase-space geometry from changes in the underlying degree of classical chaos.
+### Quantum entanglement
+
+1. Choose the quantum spin and subsystem partition.
+2. Specify the initial spin-coherent state or grid of initial states.
+3. Run the entanglement dynamics or heatmap calculation.
+4. Specify the transient-discard interval and averaging interval.
+5. Examine the resulting entropy curves, heatmaps, and numerical outputs.
+
+### Classical–quantum correspondence
+
+1. Specify matching classical and quantum initial conditions.
+2. Select the DKT parameters and number of kicks.
+3. Calculate classical coordinates and normalized quantum spin expectations.
+4. Examine component-wise and vector error measures.
+5. Investigate the finite-time correspondence without conflating expectation-value deviations with classical chaoticity.
+
+## Scientific Interpretation and Limitations
+
+The project is intended as a computational research assistant. Numerical outputs should be interpreted in the context of the model, assumptions, finite observation times, numerical precision, and sampling choices.
+
+In particular:
+
+- Finite-time trajectory statistics do not establish asymptotic ergodicity.
+- Finite-window Cesàro diagnostics are numerical indicators, not proofs of weak mixing.
+- Observed correlation decay over a finite interval does not prove strong mixing.
+- Lyapunov and KS-entropy estimates depend on numerical methods, integration or iteration length, and applicable theoretical assumptions.
+- Quantum entanglement measures and classical trajectory diagnostics describe different aspects of the dynamics.
+- Classical–quantum correspondence should be assessed using clearly specified observables, initial-state alignment, and finite-time error measures.
+
+The AI agent is designed to analyze available evidence and numerical results. It should not replace independent verification of calculations or justify unsupported physical conclusions.
 
 ## Troubleshooting
 
-### Python dependency errors
+**Julia dependency errors**
 
-Ensure that the virtual environment is activated:
+Run:
+
+```bash
+julia --project=QuantumKickedTop.jl -e 'using Pkg; Pkg.instantiate()'
+```
+
+**Missing Gemini API key**
+
+Set `GOOGLE_API_KEY` in the active terminal before launching the agent or Streamlit application.
+
+**Python import errors**
+
+Activate the virtual environment and reinstall the dependencies:
 
 ```bash
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Julia dependency errors
+**Git submodule issues**
 
-Initialize the submodule and instantiate its dependencies:
+Run:
 
 ```bash
 git submodule update --init --recursive
-
-julia --project=QuantumKickedTop.jl -e 'using Pkg; Pkg.instantiate()'
 ```
 
-### Gemini API authentication errors
+**Streamlit port already in use**
 
-Check that `GOOGLE_API_KEY` is correctly configured:
-
-```bash
-echo "${GOOGLE_API_KEY:+API key is configured}"
-```
-
-This command checks whether the variable exists without printing its value.
-
-### Streamlit port already in use
-
-Use another port:
+Launch the application on another port:
 
 ```bash
 streamlit run app.py --server.port 8502
@@ -257,18 +343,16 @@ streamlit run app.py --server.port 8502
 
 ## Development Status
 
-This project is under active development. Simulation capabilities, numerical analysis tools, visualizations, and AI research-agent functionality are evolving as the research progresses.
+The project is under active development. Its simulation, analysis, and research-agent capabilities are being extended and refined.
 
+Numerical results and research conclusions should be checked against the underlying Julia and Python implementations, relevant theoretical assumptions, and independent calculations.
 
-## Quantum entanglement dynamics
+## License
 
-The agent provides two additional Julia-backed calculations:
+This project is licensed under the [MIT License](LICENSE).
 
-- **Entropy versus kick number:** evolves one spin-coherent initial state and records normalized von Neumann entropy for kicks $0,1,\ldots,T$.
-- **Long-time-averaged entropy heatmap:** evaluates a grid of coherent initial states, discards kicks $0:T_0$, and averages exactly kicks $T_0+1:T$.
+Copyright (c) 2026 Avadhut V. Purohit.
 
-The normalized entropy is $s_A=S_A/\log_2[\min(Q+1,N-Q+1)]$, with $N=2s$ and rdm_dim=$Q$. The initial coherent product state has zero entanglement up to numerical precision. This evolving-state analysis is distinct from Floquet-eigenstate entanglement.
+You are free to use, modify, distribute, and adapt this software in accordance with the terms of the MIT License.
 
-The Streamlit sidebar has a **Quantum entanglement** section for both calculations. Results include plots, CSV downloads, parameter metadata, state-norm checks, and heatmap failure counts. The AI agent can invoke the same tools from chat, and the interface renders their returned time-series or heatmap artifacts.
-
-For heatmaps, the transient convention is fixed: discard $0:T_0$ and average $T_0+1:T$. Failed cells remain missing (NaN), never zero. Early/late averaging-window differences are finite-time diagnostics and must not be presented as proof of asymptotic convergence.
+See the [LICENSE](LICENSE) file for the complete license text.
