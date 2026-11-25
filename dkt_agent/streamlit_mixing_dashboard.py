@@ -125,8 +125,8 @@ def render_mixing_hierarchy_dashboard() -> None:
 
     st.success("Finite-data diagnostics completed and saved.")
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Trajectories", result.get("n_trajectories", "—"))
-    m2.metric("Common samples / trajectory", result.get("common_samples_per_trajectory", "—"))
+    m1.metric("Trajectories", ergodic.get("n_trajectories", "—"))
+    m2.metric("Common samples / trajectory", ergodic.get("common_samples_per_trajectory", "—"))
     m3.metric("Maximum lag used", weak.get("max_lag_used", "—"))
     m4.metric("Partition cells", strong.get("partition", {}).get("n_cells", "—"))
     st.markdown(
