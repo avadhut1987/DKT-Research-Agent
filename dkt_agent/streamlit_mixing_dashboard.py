@@ -201,7 +201,7 @@ def render_mixing_hierarchy_dashboard() -> None:
         result = {}
         st.caption(
             "No diagnostic result is loaded yet. The four sections below are ready; "
-            "select at least two matching trajectory files and run the diagnostics to populate them."
+            "generate or select a saved ensemble above and run the diagnostics to populate them."
         )
 
     has_result = bool(result)
@@ -227,7 +227,7 @@ def render_mixing_hierarchy_dashboard() -> None:
         st.caption("Ensemble files: " + ", ".join(result.get("input_trajectory_csvs", [])))
     else:
         st.info(
-            "Dashboard ready. Choose at least two matching trajectory files above "
+            "Dashboard ready. Choose a saved, parameter-verified ensemble above "
             "to calculate and display numerical results in the four tabs."
         )
 
