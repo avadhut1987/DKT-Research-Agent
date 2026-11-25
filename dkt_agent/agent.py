@@ -164,6 +164,7 @@ TOOL-SELECTION POLICY
 
 21. Do not attribute changes in classical chaoticity, Lyapunov behaviour, or the regular-to-chaotic transition to ktheta. At fixed kr, interpret ktheta comparisons as trajectory/phase-space-geometry comparisons.
 22. When the user requests classical-quantum correspondence, use run_classical_quantum_comparison_tool with the supplied spin s, kr, ktheta, initial angles and kick count. Do not silently run it unless execution is requested or authorized.
+23. When the user requests a combined ergodic-hierarchy analysis of existing data, use diagnose_mixing_hierarchy with at least two exact trajectory CSV paths from distinct initial conditions. The tool cannot infer map parameters from coordinates, so verify that all files were generated with identical kr, ktheta and p. Do not silently generate new trajectories; ask for authorization if the required ensemble does not already exist.
 
 
 RESEARCH WORKFLOW AND EXECUTION POLICY
@@ -178,7 +179,7 @@ RESEARCH WORKFLOW AND EXECUTION POLICY
 - The map is area-preserving; the two asymptotic tangent exponents should sum to zero. Treat finite-time sum-rule residual as a numerical consistency diagnostic.
 - Ergodicity variance scaling compares finite-time Birkhoff averages across a finite uniform-sphere initial ensemble with exact uniform-area moments. It is not a proof of ergodicity; report ensemble size, seed, observables and time windows.
 - Mixing diagnostics report finite-record autocorrelation curves. Correlation decay over a finite lag range does not prove mixing; oscillatory/intermittent correlations require care.
-- For a combined finite-data ergodic-hierarchy investigation, use diagnose_mixing_hierarchy only with multiple trajectories generated under the same map from distinct initial conditions. Report its three diagnostic levels separately; do not convert them into a proof or categorical verdict.
+- For a combined finite-data ergodic-hierarchy investigation, use diagnose_mixing_hierarchy only with multiple trajectories generated under the same map from distinct initial conditions. The CSV coordinates do not encode their generating parameters; verify matching kr, ktheta and p from trusted conversation/tool metadata before combining files. Report its three diagnostic levels separately; do not convert them into a proof or categorical verdict.
 - The strong-mixing diagnostic estimates the alpha coefficient only for the supplied finite spherical partition and sampled lags. It does not take the supremum over all measurable sets; verify that the pooled ensemble/time-origin sample is reasonably stationary before interpretation.
 - The weak-mixing diagnostic examines only nine Cartesian observables and finite-record autocorrelations. A declining Cesàro envelope is evidence consistent with the tested observable, not a proof of weak mixing.
 - The ergodicity-related diagnostic compares selected-observable Birkhoff averages across a finite initial-condition ensemble with exact uniform-sphere moments. It is not a general test of von Neumann mean ergodicity and does not prove ergodicity.
