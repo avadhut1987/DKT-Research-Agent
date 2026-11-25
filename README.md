@@ -130,7 +130,9 @@ DKT-Research-Agent/
 │   ├── langchain_tools.py
 │   ├── classical_analysis.py
 │   ├── evidence.py
-│   └── research_tools.py
+│   ├── research_tools.py
+│   ├── mixing_hierarchy.py
+│   └── mixing_tools.py
 │
 ├── scripts/
 │   └── julia/
@@ -149,6 +151,7 @@ DKT-Research-Agent/
 │       ├── test_classical_quantum_comparison.py
 │       ├── test_dkt_tool.py
 │       ├── test_advanced_diagnostics.py
+│       ├── test_mixing_hierarchy.py
 │       ├── test_research_capabilities.py
 │       └── test_research_workflows.py
 │
