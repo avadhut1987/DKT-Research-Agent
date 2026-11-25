@@ -21,13 +21,14 @@ The research tools provide numerical investigations of the ergodic hierarchy, in
 
 - **Mean ergodicity:** trajectory time averages, observable fluctuations, and variance-based studies across initial conditions.
 - **Correlation analysis:** observable autocorrelation functions and finite-time correlation diagnostics.
-- **Weak-mixing-related diagnostics:** finite-window Cesàro averages of squared correlations.
-- **Mixing-related analysis:** numerical investigation of correlation decay over sampled time intervals.
+- **Weak-mixing-related diagnostics:** finite-window Cesàro averages of squared autocorrelations for nine Cartesian observables across multiple trajectories.
+- **Strong-mixing-related diagnostics:** finite-partition alpha-coefficient estimates from pooled trajectory ensembles and sampled time origins.
+- **Combined hierarchy workflow:** a single agent tool that reports the three finite-data diagnostic levels separately for matched DKT map parameters and multiple initial conditions.
 - **Lyapunov analysis:** finite-time and long-time numerical estimates of maximal Lyapunov exponents.
 - **Kolmogorov–Sinai (KS) entropy:** numerical estimates associated with the Lyapunov spectrum under applicable assumptions.
 - **Parameter scans:** investigate how selected diagnostics vary with the average kicking parameter.
 
-These calculations provide finite-time numerical evidence, not mathematical proofs of ergodicity, weak mixing, or strong mixing. In particular, correlation decay alone is not sufficient to establish strong mixing.
+These calculations provide finite-time numerical evidence, not mathematical proofs of ergodicity, weak mixing, or strong mixing. The ergodicity-related study tests selected observables against uniform-sphere moments; it is not a general test of von Neumann mean ergodicity. The weak-mixing-related study examines only a finite set of observables and lags. The strong-mixing-related study estimates the alpha coefficient only for a specified finite spherical partition; it does not take the supremum over all measurable sets. The pooled trajectory/time-origin sample should be checked for approximate stationarity. Correlation decay alone is not sufficient to establish strong mixing.
 
 ### 3. Quantum Entanglement Dynamics
 
@@ -267,9 +268,10 @@ The tests cover agent-tool integration, classical analysis, classical–quantum 
 1. Select observables and initial conditions.
 2. Calculate finite-time trajectory averages and fluctuations.
 3. Investigate observable autocorrelation functions.
-4. Examine finite-window Cesàro correlation diagnostics.
-5. Compare the behavior across parameter configurations and observation windows.
-6. Interpret results with appropriate finite-time and numerical limitations.
+4. For a multi-trajectory hierarchy study, pass at least two existing trajectories from distinct initial conditions under the same DKT map to diagnose_mixing_hierarchy.
+5. Examine the selected-observable Birkhoff variance, finite-window Cesàro squared-autocorrelation envelopes, and finite-partition alpha coefficients separately.
+6. Check ensemble stationarity, partition resolution, lag range, and sensitivity to initial-condition sampling.
+7. Compare the behavior across parameter configurations and observation windows without converting finite diagnostics into asymptotic classifications.
 
 ### Quantum entanglement
 
