@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import io
 import json
+import zipfile
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-from dkt_agent.mixing_tools import diagnose_mixing_hierarchy
+from dkt_agent.mixing_tools import (
+    diagnose_mixing_hierarchy,
+    discover_saved_ensembles,
+    generate_dkt_ensemble,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TRAJECTORY_ROOT = PROJECT_ROOT / "results" / "trajectories"
@@ -22,97 +28,250 @@ def _load_result(raw):
     raise TypeError("The mixing diagnostic returned an unsupported result type.")
 
 
+def _ensemble_zip_bytes(ensemble: dict) -> bytes:
+    """Build a portable archive containing an ensemble's CSVs and manifest."""
+    manifest = ensemble["manifest"]
+    manifest_path = Path(ensemble["manifest_path"])
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.write(manifest_path, arcname="ensemble_manifest.json")
+        for record in manifest["trajectory_files"]:
+            source = (PROJECT_ROOT / record["file"]).resolve()
+            source.relative_to(TRAJECTORY_ROOT.resolve())
+            archive.write(source, arcname=Path(record["file"]).name)
+    return buffer.getvalue()
+
+
 def render_mixing_hierarchy_dashboard() -> None:
-    """Render the interactive finite-data ergodic-hierarchy dashboard."""
+    """Render an ensemble-first workspace for finite-data hierarchy diagnostics."""
     st.divider()
     st.header("Ergodic Hierarchy — Visual Dashboard")
     st.caption(
-        "Finite-data diagnostics for selected-observable Birkhoff averages, "
-        "autocorrelation/Cesàro behaviour, and finite-partition alpha coefficients."
+        "Generate, save, and analyse a reproducible DKT ensemble in one step; "
+        "the application handles the trajectory files and metadata automatically."
     )
 
-    files = sorted(TRAJECTORY_ROOT.glob("*.csv")) if TRAJECTORY_ROOT.is_dir() else []
-    if len(files) < 2:
-        st.info(
-            f"Only {len(files)} trajectory CSV file(s) found. At least two trajectories "
-            "from distinct initial conditions under the same DKT map are required to run "
-            "the ensemble diagnostics. The four diagnostic sections remain visible below."
+    with st.expander("Generate and save a DKT trajectory ensemble", expanded=True):
+        st.write(
+            "The application generates a grid of distinct initial conditions using "
+            "one common DKT map. Every orbit is saved as a separate parameter-labelled "
+            "CSV, and an ensemble manifest records the exact map parameters and initial conditions."
         )
+        with st.form("mixing_ensemble_generation_form"):
+            g1, g2, g3 = st.columns(3)
+            with g1:
+                gen_kr = st.number_input(
+                    r"Average kicking strength $k_r$", value=1.0, step=0.1,
+                    key="mix_gen_kr",
+                )
+            with g2:
+                gen_ktheta = st.number_input(
+                    "Asymmetry parameter (kθ)", value=0.0, step=1.0,
+                    key="mix_gen_ktheta",
+                )
+            with g3:
+                gen_p = st.number_input(
+                    r"Rotation angle $p$", value=1.5707963267948966,
+                    step=0.05, format="%.8f", key="mix_gen_p",
+                )
+            g4, g5 = st.columns(2)
+            with g4:
+                grid_size = st.selectbox(
+                    "Angular grid size per direction",
+                    options=[5, 6, 7, 8],
+                    index=0,
+                    help="Generates grid_size² distinct initial conditions (25–64 trajectories).",
+                    key="mix_gen_grid_size",
+                )
+            with g5:
+                nsteps = st.number_input(
+                    "Kicks per trajectory", min_value=10, max_value=5000,
+                    value=1000, step=100, key="mix_gen_nsteps",
+                )
+            st.divider()
+            st.markdown("**Diagnostic settings**")
+            d1, d2, d3 = st.columns(3)
+            with d1:
+                gen_transient = st.number_input(
+                    "Transient kicks to discard", min_value=0, value=0,
+                    step=10, key="mix_gen_transient",
+                )
+            with d2:
+                gen_max_lag = st.number_input(
+                    "Maximum autocorrelation lag", min_value=2, max_value=5000,
+                    value=500, step=50, key="mix_gen_max_lag",
+                )
+            with d3:
+                gen_partition = st.selectbox(
+                    "Spherical partition",
+                    options=[(2, 4), (2, 3), (1, 4), (1, 2), (4, 4)],
+                    index=0,
+                    format_func=lambda item: f"{item[0]} z-bins × {item[1]} azimuth-bins",
+                    key="mix_gen_partition",
+                )
+            generate_submitted = st.form_submit_button(
+                "Generate, save & run diagnostics",
+                type="primary",
+                use_container_width=True,
+            )
 
-    path_by_label = {f"{p.name}": str(p) for p in files}
-    with st.expander("Select ensemble and diagnostic settings", expanded=True):
-        st.warning(
-            "Trajectory CSV coordinates do not prove which map parameters generated them. "
-            "Select trajectories from distinct initial conditions that share exactly the "
-            "same $k_r$, $k_\\theta$, and $p$. The parameter values below are recorded "
-            "as your declared ensemble metadata; they are not inferred from the CSV files."
+    if generate_submitted:
+        try:
+            with st.spinner(
+                f"Generating {grid_size**2} trajectories and calculating diagnostics..."
+            ):
+                generated = generate_dkt_ensemble(
+                    kr=float(gen_kr),
+                    ktheta=float(gen_ktheta),
+                    p=float(gen_p),
+                    grid_size=int(grid_size),
+                    nsteps=int(nsteps),
+                )
+                paths = [
+                    str((PROJECT_ROOT / relative_path).resolve())
+                    for relative_path in generated["trajectory_files"]
+                ]
+                raw = diagnose_mixing_hierarchy.invoke({
+                    "trajectory_csvs": paths,
+                    "transient": int(gen_transient),
+                    "max_lag": int(gen_max_lag),
+                    "n_z": int(gen_partition[0]),
+                    "n_phi": int(gen_partition[1]),
+                })
+            result = _load_result(raw)
+            manifest = json.loads(
+                Path(generated["manifest_path"]).read_text(encoding="utf-8")
+            )
+            result["dashboard_declared_map_parameters"] = {
+                "kr": float(gen_kr),
+                "ktheta": float(gen_ktheta),
+                "p": float(gen_p),
+            }
+            result["dashboard_ensemble_manifest"] = manifest
+            result["dashboard_ensemble_manifest_path"] = generated["manifest_path"]
+            st.session_state["mixing_hierarchy_dashboard_result"] = result
+            st.session_state["mixing_hierarchy_dashboard_files"] = paths
+            st.session_state["mixing_hierarchy_last_manifest"] = generated["manifest_path"]
+            st.session_state["mixing_hierarchy_generation_notice"] = (
+                f"Generated and saved {generated['n_trajectories']} trajectories "
+                f"({generated['nsteps']} kicks each), then completed the diagnostics. "
+                f"Files: {generated['ensemble_directory']}"
+            )
+            st.rerun()
+        except Exception as exc:
+            st.error(f"Generation or diagnostic run failed: {type(exc).__name__}: {exc}")
+
+    notice = st.session_state.pop("mixing_hierarchy_generation_notice", None)
+    if notice:
+        st.success(notice)
+
+    ensembles = discover_saved_ensembles()
+    if not ensembles:
+        st.info(
+            "No generated ensemble is saved yet. Use the generator above. "
+            "The CSV files will be named with their DKT parameters and initial conditions; "
+            "the application will register them automatically."
+        )
+        submitted = False
+    else:
+        labels = list(ensembles)
+        last_manifest = st.session_state.get("mixing_hierarchy_last_manifest")
+        default_index = next(
+            (
+                i for i, label in enumerate(labels)
+                if ensembles[label]["manifest_path"] == last_manifest
+            ),
+            0,
         )
         with st.form("mixing_hierarchy_dashboard_form"):
-            selected_names = st.multiselect(
-                "Existing trajectory files (same map, distinct initial conditions)",
-                options=list(path_by_label),
-                default=[],
-                help="Only files in results/trajectories are listed.",
+            selected_label = st.selectbox(
+                "Saved trajectory ensemble",
+                options=labels,
+                index=default_index,
+                help="Only complete ensembles with a saved parameter manifest are listed.",
             )
-            p1, p2, p3 = st.columns(3)
-            with p1:
-                kr = st.number_input(r"Common average strength $k_r$", value=1.0, step=0.1, key="mix_dash_kr")
-            with p2:
-                ktheta = st.number_input(r"Common asymmetry $k_\\theta$", value=0.0, step=1.0, key="mix_dash_ktheta")
-            with p3:
-                kick_angle = st.number_input(r"Common rotation angle $p$", value=1.5707963267948966, step=0.05, format="%.8f", key="mix_dash_p")
+            selected_ensemble = ensembles[selected_label]
+            manifest = selected_ensemble["manifest"]
+            map_parameters = manifest["parameters"]
+            st.caption(
+                f"{map_parameters['n_trajectories']} distinct initial conditions · "
+                f"{map_parameters['nsteps']} kicks each · "
+                f"$k_r={map_parameters['kr']:g}$ · "
+                f"$k_\theta={map_parameters['ktheta']:g}$ · "
+                f"$p={map_parameters['p']:g}$"
+            )
             q1, q2, q3 = st.columns(3)
             with q1:
-                transient = st.number_input("Transient kicks to discard", min_value=0, value=0, step=10, key="mix_dash_transient")
+                transient = st.number_input(
+                    "Transient kicks to discard", min_value=0, value=0,
+                    step=10, key="mix_dash_transient",
+                )
             with q2:
-                max_lag = st.number_input("Maximum autocorrelation lag", min_value=2, max_value=5000, value=500, step=50, key="mix_dash_lag")
+                max_lag = st.number_input(
+                    "Maximum autocorrelation lag", min_value=2, max_value=5000,
+                    value=500, step=50, key="mix_dash_lag",
+                )
             with q3:
-                n_z = st.selectbox("Partition bins in z", options=[1, 2, 3, 4], index=1, key="mix_dash_nz")
-                n_phi = st.selectbox("Partition bins in azimuth", options=[1, 2, 3, 4, 5, 6, 8], index=2, key="mix_dash_nphi")
-            confirmed = st.checkbox(
-                "I confirm that all selected trajectories use the same map parameters and distinct initial conditions.",
-                value=False,
-                key="mix_dash_confirm",
+                n_z = st.selectbox(
+                    "Partition bins in z", options=[1, 2, 3, 4],
+                    index=1, key="mix_dash_nz",
+                )
+                n_phi = st.selectbox(
+                    "Partition bins in azimuth",
+                    options=[1, 2, 3, 4, 5, 6, 8],
+                    index=2, key="mix_dash_nphi",
+                )
+            submitted = st.form_submit_button(
+                "Run ergodic-hierarchy diagnostics",
+                type="primary",
+                use_container_width=True,
             )
-            submitted = st.form_submit_button("Run ergodic-hierarchy diagnostics", type="primary", use_container_width=True)
 
-    if submitted:
-        if len(selected_names) < 2:
-            st.error("Select at least two trajectory CSV files.")
-        elif len(selected_names) > 24:
-            st.error("Select no more than 24 trajectory files.")
-        elif n_z * n_phi > 16:
-            st.error("The exact finite-partition alpha calculation is limited to 16 cells.")
-        elif not confirmed:
-            st.error("Confirm that the ensemble uses identical map parameters and distinct initial conditions.")
-        else:
-            paths = [path_by_label[name] for name in selected_names]
-            try:
-                with st.spinner("Computing finite-data ergodic-hierarchy diagnostics..."):
-                    raw = diagnose_mixing_hierarchy.invoke({
-                        "trajectory_csvs": paths,
-                        "transient": int(transient),
-                        "max_lag": int(max_lag),
-                        "n_z": int(n_z),
-                        "n_phi": int(n_phi),
-                    })
-                result = _load_result(raw)
-                result["dashboard_declared_map_parameters"] = {
-                    "kr": float(kr),
-                    "ktheta": float(ktheta),
-                    "p": float(kick_angle),
-                }
-                st.session_state["mixing_hierarchy_dashboard_result"] = result
-                st.session_state["mixing_hierarchy_dashboard_files"] = selected_names
-            except Exception as exc:
-                st.error(f"Diagnostic failed: {type(exc).__name__}: {exc}")
+        st.download_button(
+            "Download selected trajectory ensemble (ZIP)",
+            data=_ensemble_zip_bytes(selected_ensemble),
+            file_name=f"{Path(selected_ensemble['manifest_path']).parent.name}.zip",
+            mime="application/zip",
+            key="mixdash_download_ensemble_zip",
+        )
+
+        if submitted:
+            if n_z * n_phi > 16:
+                st.error("The exact finite-partition alpha calculation is limited to 16 cells.")
+            else:
+                paths = [
+                    str((PROJECT_ROOT / record["file"]).resolve())
+                    for record in manifest["trajectory_files"]
+                ]
+                try:
+                    with st.spinner("Computing finite-data ergodic-hierarchy diagnostics..."):
+                        raw = diagnose_mixing_hierarchy.invoke({
+                            "trajectory_csvs": paths,
+                            "transient": int(transient),
+                            "max_lag": int(max_lag),
+                            "n_z": int(n_z),
+                            "n_phi": int(n_phi),
+                        })
+                    result = _load_result(raw)
+                    result["dashboard_declared_map_parameters"] = {
+                        "kr": float(map_parameters["kr"]),
+                        "ktheta": float(map_parameters["ktheta"]),
+                        "p": float(map_parameters["p"]),
+                    }
+                    result["dashboard_ensemble_manifest"] = manifest
+                    result["dashboard_ensemble_manifest_path"] = selected_ensemble["manifest_path"]
+                    st.session_state["mixing_hierarchy_dashboard_result"] = result
+                    st.session_state["mixing_hierarchy_dashboard_files"] = paths
+                    st.session_state["mixing_hierarchy_last_manifest"] = selected_ensemble["manifest_path"]
+                except Exception as exc:
+                    st.error(f"Diagnostic failed: {type(exc).__name__}: {exc}")
 
     result = st.session_state.get("mixing_hierarchy_dashboard_result")
     if not isinstance(result, dict):
         result = {}
         st.caption(
             "No diagnostic result is loaded yet. The four sections below are ready; "
-            "select at least two matching trajectory files and run the diagnostics to populate them."
+            "generate or select a saved ensemble above and run the diagnostics to populate them."
         )
 
     has_result = bool(result)
@@ -125,19 +284,22 @@ def render_mixing_hierarchy_dashboard() -> None:
 
     if has_result:
         st.success("Finite-data diagnostics completed and saved.")
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Trajectories", ergodic.get("n_trajectories", "—"))
+        m2.metric("Common samples / trajectory", ergodic.get("common_samples_per_trajectory", "—"))
+        m3.metric("Maximum lag used", weak.get("max_lag_used", "—"))
+        m4.metric("Partition cells", strong.get("partition", {}).get("n_cells", "—"))
+        st.markdown(
+            rf"**Declared common map:** $k_r={parameters.get('kr', '—')}$, "
+            rf"$k_\theta={parameters.get('ktheta', '—')}$, "
+            rf"$p={parameters.get('p', '—')}$"
+        )
+        st.caption("Ensemble files: " + ", ".join(result.get("input_trajectory_csvs", [])))
     else:
-        st.info("Dashboard ready — numerical plots and tables will populate after a successful diagnostic run.")
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Trajectories", ergodic.get("n_trajectories", "—"))
-    m2.metric("Common samples / trajectory", ergodic.get("common_samples_per_trajectory", "—"))
-    m3.metric("Maximum lag used", weak.get("max_lag_used", "—"))
-    m4.metric("Partition cells", strong.get("partition", {}).get("n_cells", "—"))
-    st.markdown(
-        rf"**Declared common map:** $k_r={parameters.get('kr', '—')}$, "
-        rf"$k_\theta={parameters.get('ktheta', '—')}$, "
-        rf"$p={parameters.get('p', '—')}$"
-    )
-    st.caption("Ensemble files: " + ", ".join(result.get("input_trajectory_csvs", [])))
+        st.info(
+            "Dashboard ready. Choose a saved, parameter-verified ensemble above "
+            "to calculate and display numerical results in the four tabs."
+        )
 
     tab_ergodic, tab_weak, tab_strong, tab_summary = st.tabs([
         "Birkhoff averages",
@@ -157,7 +319,7 @@ def render_mixing_hierarchy_dashboard() -> None:
             chosen = frame[frame["observable"] == observable]
             st.dataframe(chosen, use_container_width=True, hide_index=True)
         if not rows:
-            st.caption("No Birkhoff-average data yet. Run the diagnostics with at least two trajectory files.")
+            st.caption("No Birkhoff-average data yet. Run the diagnostics with a saved ensemble.")
         st.info(
             "This is a finite-ensemble, selected-observable consistency diagnostic against "
             "uniform-sphere moments. It is not a general von Neumann mean-ergodicity test "
@@ -195,7 +357,7 @@ def render_mixing_hierarchy_dashboard() -> None:
                 "cesaro_mean_squared_autocorrelation": [None] + list(cesaro),
             }), use_container_width=True, hide_index=True)
         else:
-            st.caption("No autocorrelation or Cesàro data yet. Run the diagnostics to populate these plots.")
+            st.caption("No autocorrelation or Cesàro data yet. Run the diagnostics with a saved ensemble to populate these plots.")
         st.info(
             "A declining finite-window Cesàro average is consistent with weak-mixing "
             "behaviour for the tested observable; it is not a proof. Only nine observables "

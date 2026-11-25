@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import csv
 import json
+import math
+import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
+
+from dkt_agent.tools import simulate_dkt_grid
 
 from langchain_core.tools import tool
 
@@ -14,6 +19,80 @@ from dkt_agent.mixing_hierarchy import run_mixing_hierarchy_from_trajectories
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TRAJECTORY_ROOT = (PROJECT_ROOT / "results" / "trajectories").resolve()
 DIAGNOSTICS_ROOT = PROJECT_ROOT / "results" / "diagnostics"
+
+
+def _load_finite_hierarchy_trajectory(path: str | Path):
+    """Read legacy and current DKT CSVs, including files with metadata preambles.
+
+    Current files use a header such as step,X,Y,Z,norm. Older Julia exports
+    may prepend comment/metadata lines or contain headerless five-column rows.
+    In the latter case the established column order is step,X,Y,Z,norm.
+    """
+    import numpy as np
+
+    rows = []
+    header = None
+    with Path(path).open("r", newline="", encoding="utf-8-sig") as handle:
+        for raw in csv.reader(handle):
+            if not raw or not any(cell.strip() for cell in raw):
+                continue
+            cells = [cell.strip() for cell in raw]
+            if cells[0].startswith("#"):
+                continue
+            lowered = [cell.lower() for cell in cells]
+            if {"x", "y", "z"}.issubset(set(lowered)):
+                header = lowered
+                continue
+            try:
+                values = [float(cell) for cell in cells]
+            except ValueError:
+                # Skip textual metadata/preamble; data rows are parsed below.
+                continue
+            if len(values) < 3:
+                continue
+            rows.append(values)
+
+    if not rows:
+        raise ValueError(f"No numeric trajectory rows found in {path}.")
+
+    if header is not None:
+        try:
+            ix, iy, iz = (header.index(axis) for axis in ("x", "y", "z"))
+        except ValueError as exc:
+            raise ValueError(f"Trajectory header in {path} lacks X,Y,Z columns.") from exc
+        # Headered files must keep a consistent number of columns.
+        width = len(header)
+        if any(len(row) != width for row in rows):
+            raise ValueError(f"Inconsistent CSV column count in {path}.")
+        points = np.asarray([[row[ix], row[iy], row[iz]] for row in rows], dtype=float)
+    else:
+        widths = {len(row) for row in rows}
+        if len(widths) != 1:
+            raise ValueError(f"Inconsistent numeric CSV column count in {path}: {sorted(widths)}.")
+        width = widths.pop()
+        if width == 5:
+            # Legacy DKT orbit format: step, X, Y, Z, norm.
+            points = np.asarray([row[1:4] for row in rows], dtype=float)
+        elif width == 3:
+            points = np.asarray(rows, dtype=float)
+        else:
+            raise ValueError(
+                f"Headerless trajectory {path} has {width} columns; "
+                "expected 3 coordinates or 5 columns (step,X,Y,Z,norm)."
+            )
+
+    if points.ndim != 2 or points.shape[1] != 3 or len(points) == 0:
+        raise ValueError(f"Unexpected trajectory shape in {path}: {points.shape}")
+    if not np.all(np.isfinite(points)):
+        raise ValueError(f"Non-finite coordinates found in {path}.")
+    norms = np.linalg.norm(points, axis=1)
+    max_error = float(np.max(np.abs(norms - 1.0)))
+    if max_error > 1e-8:
+        raise ValueError(
+            f"Trajectory in {path} is not on the unit sphere: "
+            f"maximum norm error {max_error:.3e}."
+        )
+    return points
 
 
 def _resolve_path(value: str) -> Path:
@@ -35,6 +114,243 @@ def _resolve_path(value: str) -> Path:
     return resolved
 
 
+def _number_token(value: float) -> str:
+    """Create a readable, filesystem-safe numerical filename token."""
+    token = f"{float(value):.6f}".rstrip("0").rstrip(".")
+    if token in ("", "-0"):
+        token = "0"
+    return token.replace("-", "m").replace(".", "p")
+
+
+def generate_dkt_ensemble(
+    kr: float,
+    ktheta: float = 0.0,
+    p: float = 1.5707963267948966,
+    grid_size: int = 5,
+    nsteps: int = 1000,
+) -> dict:
+    """Generate, split, and persist a same-map ensemble from the Julia grid simulator.
+
+    The grid simulator evolves distinct angular-grid initial conditions under
+    one common DKT map. Each orbit is saved as a parameter-labelled CSV and
+    an ensemble manifest records the exact map parameters and initial state.
+    """
+    for name, value in (("kr", kr), ("ktheta", ktheta), ("p", p)):
+        try:
+            value = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{name} must be a finite number.") from exc
+        if not math.isfinite(value):
+            raise ValueError(f"{name} must be a finite number.")
+        if name == "kr":
+            kr = value
+        elif name == "ktheta":
+            ktheta = value
+        else:
+            p = value
+
+    if isinstance(grid_size, bool) or not isinstance(grid_size, int) or not 5 <= grid_size <= 8:
+        raise ValueError("grid_size must be an integer from 5 to 8 (25–64 trajectories).")
+    if isinstance(nsteps, bool) or not isinstance(nsteps, int) or not 1 <= nsteps <= 5_000:
+        raise ValueError("nsteps must be an integer from 1 to 5,000.")
+
+    generated = simulate_dkt_grid(
+        kr=kr, ktheta=ktheta, p=p, grid_size=grid_size, nsteps=nsteps
+    )
+    orbit_points = generated.get("orbit_points", [])
+    expected_trajectories = grid_size * grid_size
+    expected_rows = nsteps + 1
+    grouped: dict[tuple[int, int], list[dict]] = {}
+    for point in orbit_points:
+        key = (int(point["grid_i"]), int(point["grid_j"]))
+        grouped.setdefault(key, []).append(point)
+
+    if len(grouped) != expected_trajectories:
+        raise RuntimeError(
+            f"Expected {expected_trajectories} distinct initial conditions; "
+            f"received {len(grouped)}."
+        )
+
+    TRAJECTORY_ROOT.mkdir(parents=True, exist_ok=True)
+    prefix = (
+        f"ensemble_kr_{_number_token(kr)}_ktheta_{_number_token(ktheta)}_"
+        f"p_{_number_token(p)}_grid_{grid_size}_nsteps_{nsteps}_"
+    )
+    ensemble_dir = Path(tempfile.mkdtemp(prefix=prefix, dir=TRAJECTORY_ROOT))
+    trajectory_records = []
+
+    for (grid_i, grid_j), rows in sorted(grouped.items()):
+        rows.sort(key=lambda row: int(row["kick"]))
+        if len(rows) != expected_rows:
+            raise RuntimeError(
+                f"Grid point ({grid_i}, {grid_j}) has {len(rows)} rows; "
+                f"expected {expected_rows}."
+            )
+        theta0 = float(rows[0]["theta0"])
+        phi0 = float(rows[0]["phi0"])
+        filename = (
+            f"trajectory_{grid_i:02d}_{grid_j:02d}_"
+            f"kr_{_number_token(kr)}_ktheta_{_number_token(ktheta)}_"
+            f"p_{_number_token(p)}_theta0_{_number_token(theta0)}_"
+            f"phi0_{_number_token(phi0)}_nsteps_{nsteps}.csv"
+        )
+        output_path = ensemble_dir / filename
+        with output_path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(
+                handle, fieldnames=["step", "X", "Y", "Z", "norm"]
+            )
+            writer.writeheader()
+            for row in rows:
+                writer.writerow({
+                    "step": int(row["kick"]),
+                    "X": float(row["X"]),
+                    "Y": float(row["Y"]),
+                    "Z": float(row["Z"]),
+                    "norm": float(row["norm"]),
+                })
+        trajectory_records.append({
+            "grid_i": grid_i,
+            "grid_j": grid_j,
+            "theta0": theta0,
+            "phi0": phi0,
+            "file": str(output_path.relative_to(PROJECT_ROOT)),
+            "rows": len(rows),
+        })
+
+    manifest = {
+        "schema_version": 1,
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "generator": "QuantumKickedTop.jl simulate_dkt_grid.jl",
+        "sampling": "midpoint angular grid in theta and uniform grid in phi",
+        "parameters": {
+            "kr": kr,
+            "ktheta": ktheta,
+            "k": kr + ktheta,
+            "kprime": kr - ktheta,
+            "p": p,
+            "grid_size": grid_size,
+            "n_trajectories": expected_trajectories,
+            "nsteps": nsteps,
+        },
+        "raw_grid_csv": generated.get("phase_space_csv"),
+        "trajectory_files": trajectory_records,
+        "max_norm_error": generated.get("max_norm_error"),
+    }
+    manifest_path = ensemble_dir / "ensemble_manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return {
+        "status": "success",
+        "manifest_path": str(manifest_path),
+        "ensemble_directory": str(ensemble_dir),
+        "n_trajectories": expected_trajectories,
+        "nsteps": nsteps,
+        "max_norm_error": generated.get("max_norm_error"),
+        "parameters": manifest["parameters"],
+        "trajectory_files": [record["file"] for record in trajectory_records],
+    }
+
+
+def discover_saved_ensembles() -> dict[str, dict]:
+    """Read saved ensemble manifests, newest first, without guessing CSV provenance."""
+    ensembles: dict[str, dict] = {}
+    if not TRAJECTORY_ROOT.is_dir():
+        return ensembles
+    manifests = sorted(
+        TRAJECTORY_ROOT.glob("ensemble_*/ensemble_manifest.json"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    for manifest_path in manifests:
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            records = manifest["trajectory_files"]
+            parameters = manifest["parameters"]
+            if len(records) < 2 or not all(
+                (PROJECT_ROOT / record["file"]).is_file() for record in records
+            ):
+                continue
+            label = (
+                f"{manifest_path.parent.name} · "
+                f"kr={parameters['kr']:g}, kθ={parameters['ktheta']:g}, "
+                f"p={parameters['p']:g} · {len(records)} trajectories"
+            )
+            ensembles[label] = {
+                "manifest": manifest,
+                "manifest_path": str(manifest_path),
+            }
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+    # Also discover ordinary single-trajectory runs saved by simulate_dkt().
+    # Their files live in nested dkt_run_* directories, so a top-level *.csv
+    # search misses them. Metadata lets us group only exactly matching maps.
+    grouped: dict[tuple[float, float, float], list[dict]] = {}
+    for metadata_path in TRAJECTORY_ROOT.glob("dkt_run_*/trajectory_metadata.json"):
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            parameters = metadata["parameters"]
+            key = (
+                float(parameters["kr"]),
+                float(parameters["ktheta"]),
+                float(parameters["p"]),
+            )
+            csv_path = (PROJECT_ROOT / metadata["trajectory_csv"]).resolve()
+            csv_path.relative_to(TRAJECTORY_ROOT)
+            if not csv_path.is_file():
+                continue
+            record = {
+                "theta0": float(parameters["theta0"]),
+                "phi0": float(parameters["phi0"]),
+                "file": str(csv_path.relative_to(PROJECT_ROOT)),
+                "rows": int(metadata["trajectory_rows"]),
+            }
+            grouped.setdefault(key, []).append(record)
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+
+    for (kr, ktheta, p), records in grouped.items():
+        # Do not count duplicate initial conditions as independent ensemble members.
+        unique_records = {}
+        for record in records:
+            initial_key = (round(record["theta0"], 12), round(record["phi0"], 12))
+            unique_records.setdefault(initial_key, record)
+        records = list(unique_records.values())
+        if len(records) < 2:
+            continue
+        records.sort(key=lambda item: (item["theta0"], item["phi0"]))
+        token = (
+            f"kr_{_number_token(kr)}_ktheta_{_number_token(ktheta)}_"
+            f"p_{_number_token(p)}"
+        )
+        auto_dir = TRAJECTORY_ROOT / f"autodiscovered_{token}"
+        auto_dir.mkdir(parents=True, exist_ok=True)
+        manifest_path = auto_dir / "ensemble_manifest.json"
+        manifest = {
+            "schema_version": 1,
+            "generator": "automatic discovery of metadata-backed dkt_run_* simulations",
+            "parameters": {
+                "kr": kr,
+                "ktheta": ktheta,
+                "k": kr + ktheta,
+                "kprime": kr - ktheta,
+                "p": p,
+                "n_trajectories": len(records),
+                "nsteps": min(record["rows"] for record in records) - 1,
+            },
+            "trajectory_files": records,
+        }
+        manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        label = (
+            f"Existing simulations · kr={kr:g}, kθ={ktheta:g}, "
+            f"p={p:g} · {len(records)} trajectories"
+        )
+        ensembles[label] = {
+            "manifest": manifest,
+            "manifest_path": str(manifest_path),
+        }
+
+    return ensembles
+
+
 @tool
 def diagnose_mixing_hierarchy(
     trajectory_csvs: list[str],
@@ -52,8 +368,8 @@ def diagnose_mixing_hierarchy(
     finite-partition alpha-coefficient estimates. No asymptotic classification
     or proof of ergodicity/mixing is made.
     """
-    if not isinstance(trajectory_csvs, list) or not 2 <= len(trajectory_csvs) <= 24:
-        raise ValueError("trajectory_csvs must contain 2–24 trajectory paths.")
+    if not isinstance(trajectory_csvs, list) or not 2 <= len(trajectory_csvs) <= 64:
+        raise ValueError("trajectory_csvs must contain 2–64 trajectory paths.")
     paths = [_resolve_path(value) for value in trajectory_csvs]
     if len(set(paths)) != len(paths):
         raise ValueError("trajectory_csvs must refer to distinct files.")
@@ -68,7 +384,7 @@ def diagnose_mixing_hierarchy(
     if n_z * n_phi > 16:
         raise ValueError("n_z*n_phi must not exceed 16 (exact alpha calculation).")
 
-    trajectories = [load_trajectory(path) for path in paths]
+    trajectories = [_load_finite_hierarchy_trajectory(path) for path in paths]
     result = run_mixing_hierarchy_from_trajectories(
         trajectories,
         transient=transient,
