@@ -45,8 +45,9 @@ def diagnose_mixing_hierarchy(
 ) -> str:
     """Run finite-data ergodicity-, weak-mixing-, and strong-mixing-related diagnostics.
 
-    Requires at least two existing DKT trajectory CSVs generated from distinct
-    initial conditions under the same map parameters. Reports selected-observable
+    Requires at least two existing DKT trajectory CSVs from distinct initial
+    conditions. The caller must ensure all files use identical map parameters;
+    parameter metadata are not inferred from trajectory coordinates. Reports selected-observable
     Birkhoff-average variance, Cesàro means of squared autocorrelations, and
     finite-partition alpha-coefficient estimates. No asymptotic classification
     or proof of ergodicity/mixing is made.
@@ -95,6 +96,20 @@ def diagnose_mixing_hierarchy(
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         writer.writerows(ergodic["rows"])
+    with (out / "weak_mixing_cesaro.csv").open("w", newline="", encoding="utf-8") as handle:
+        fields = ["observable", "lag", "normalized_autocorrelation", "cesaro_mean_squared_autocorrelation"]
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for name, values in diag["weak_mixing_related"]["observables"].items():
+            correlations = values["normalized_autocorrelation"]
+            cesaro = values["cesaro_mean_squared_autocorrelation"]
+            for lag, correlation in enumerate(correlations):
+                writer.writerow({
+                    "observable": name,
+                    "lag": lag,
+                    "normalized_autocorrelation": correlation,
+                    "cesaro_mean_squared_autocorrelation": (None if lag == 0 else cesaro[lag - 1]),
+                })
     with (out / "strong_mixing_partition_alpha.csv").open("w", newline="", encoding="utf-8") as handle:
         rows = diag["strong_mixing_related"]["lags"]
         writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
@@ -106,6 +121,7 @@ def diagnose_mixing_hierarchy(
         "directory": str(out),
         "summary_json": str(summary_path),
         "birkhoff_variance_csv": str(out / "birkhoff_variance.csv"),
+        "weak_mixing_cesaro_csv": str(out / "weak_mixing_cesaro.csv"),
         "strong_mixing_partition_alpha_csv": str(out / "strong_mixing_partition_alpha.csv"),
     }
     # Persist artifact paths in the JSON file itself.
