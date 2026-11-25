@@ -103,33 +103,46 @@ def mean_ergodic_ensemble_diagnostic(
     }
 
 
-def _autocorrelation(values: np.ndarray, max_lag: int, invariant_mean: float) -> np.ndarray:
-    """Estimate normalized correlation after centering by the known invariant mean.
+def _pooled_autocorrelation(
+    trajectories: list[np.ndarray],
+    observable_index: int,
+    invariant_mean: float,
+    transient: int,
+    n_samples: int,
+    max_lag: int,
+) -> np.ndarray:
+    """Estimate invariant-measure correlations by pooling ensemble/time origins.
 
-    Do not subtract each orbit's own sample mean: doing so can remove a
-    trajectory-dependent invariant component and falsely suppress correlations.
+    The centering constant is the known uniform-sphere mean, not an orbit-wise
+    sample mean. This retains correlations caused by invariant components.
     """
-    values = np.asarray(values, dtype=float)
-    centered = values - float(invariant_mean)
-    variance = float(np.mean(centered * centered))
+    centered = [
+        cartesian_observables(points[transient:transient+n_samples])[:, observable_index]
+        - float(invariant_mean)
+        for points in trajectories
+    ]
+    variance = float(np.mean(np.concatenate([values * values for values in centered])))
     if variance <= np.finfo(float).eps:
         return np.full(max_lag + 1, np.nan)
-    nfft = 1 << (2 * len(centered) - 1).bit_length()
-    spectrum = np.fft.rfft(centered, n=nfft)
-    raw = np.fft.irfft(spectrum * spectrum.conjugate(), n=nfft)[:max_lag + 1]
-    # Biased covariance gives a stable, positive-semidefinite finite-record estimate.
-    raw /= len(centered)
-    return raw / raw[0]
+    rho = np.empty(max_lag + 1, dtype=float)
+    rho[0] = 1.0
+    for lag in range(1, max_lag + 1):
+        products = np.concatenate([
+            values[:-lag] * values[lag:] for values in centered
+        ])
+        rho[lag] = float(np.mean(products) / variance)
+    return rho
 
 
 def weak_mixing_cesaro_diagnostic(
     trajectories: Iterable[np.ndarray], *, transient: int = 0, max_lag: int = 1000
 ) -> dict:
-    """Compute finite-record Cesàro means of squared autocorrelations.
+    """Compute pooled finite-record Cesàro means of squared correlations.
 
     For weak mixing, the corresponding Cesàro limit is zero for every
-    mean-zero L² observable.  Here only nine selected observables and finite
-    records are examined, so output is diagnostic evidence, not a classification.
+    mean-zero L² observable. Here only nine selected observables and finite
+    records are examined. Correlations are estimated by pooling trajectories
+    and time origins and are centered on exact uniform-sphere means.
     """
     ensemble = _validate_ensemble(trajectories)
     if isinstance(transient, bool) or not isinstance(transient, int) or transient < 0:
@@ -142,30 +155,14 @@ def weak_mixing_cesaro_diagnostic(
     lag = min(max_lag, (n - 1) // 2)
     by_observable = {}
     for q, name in enumerate(OBSERVABLE_NAMES):
-        curves = []
-        for points in ensemble:
-            values = cartesian_observables(points[transient:transient+n])[:, q]
-            curves.append(_autocorrelation(values, lag, AREA_MEANS[q]))
-        curve = np.asarray(curves)
-        valid = np.isfinite(curve)
-        mean_rho2 = np.full(lag + 1, np.nan)
-        mean_rho2[0] = 1.0
-        for ell in range(1, lag + 1):
-            samples = curve[:, ell]
-            samples = samples[np.isfinite(samples)]
-            if len(samples):
-                mean_rho2[ell] = float(np.mean(samples * samples))
-        cesaro = np.full(lag, np.nan)
-        running = 0.0
-        count = 0
-        for ell in range(1, lag + 1):
-            if np.isfinite(mean_rho2[ell]):
-                running += mean_rho2[ell]
-                count += 1
-            cesaro[ell - 1] = running / count if count else np.nan
+        rho = _pooled_autocorrelation(
+            ensemble, q, AREA_MEANS[q], transient, n, lag
+        )
+        rho2 = rho[1:] ** 2
+        cesaro = np.cumsum(rho2) / np.arange(1, lag + 1)
         by_observable[name] = {
-            "mean_squared_autocorrelation_by_lag": [
-                None if not np.isfinite(v) else float(v) for v in mean_rho2
+            "normalized_autocorrelation": [
+                None if not np.isfinite(v) else float(v) for v in rho
             ],
             "cesaro_mean_squared_autocorrelation": [
                 None if not np.isfinite(v) else float(v) for v in cesaro
@@ -173,13 +170,19 @@ def weak_mixing_cesaro_diagnostic(
             "final_cesaro_value": (
                 float(cesaro[-1]) if np.isfinite(cesaro[-1]) else None
             ),
-            "finite_record_status": "constant_or_unresolved" if not np.any(valid[:, 1:]) else "computed",
+            "finite_record_status": (
+                "constant_or_unresolved" if not np.all(np.isfinite(rho)) else "computed"
+            ),
         }
     return {
         "n_trajectories": len(ensemble),
         "common_samples_per_trajectory": int(n),
         "transient_discarded": transient,
         "max_lag_used": int(lag),
+        "correlation_estimator": (
+            "pooled ensemble/time-origin covariance centered on exact uniform-sphere "
+            "observable means, normalized by pooled lag-zero variance"
+        ),
         "observables": by_observable,
         "interpretation": (
             "A decreasing finite-window Cesàro mean is consistent with weak-mixing "
