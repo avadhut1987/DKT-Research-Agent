@@ -78,8 +78,8 @@ def generate_dkt_ensemble(
 
     if isinstance(grid_size, bool) or not isinstance(grid_size, int) or not 5 <= grid_size <= 8:
         raise ValueError("grid_size must be an integer from 5 to 8 (25–64 trajectories).")
-    if isinstance(nsteps, bool) or not isinstance(nsteps, int) or not 1 <= nsteps <= 1_000_000:
-        raise ValueError("nsteps must be an integer from 1 to 1,000,000.")
+    if isinstance(nsteps, bool) or not isinstance(nsteps, int) or not 1 <= nsteps <= 5_000:
+        raise ValueError("nsteps must be an integer from 1 to 5,000.")
 
     generated = simulate_dkt_grid(
         kr=kr, ktheta=ktheta, p=p, grid_size=grid_size, nsteps=nsteps
