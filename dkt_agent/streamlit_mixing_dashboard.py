@@ -34,11 +34,10 @@ def render_mixing_hierarchy_dashboard() -> None:
     files = sorted(TRAJECTORY_ROOT.glob("*.csv")) if TRAJECTORY_ROOT.is_dir() else []
     if len(files) < 2:
         st.info(
-            "At least two existing trajectory CSV files are required. "
-            "Generate trajectories first using the DKT simulation workspace; "
-            "this dashboard will not launch simulations automatically."
+            f"Only {len(files)} trajectory CSV file(s) found. At least two trajectories "
+            "from distinct initial conditions under the same DKT map are required to run "
+            "the ensemble diagnostics. The four diagnostic sections remain visible below."
         )
-        return
 
     path_by_label = {f"{p.name}": str(p) for p in files}
     with st.expander("Select ensemble and diagnostic settings", expanded=True):
@@ -110,12 +109,13 @@ def render_mixing_hierarchy_dashboard() -> None:
 
     result = st.session_state.get("mixing_hierarchy_dashboard_result")
     if not isinstance(result, dict):
+        result = {}
         st.caption(
-            "Choose an ensemble above and run the diagnostics. Existing results remain "
-            "visible during ordinary Streamlit reruns."
+            "No diagnostic result is loaded yet. The four sections below are ready; "
+            "select at least two matching trajectory files and run the diagnostics to populate them."
         )
-        return
 
+    has_result = bool(result)
     diagnostics = result.get("finite_data_diagnostics", {})
     ergodic = diagnostics.get("ergodicity_related", {})
     weak = diagnostics.get("weak_mixing_related", {})
@@ -123,7 +123,10 @@ def render_mixing_hierarchy_dashboard() -> None:
     parameters = result.get("dashboard_declared_map_parameters", {})
     artifacts = result.get("artifacts", {})
 
-    st.success("Finite-data diagnostics completed and saved.")
+    if has_result:
+        st.success("Finite-data diagnostics completed and saved.")
+    else:
+        st.info("Dashboard ready — numerical plots and tables will populate after a successful diagnostic run.")
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Trajectories", ergodic.get("n_trajectories", "—"))
     m2.metric("Common samples / trajectory", ergodic.get("common_samples_per_trajectory", "—"))
@@ -153,6 +156,8 @@ def render_mixing_hierarchy_dashboard() -> None:
             observable = st.selectbox("Inspect observable", options=list(frame["observable"].unique()), key="mix_dash_erg_obs")
             chosen = frame[frame["observable"] == observable]
             st.dataframe(chosen, use_container_width=True, hide_index=True)
+        if not rows:
+            st.caption("No Birkhoff-average data yet. Run the diagnostics with at least two trajectory files.")
         st.info(
             "This is a finite-ensemble, selected-observable consistency diagnostic against "
             "uniform-sphere moments. It is not a general von Neumann mean-ergodicity test "
@@ -189,6 +194,8 @@ def render_mixing_hierarchy_dashboard() -> None:
                 "normalized_autocorrelation": rho,
                 "cesaro_mean_squared_autocorrelation": [None] + list(cesaro),
             }), use_container_width=True, hide_index=True)
+        else:
+            st.caption("No autocorrelation or Cesàro data yet. Run the diagnostics to populate these plots.")
         st.info(
             "A declining finite-window Cesàro average is consistent with weak-mixing "
             "behaviour for the tested observable; it is not a proof. Only nine observables "
@@ -206,6 +213,8 @@ def render_mixing_hierarchy_dashboard() -> None:
                 f"Partition: {strong.get('partition', {}).get('type', '—')} · "
                 f"{strong.get('partition', {}).get('n_cells', '—')} cells"
             )
+        else:
+            st.caption("No finite-partition alpha data yet. Run the diagnostics to populate this plot.")
         st.info(
             "These estimates maximize over unions of cells in the selected finite partition "
             "and sampled lags. They do not take the supremum over all measurable sets and "
