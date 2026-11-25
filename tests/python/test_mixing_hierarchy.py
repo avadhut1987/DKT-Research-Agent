@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 
+from dkt_agent.mixing_tools import diagnose_mixing_hierarchy
 from dkt_agent.mixing_hierarchy import (
     AREA_MEANS,
     cartesian_observables,
@@ -93,6 +94,14 @@ class TestStrongMixingFinitePartition(unittest.TestCase):
         self.assertTrue(result["lags"])
         self.assertIn("finite_partition_alpha", result["lags"][0])
         self.assertIn("cannot establish strong mixing", result["interpretation"])
+
+
+class TestAgentToolExposure(unittest.TestCase):
+    def test_tool_is_exposed_with_expected_name(self):
+        self.assertEqual(diagnose_mixing_hierarchy.name, "diagnose_mixing_hierarchy")
+        schema = diagnose_mixing_hierarchy.args_schema.model_json_schema()
+        self.assertIn("trajectory_csvs", schema["properties"])
+        self.assertIn("max_lag", schema["properties"])
 
 
 class TestIntegratedHierarchy(unittest.TestCase):
