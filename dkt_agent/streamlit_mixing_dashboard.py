@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import io
 import json
+import zipfile
 from pathlib import Path
 
 import pandas as pd
@@ -24,6 +26,20 @@ def _load_result(raw):
     if isinstance(raw, dict):
         return raw
     raise TypeError("The mixing diagnostic returned an unsupported result type.")
+
+
+def _ensemble_zip_bytes(ensemble: dict) -> bytes:
+    """Build a portable archive containing an ensemble's CSVs and manifest."""
+    manifest = ensemble["manifest"]
+    manifest_path = Path(ensemble["manifest_path"])
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.write(manifest_path, arcname="ensemble_manifest.json")
+        for record in manifest["trajectory_files"]:
+            source = (PROJECT_ROOT / record["file"]).resolve()
+            source.relative_to(TRAJECTORY_ROOT.resolve())
+            archive.write(source, arcname=Path(record["file"]).name)
+    return buffer.getvalue()
 
 
 def render_mixing_hierarchy_dashboard() -> None:
@@ -164,6 +180,14 @@ def render_mixing_hierarchy_dashboard() -> None:
                 type="primary",
                 use_container_width=True,
             )
+
+        st.download_button(
+            "Download selected trajectory ensemble (ZIP)",
+            data=_ensemble_zip_bytes(selected_ensemble),
+            file_name=f"{Path(selected_ensemble['manifest_path']).parent.name}.zip",
+            mime="application/zip",
+            key="mixdash_download_ensemble_zip",
+        )
 
         if submitted:
             if n_z * n_phi > 16:
