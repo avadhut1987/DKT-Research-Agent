@@ -361,3 +361,20 @@ Copyright (c) 2026 Avadhut V. Purohit.
 You are free to use, modify, distribute, and adapt this software in accordance with the terms of the MIT License.
 
 See the [LICENSE](LICENSE) file for the complete license text.
+
+## Ergodic-hierarchy visual dashboard
+
+The Streamlit application includes a dedicated **Ergodic Hierarchy — Visual Dashboard** below the research workspaces. It uses the finite-data diagnostic tool on existing trajectory CSVs under `results/trajectories/`; it does not generate trajectories automatically.
+
+1. Generate at least two trajectories from distinct initial conditions under the same DKT map.
+2. Open the Streamlit application and select the trajectory CSV files in the dashboard.
+3. Confirm that all selected files share the same (k_r), (k_\theta), and (p). The coordinate CSVs do not encode enough metadata for the dashboard to verify this automatically.
+4. Choose the transient, maximum lag, and finite spherical partition, then run the diagnostics.
+
+The dashboard provides:
+- Birkhoff-average variance versus analyzed trajectory length for the selected Cartesian observables.
+- Normalized autocorrelation and Cesàro mean of squared autocorrelation plots, selectable by observable.
+- Finite-partition alpha-coefficient estimates versus lag.
+- Numerical tables and downloadable JSON/CSV artifacts.
+
+These are **finite-data indicators**, not proofs or asymptotic classifications of ergodicity, weak mixing, or strong mixing. In particular, the alpha coefficient is computed only for the selected finite partition and sampled lags.

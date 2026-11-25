@@ -29,6 +29,7 @@ from dkt_agent.research_tools import (
     summarize_research_csv,
 )
 from dkt_agent.tools import (simulate_dkt, simulate_dkt_grid, run_entanglement_dynamics, run_entanglement_heatmap)
+from dkt_agent.streamlit_mixing_dashboard import render_mixing_hierarchy_dashboard
 import matplotlib.pyplot as plt
 
 def filename_token(value: float | int) -> str:
@@ -2560,6 +2561,9 @@ with st.expander("Long-time-averaged entropy heatmap results", expanded=False):
             "classical chaos, ergodicity, or mixing. The asymmetry parameter "
             "changes phase-space geometry, not the degree of classical chaos."
         )
+
+
+render_mixing_hierarchy_dashboard()
 
 
 for item in st.session_state.chat_history:
