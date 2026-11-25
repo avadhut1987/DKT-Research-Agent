@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import math
 import os
 import shutil
@@ -101,7 +102,14 @@ def simulate_dkt(
 
     # Each call receives its own output directory, avoiding filename collisions.
     run_dir = Path(tempfile.mkdtemp(prefix="dkt_run_", dir=RESULTS_DIR))
-    output_csv = run_dir / "trajectory.csv"
+    def _token(value: float) -> str:
+        return f"{value:.6f}".rstrip("0").rstrip(".").replace("-", "m").replace(".", "p") or "0"
+
+    output_csv = run_dir / (
+        f"trajectory_kr_{_token(kr)}_ktheta_{_token(ktheta)}_"
+        f"p_{_token(p)}_theta0_{_token(theta0)}_phi0_{_token(phi0)}_"
+        f"nsteps_{nsteps}.csv"
+    )
 
     command = [
         julia,
@@ -183,6 +191,28 @@ def simulate_dkt(
             f"but found {len(trajectory)}."
         )
 
+    metadata = {
+        "schema_version": 1,
+        "generator": "dkt_agent.tools.simulate_dkt",
+        "parameters": {
+            "kr": kr,
+            "ktheta": ktheta,
+            "k": kr + ktheta,
+            "kprime": kr - ktheta,
+            "p": p,
+            "theta0": theta0,
+            "phi0": phi0,
+            "nsteps": nsteps,
+        },
+        "trajectory_csv": str(output_csv.relative_to(PROJECT_ROOT)),
+        "trajectory_rows": len(trajectory),
+        "max_norm_error": max(
+            abs(point["norm"] - 1.0) for point in trajectory
+        ),
+    }
+    metadata_path = run_dir / "trajectory_metadata.json"
+    metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+
     result: dict[str, Any] = {
         "status": "success",
         "parameters": {
@@ -204,6 +234,7 @@ def simulate_dkt(
             abs(point["norm"] - 1.0) for point in trajectory
         ),
         "trajectory_csv": str(output_csv),
+        "trajectory_metadata": str(metadata_path),
         "julia_stdout": completed.stdout.strip(),
     }
 
