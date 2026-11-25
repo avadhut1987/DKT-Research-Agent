@@ -21,6 +21,80 @@ TRAJECTORY_ROOT = (PROJECT_ROOT / "results" / "trajectories").resolve()
 DIAGNOSTICS_ROOT = PROJECT_ROOT / "results" / "diagnostics"
 
 
+def _load_finite_hierarchy_trajectory(path: str | Path):
+    """Read legacy and current DKT CSVs, including files with metadata preambles.
+
+    Current files use a header such as step,X,Y,Z,norm. Older Julia exports
+    may prepend comment/metadata lines or contain headerless five-column rows.
+    In the latter case the established column order is step,X,Y,Z,norm.
+    """
+    import numpy as np
+
+    rows = []
+    header = None
+    with Path(path).open("r", newline="", encoding="utf-8-sig") as handle:
+        for raw in csv.reader(handle):
+            if not raw or not any(cell.strip() for cell in raw):
+                continue
+            cells = [cell.strip() for cell in raw]
+            if cells[0].startswith("#"):
+                continue
+            lowered = [cell.lower() for cell in cells]
+            if {"x", "y", "z"}.issubset(set(lowered)):
+                header = lowered
+                continue
+            try:
+                values = [float(cell) for cell in cells]
+            except ValueError:
+                # Skip textual metadata/preamble; data rows are parsed below.
+                continue
+            if len(values) < 3:
+                continue
+            rows.append(values)
+
+    if not rows:
+        raise ValueError(f"No numeric trajectory rows found in {path}.")
+
+    if header is not None:
+        try:
+            ix, iy, iz = (header.index(axis) for axis in ("x", "y", "z"))
+        except ValueError as exc:
+            raise ValueError(f"Trajectory header in {path} lacks X,Y,Z columns.") from exc
+        # Headered files must keep a consistent number of columns.
+        width = len(header)
+        if any(len(row) != width for row in rows):
+            raise ValueError(f"Inconsistent CSV column count in {path}.")
+        points = np.asarray([[row[ix], row[iy], row[iz]] for row in rows], dtype=float)
+    else:
+        widths = {len(row) for row in rows}
+        if len(widths) != 1:
+            raise ValueError(f"Inconsistent numeric CSV column count in {path}: {sorted(widths)}.")
+        width = widths.pop()
+        if width == 5:
+            # Legacy DKT orbit format: step, X, Y, Z, norm.
+            points = np.asarray([row[1:4] for row in rows], dtype=float)
+        elif width == 3:
+            points = np.asarray(rows, dtype=float)
+        else:
+            raise ValueError(
+                f"Headerless trajectory {path} has {width} columns; "
+                "expected 3 coordinates or 5 columns (step,X,Y,Z,norm)."
+            )
+
+    if points.ndim != 2 or points.shape[1] != 3 or len(points) == 0:
+        raise ValueError(f"Unexpected trajectory shape in {path}: {points.shape}")
+    if not np.all(np.isfinite(points)):
+        raise ValueError(f"Non-finite coordinates found in {path}.")
+    norms = np.linalg.norm(points, axis=1)
+    max_error = float(np.max(np.abs(norms - 1.0)))
+    if max_error > 1e-8:
+        raise ValueError(
+            f"Trajectory in {path} is not on the unit sphere: "
+            f"maximum norm error {max_error:.3e}."
+        )
+    return points
+
+
 def _resolve_path(value: str) -> Path:
     if not isinstance(value, str) or not value.strip():
         raise ValueError("Each trajectory_csvs entry must be a non-empty path.")
@@ -310,7 +384,7 @@ def diagnose_mixing_hierarchy(
     if n_z * n_phi > 16:
         raise ValueError("n_z*n_phi must not exceed 16 (exact alpha calculation).")
 
-    trajectories = [load_trajectory(path) for path in paths]
+    trajectories = [_load_finite_hierarchy_trajectory(path) for path in paths]
     result = run_mixing_hierarchy_from_trajectories(
         trajectories,
         transient=transient,
