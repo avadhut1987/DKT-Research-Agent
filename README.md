@@ -364,12 +364,15 @@ See the [LICENSE](LICENSE) file for the complete license text.
 
 ## Ergodic-hierarchy visual dashboard
 
-The Streamlit application includes a dedicated **Ergodic Hierarchy — Visual Dashboard** below the research workspaces. It uses the finite-data diagnostic tool on existing trajectory CSVs under `results/trajectories/`; it does not generate trajectories automatically.
+The Streamlit application includes a dedicated **Ergodic Hierarchy — Visual Dashboard** below the research workspaces. The dashboard now generates and saves reproducible ensembles directly through the Julia DKT simulator; users do not need to locate or manually select individual CSV files.
 
-1. Generate at least two trajectories from distinct initial conditions under the same DKT map.
-2. Open the Streamlit application and select the trajectory CSV files in the dashboard.
-3. Confirm that all selected files share the same (k_r), (k_\theta), and (p). The coordinate CSVs do not encode enough metadata for the dashboard to verify this automatically.
-4. Choose the transient, maximum lag, and finite spherical partition, then run the diagnostics.
+1. Open **Generate and save a DKT trajectory ensemble**.
+2. Set the common (k_r), (k_\theta), and (p), choose the angular-grid size (5–8 per direction), and choose the number of kicks.
+3. Click **Generate and save ensemble**. The application evolves 25–64 distinct initial conditions under that one common map.
+4. Each trajectory is saved as a separate CSV whose filename includes the map parameters, initial condition, and kick count. An `ensemble_manifest.json` records the exact map parameters, initial conditions, source grid file, and saved CSV paths.
+5. Select the saved ensemble from the dashboard list, choose the transient, maximum lag, and finite spherical partition, and run the diagnostics. No manual same-parameter confirmation is needed because the manifest is created by the generator.
+
+Ensembles are stored under `results/trajectories/ensemble_.../`; numerical diagnostic artifacts are stored separately under `results/diagnostics/mixing_hierarchy/`. Existing individual simulation CSVs remain saved in their run directories. Older CSVs without a manifest are not silently treated as a verified ensemble because their map parameters cannot be recovered reliably from the coordinates.
 
 The dashboard provides:
 - Birkhoff-average variance versus analyzed trajectory length for the selected Cartesian observables.
