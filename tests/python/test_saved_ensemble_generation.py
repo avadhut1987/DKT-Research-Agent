@@ -109,6 +109,22 @@ class TestSavedDktEnsembleGeneration(unittest.TestCase):
                 self.assertEqual(ensemble["manifest"]["parameters"]["n_trajectories"], 2)
                 self.assertTrue(Path(ensemble["manifest_path"]).is_file())
 
+    def test_loads_legacy_five_column_csv_with_metadata_preamble(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "legacy.csv"
+            preamble = "".join(f"legacy metadata line {i}\\n" for i in range(16))
+            path.write_text(
+                preamble
+                + "0,0,0,1,1\\n"
+                + "1,0.1,0.1,0.9899494937,1\\n",
+                encoding="utf-8",
+            )
+            points = mixing_tools._load_finite_hierarchy_trajectory(path)
+            self.assertEqual(points.shape, (2, 3))
+            self.assertAlmostEqual(float(points[0, 2]), 1.0)
+            self.assertAlmostEqual(float(points[1, 0]), 0.1)
+
+
     def test_rejects_grid_sizes_outside_supported_range(self):
         with self.assertRaises(ValueError):
             mixing_tools.generate_dkt_ensemble(
