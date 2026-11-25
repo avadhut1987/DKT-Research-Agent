@@ -364,15 +364,17 @@ See the [LICENSE](LICENSE) file for the complete license text.
 
 ## Ergodic-hierarchy visual dashboard
 
-The Streamlit application includes a dedicated **Ergodic Hierarchy — Visual Dashboard** below the research workspaces. The dashboard now generates and saves reproducible ensembles directly through the Julia DKT simulator; users do not need to locate or manually select individual CSV files.
+The Streamlit dashboard generates, saves, and analyses a reproducible ensemble in one action. Users do not need to create CSV files manually, search through run folders, or confirm metadata by hand.
 
 1. Open **Generate and save a DKT trajectory ensemble**.
-2. Set the common (k_r), (k_\theta), and (p), choose the angular-grid size (5–8 per direction), and choose the number of kicks.
-3. Click **Generate and save ensemble**. The application evolves 25–64 distinct initial conditions under that one common map.
-4. Each trajectory is saved as a separate CSV whose filename includes the map parameters, initial condition, and kick count. An `ensemble_manifest.json` records the exact map parameters, initial conditions, source grid file, and saved CSV paths.
-5. Select the saved ensemble from the dashboard list, choose the transient, maximum lag, and finite spherical partition, and run the diagnostics. No manual same-parameter confirmation is needed because the manifest is created by the generator.
+2. Set the map parameters (k_r), (k_\theta), and (p), choose the angular-grid size (5–8 per direction), and choose the number of kicks.
+3. Set the transient, maximum lag, and spherical partition, then click **Generate, save & run diagnostics**. The application evolves 25–64 distinct initial conditions under that map, writes the files and manifest, and immediately calculates the diagnostics.
+4. Every trajectory CSV is named with its map parameters, initial condition, and kick count. The accompanying `ensemble_manifest.json` records exact provenance. The resulting numerical tables and plots appear automatically.
+5. Previously generated, metadata-backed ensembles can be selected later and analysed again; each ensemble can also be downloaded as a ZIP.
 
-Ensembles are stored under `results/trajectories/ensemble_.../`; numerical diagnostic artifacts are stored separately under `results/diagnostics/mixing_hierarchy/`. Existing individual simulation CSVs remain saved in their run directories. Older CSVs without a manifest are not silently treated as a verified ensemble because their map parameters cannot be recovered reliably from the coordinates.
+Individual simulations created by `simulate_dkt` are saved in nested `dkt_run_.../` folders. Their trajectory CSVs now have parameter-labelled filenames and a `trajectory_metadata.json` file. The dashboard searches these nested folders recursively and groups runs only when their exact (k_r), (k_\theta), and (p) match and their initial conditions are distinct. Older runs created before metadata was added cannot be reliably grouped automatically because their CSV coordinates do not encode the map parameters; the dashboard does not guess.
+
+Generated ensembles are stored under `results/trajectories/ensemble_.../`; numerical diagnostic artifacts are stored separately under `results/diagnostics/mixing_hierarchy/`.
 
 The dashboard provides:
 - Birkhoff-average variance versus analyzed trajectory length for the selected Cartesian observables.
