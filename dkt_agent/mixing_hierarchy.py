@@ -8,7 +8,6 @@ of trajectories; no finite computation proves an asymptotic property.
 
 from __future__ import annotations
 
-from itertools import combinations
 from typing import Iterable
 
 import numpy as np
