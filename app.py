@@ -1091,12 +1091,14 @@ def get_agent():
 with st.sidebar:
     st.header("DKT parameters")
 
-    st.markdown(r"**Average kicking strength**  $k_r=\frac{k+k'}{2}$")
+    st.markdown("**Average kicking strength**")
+    st.latex(r"k_r = \\frac{k+k'}{2}")
     st.caption(
         "Controls the degree of classical chaos and the "
         "regular-to-chaotic transition."
     )
-    st.markdown(r"**Asymmetry parameter**  $k_\theta=\frac{k-k'}{2}$")
+    st.markdown("**Asymmetry parameter**")
+    st.latex(r"k_\\theta = \\frac{k-k'}{2}")
     st.caption(
         "Changes phase-space geometry and its orientation/structure; "
         "it does not control the degree of classical chaos."
