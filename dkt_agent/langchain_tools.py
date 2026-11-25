@@ -93,6 +93,7 @@ def compare_dkt_simulations(
     return json.dumps(result, indent=2)
 
 
+
 @tool
 def run_dkt_comparison_study(
     kr: float = 1.0,
@@ -102,25 +103,15 @@ def run_dkt_comparison_study(
     phi0: float = -1.0,
     nsteps: int = 1000,
     p: float = 1.5707963267948966,
+    comparison_mode: str = "fixed_kr",
+    kr_a: float | None = None,
+    kr_b: float | None = None,
+    ktheta_fixed: float | None = None,
 ) -> str:
-    """
-    Run two DKT simulations and compare their complete trajectories.
+    """Compare two DKT trajectories while varying one parameter.
 
-    Both simulations use the same kr, initial condition, rotation
-    angle, and number of kicks. Only ktheta differs.
-    This comparison examines trajectory and phase-space geometric
-    differences, not a change in the degree of classical chaos.
-
-    The tool automatically:
-    1. Runs simulation A using ktheta_a.
-    2. Runs simulation B using ktheta_b.
-    3. Compares the complete trajectories.
-    4. Saves both trajectories and the comparison to CSV files.
-
-    Returns actual simulation results, trajectory separation
-    statistics, and all three CSV paths.
-
-    This tool does not infer or estimate numerical results.
+    fixed_kr: compare two ktheta values at the same kr.
+    fixed_ktheta: compare two kr values at the same ktheta.
     """
 
     result = _run_dkt_comparison_study(
@@ -131,10 +122,11 @@ def run_dkt_comparison_study(
         phi0=phi0,
         nsteps=nsteps,
         p=p,
+        comparison_mode=comparison_mode,
+        kr_a=kr_a,
+        kr_b=kr_b,
+        ktheta_fixed=ktheta_fixed,
     )
-
-    # Keep the LangChain response concise while preserving
-    # all important numerical results and output file paths.
 
     compact_result = {
         "status": result["status"],
@@ -166,6 +158,7 @@ def run_dkt_comparison_study(
     }
 
     return json.dumps(compact_result, indent=2)
+
 
 @tool
 def search_research_evidence(
@@ -276,4 +269,32 @@ def run_quantum_entanglement_heatmap(
         s=s, kr=kr, ktheta=ktheta, nsteps=nsteps, transient=transient,
         rdm_dim=rdm_dim, grid_size=grid_size, p=p)
     result.pop("data", None)
+    return json.dumps(result, indent=2)
+
+
+from dkt_agent.tools import run_classical_quantum_comparison as _run_classical_quantum_comparison
+
+
+@tool
+def run_classical_quantum_comparison_tool(
+    s: float,
+    kr: float,
+    ktheta: float,
+    theta0: float,
+    phi0: float,
+    nsteps: int,
+    p: float = 1.5707963267948966,
+) -> str:
+    """Compare classical X,Y,Z with quantum normalized spin expectations.
+
+    The quantum initial state is a spin-coherent state at (theta0, phi0).
+    Uses matching kr, ktheta, p and kick indices. Returns component MAE/RMSE,
+    vector differences, norm checks and a kick-resolved CSV path. This is a
+    finite-time expectation-value comparison, not a claim of pointwise
+    identity. Entanglement entropy is a separate quantum observable.
+    """
+    result = _run_classical_quantum_comparison(
+        s=s, kr=kr, ktheta=ktheta, theta0=theta0, phi0=phi0,
+        nsteps=nsteps, p=p,
+    )
     return json.dumps(result, indent=2)
