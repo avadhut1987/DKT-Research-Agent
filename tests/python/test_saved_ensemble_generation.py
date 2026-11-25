@@ -71,6 +71,44 @@ class TestSavedDktEnsembleGeneration(unittest.TestCase):
                 saved = next(iter(discovered.values()))
                 self.assertEqual(saved["manifest"]["parameters"]["n_trajectories"], 25)
 
+    def test_discovers_nested_single_trajectory_runs_by_exact_map_metadata(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            trajectory_root = root / "results" / "trajectories"
+            for index, (theta0, phi0) in enumerate(((0.4, -0.8), (1.2, 0.6))):
+                run_dir = trajectory_root / f"dkt_run_{index}"
+                run_dir.mkdir(parents=True)
+                csv_path = run_dir / (
+                    f"trajectory_kr_1_ktheta_0_p_1p570796_"
+                    f"theta0_{theta0}_phi0_{phi0}_nsteps_10.csv"
+                )
+                csv_path.write_text(
+                    "step,X,Y,Z,norm\\n0,0,0,1,1\\n1,0.1,0.1,0.99,1\\n",
+                    encoding="utf-8",
+                )
+                metadata = {
+                    "parameters": {
+                        "kr": 1.0, "ktheta": 0.0, "p": 1.5707963267948966,
+                        "theta0": theta0, "phi0": phi0, "nsteps": 1,
+                    },
+                    "trajectory_csv": str(csv_path.relative_to(root)),
+                    "trajectory_rows": 2,
+                }
+                (run_dir / "trajectory_metadata.json").write_text(
+                    json.dumps(metadata), encoding="utf-8"
+                )
+
+            with (
+                patch.object(mixing_tools, "PROJECT_ROOT", root),
+                patch.object(mixing_tools, "TRAJECTORY_ROOT", trajectory_root),
+            ):
+                ensembles = mixing_tools.discover_saved_ensembles()
+                self.assertEqual(len(ensembles), 1)
+                label, ensemble = next(iter(ensembles.items()))
+                self.assertIn("Existing simulations", label)
+                self.assertEqual(ensemble["manifest"]["parameters"]["n_trajectories"], 2)
+                self.assertTrue(Path(ensemble["manifest_path"]).is_file())
+
     def test_rejects_grid_sizes_outside_supported_range(self):
         with self.assertRaises(ValueError):
             mixing_tools.generate_dkt_ensemble(
