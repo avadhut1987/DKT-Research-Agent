@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import csv
 import json
-import csv
 import math
 import tempfile
 from datetime import datetime, timezone
@@ -207,6 +206,74 @@ def discover_saved_ensembles() -> dict[str, dict]:
             }
         except (OSError, ValueError, KeyError, TypeError):
             continue
+    # Also discover ordinary single-trajectory runs saved by simulate_dkt().
+    # Their files live in nested dkt_run_* directories, so a top-level *.csv
+    # search misses them. Metadata lets us group only exactly matching maps.
+    grouped: dict[tuple[float, float, float], list[dict]] = {}
+    for metadata_path in TRAJECTORY_ROOT.glob("dkt_run_*/trajectory_metadata.json"):
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            parameters = metadata["parameters"]
+            key = (
+                float(parameters["kr"]),
+                float(parameters["ktheta"]),
+                float(parameters["p"]),
+            )
+            csv_path = (PROJECT_ROOT / metadata["trajectory_csv"]).resolve()
+            csv_path.relative_to(TRAJECTORY_ROOT)
+            if not csv_path.is_file():
+                continue
+            record = {
+                "theta0": float(parameters["theta0"]),
+                "phi0": float(parameters["phi0"]),
+                "file": str(csv_path.relative_to(PROJECT_ROOT)),
+                "rows": int(metadata["trajectory_rows"]),
+            }
+            grouped.setdefault(key, []).append(record)
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+
+    for (kr, ktheta, p), records in grouped.items():
+        # Do not count duplicate initial conditions as independent ensemble members.
+        unique_records = {}
+        for record in records:
+            initial_key = (round(record["theta0"], 12), round(record["phi0"], 12))
+            unique_records.setdefault(initial_key, record)
+        records = list(unique_records.values())
+        if len(records) < 2:
+            continue
+        records.sort(key=lambda item: (item["theta0"], item["phi0"]))
+        token = (
+            f"kr_{_number_token(kr)}_ktheta_{_number_token(ktheta)}_"
+            f"p_{_number_token(p)}"
+        )
+        auto_dir = TRAJECTORY_ROOT / f"autodiscovered_{token}"
+        auto_dir.mkdir(parents=True, exist_ok=True)
+        manifest_path = auto_dir / "ensemble_manifest.json"
+        manifest = {
+            "schema_version": 1,
+            "generator": "automatic discovery of metadata-backed dkt_run_* simulations",
+            "parameters": {
+                "kr": kr,
+                "ktheta": ktheta,
+                "k": kr + ktheta,
+                "kprime": kr - ktheta,
+                "p": p,
+                "n_trajectories": len(records),
+                "nsteps": min(record["rows"] for record in records) - 1,
+            },
+            "trajectory_files": records,
+        }
+        manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        label = (
+            f"Existing simulations · kr={kr:g}, kθ={ktheta:g}, "
+            f"p={p:g} · {len(records)} trajectories"
+        )
+        ensembles[label] = {
+            "manifest": manifest,
+            "manifest_path": str(manifest_path),
+        }
+
     return ensembles
 
 
