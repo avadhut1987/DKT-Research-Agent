@@ -249,7 +249,7 @@ def render_mixing_hierarchy_dashboard() -> None:
             chosen = frame[frame["observable"] == observable]
             st.dataframe(chosen, use_container_width=True, hide_index=True)
         if not rows:
-            st.caption("No Birkhoff-average data yet. Run the diagnostics with at least two trajectory files.")
+            st.caption("No Birkhoff-average data yet. Run the diagnostics with a saved ensemble.")
         st.info(
             "This is a finite-ensemble, selected-observable consistency diagnostic against "
             "uniform-sphere moments. It is not a general von Neumann mean-ergodicity test "
@@ -287,7 +287,7 @@ def render_mixing_hierarchy_dashboard() -> None:
                 "cesaro_mean_squared_autocorrelation": [None] + list(cesaro),
             }), use_container_width=True, hide_index=True)
         else:
-            st.caption("No autocorrelation or Cesàro data yet. Run the diagnostics to populate these plots.")
+            st.caption("No autocorrelation or Cesàro data yet. Run the diagnostics with a saved ensemble to populate these plots.")
         st.info(
             "A declining finite-window Cesàro average is consistent with weak-mixing "
             "behaviour for the tested observable; it is not a proof. Only nine observables "
