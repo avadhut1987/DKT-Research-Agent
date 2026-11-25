@@ -66,7 +66,7 @@ def render_mixing_hierarchy_dashboard() -> None:
                 )
             with g2:
                 gen_ktheta = st.number_input(
-                    "Asymmetry parameter kθ", value=0.0, step=1.0,
+                    r"Asymmetry parameter $k_\\theta$", value=0.0, step=1.0,
                     key="mix_gen_ktheta",
                 )
             with g3:
@@ -290,8 +290,8 @@ def render_mixing_hierarchy_dashboard() -> None:
         m3.metric("Maximum lag used", weak.get("max_lag_used", "—"))
         m4.metric("Partition cells", strong.get("partition", {}).get("n_cells", "—"))
         st.markdown(
-            f"**Declared common map:** kᵣ={parameters.get('kr', '—')}, "
-            f"kθ={parameters.get('ktheta', '—')}, "
+            f"**Declared common map:** $k_r$={parameters.get('kr', '—')}, "
+            f"$k_\\theta$={parameters.get('ktheta', '—')}, "
             f"p={parameters.get('p', '—')}"
         )
         st.caption("Ensemble files: " + ", ".join(result.get("input_trajectory_csvs", [])))
