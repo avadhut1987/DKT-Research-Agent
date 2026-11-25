@@ -83,7 +83,7 @@ class TestSavedDktEnsembleGeneration(unittest.TestCase):
                     f"theta0_{theta0}_phi0_{phi0}_nsteps_10.csv"
                 )
                 csv_path.write_text(
-                    "step,X,Y,Z,norm\\n0,0,0,1,1\\n1,0.1,0.1,0.99,1\\n",
+                    "step,X,Y,Z,norm\n0,0,0,1,1\n1,0.1,0.1,0.99,1\n",
                     encoding="utf-8",
                 )
                 metadata = {
