@@ -63,14 +63,13 @@ class TestWeakMixingDiagnostic(unittest.TestCase):
         self.assertIsNotNone(final)
         self.assertGreater(final, 0.05)
 
-    def test_constant_observable_is_reported_not_misclassified(self):
+    def test_orbit_specific_mean_is_not_subtracted_away(self):
         points = np.tile(np.array([[0.0, 0.0, 1.0]]), (128, 1))
-        # A second orbit is required; choose another constant orbit.
         other = np.tile(np.array([[0.0, 0.0, -1.0]]), (128, 1))
         result = weak_mixing_cesaro_diagnostic([points, other], max_lag=32)
-        self.assertEqual(
-            result["observables"]["Z"]["finite_record_status"],
-            "constant_or_unresolved",
+        # Z has nonzero orbit-wise invariant offsets relative to the sphere mean 0.
+        self.assertAlmostEqual(
+            result["observables"]["Z"]["final_cesaro_value"], 1.0, places=12
         )
 
 
