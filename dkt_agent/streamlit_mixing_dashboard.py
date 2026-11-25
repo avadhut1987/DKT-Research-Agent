@@ -58,7 +58,7 @@ def render_mixing_hierarchy_dashboard() -> None:
             with p1:
                 kr = st.number_input(r"Common average strength $k_r$", value=1.0, step=0.1, key="mix_dash_kr")
             with p2:
-                ktheta = st.number_input(r"Common asymmetry $k_\\theta$", value=0.0, step=1.0, key="mix_dash_ktheta")
+                ktheta = st.number_input(r"Common asymmetry $k_\theta$", value=0.0, step=1.0, key="mix_dash_ktheta")
             with p3:
                 kick_angle = st.number_input(r"Common rotation angle $p$", value=1.5707963267948966, step=0.05, format="%.8f", key="mix_dash_p")
             q1, q2, q3 = st.columns(3)
@@ -125,19 +125,22 @@ def render_mixing_hierarchy_dashboard() -> None:
 
     if has_result:
         st.success("Finite-data diagnostics completed and saved.")
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Trajectories", ergodic.get("n_trajectories", "—"))
+        m2.metric("Common samples / trajectory", ergodic.get("common_samples_per_trajectory", "—"))
+        m3.metric("Maximum lag used", weak.get("max_lag_used", "—"))
+        m4.metric("Partition cells", strong.get("partition", {}).get("n_cells", "—"))
+        st.markdown(
+            rf"**Declared common map:** $k_r={parameters.get('kr', '—')}$, "
+            rf"$k_\theta={parameters.get('ktheta', '—')}$, "
+            rf"$p={parameters.get('p', '—')}$"
+        )
+        st.caption("Ensemble files: " + ", ".join(result.get("input_trajectory_csvs", [])))
     else:
-        st.info("Dashboard ready — numerical plots and tables will populate after a successful diagnostic run.")
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Trajectories", ergodic.get("n_trajectories", "—"))
-    m2.metric("Common samples / trajectory", ergodic.get("common_samples_per_trajectory", "—"))
-    m3.metric("Maximum lag used", weak.get("max_lag_used", "—"))
-    m4.metric("Partition cells", strong.get("partition", {}).get("n_cells", "—"))
-    st.markdown(
-        rf"**Declared common map:** $k_r={parameters.get('kr', '—')}$, "
-        rf"$k_\theta={parameters.get('ktheta', '—')}$, "
-        rf"$p={parameters.get('p', '—')}$"
-    )
-    st.caption("Ensemble files: " + ", ".join(result.get("input_trajectory_csvs", [])))
+        st.info(
+            "Dashboard ready. Choose at least two matching trajectory files above "
+            "to calculate and display numerical results in the four tabs."
+        )
 
     tab_ergodic, tab_weak, tab_strong, tab_summary = st.tabs([
         "Birkhoff averages",
