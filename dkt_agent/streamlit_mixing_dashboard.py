@@ -197,7 +197,7 @@ def render_mixing_hierarchy_dashboard() -> None:
                 f"{map_parameters['n_trajectories']} distinct initial conditions · "
                 f"{map_parameters['nsteps']} kicks each · "
                 f"kᵣ={map_parameters['kr']:g} · "
-                f"$k_\theta={map_parameters['ktheta']:g}$ · "
+                f"kθ={map_parameters['ktheta']:g} · "
                 f"p={map_parameters['p']:g}"
             )
             q1, q2, q3 = st.columns(3)
@@ -291,7 +291,7 @@ def render_mixing_hierarchy_dashboard() -> None:
         m4.metric("Partition cells", strong.get("partition", {}).get("n_cells", "—"))
         st.markdown(
             f"**Declared common map:** kᵣ={parameters.get('kr', '—')}, "
-            rf"$k_\theta={parameters.get('ktheta', '—')}$, "
+            f"kθ={parameters.get('ktheta', '—')}, "
             f"p={parameters.get('p', '—')}"
         )
         st.caption("Ensemble files: " + ", ".join(result.get("input_trajectory_csvs", [])))
