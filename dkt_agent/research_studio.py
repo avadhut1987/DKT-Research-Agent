@@ -169,6 +169,9 @@ def _render_execution(campaign: dict) -> None:
             key=f"revoke_authorization_{campaign['campaign_id']}",
         ):
             record_execution_authorization(campaign, authorized=False)
+            st.session_state.pop(
+                f"authorize_campaign_{campaign['campaign_id']}", None
+            )
             st.rerun()
     else:
         authorized = st.checkbox(
