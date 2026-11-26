@@ -42,6 +42,8 @@ class TestResearchExecution(unittest.TestCase):
                     "Compare ktheta=0 and 10000 at fixed kr=1 for trajectory geometry."
                 )
                 campaign = execution.create_campaign(plan)
+                campaign["stages"][0]["tool"] = "run_dkt_comparison_study"
+                campaign["stages"][0]["execution_mode"] = "new_numerical_data"
                 self.assertEqual(campaign["execution_authorization"], "not_authorized")
 
                 execution.record_execution_authorization(campaign, authorized=True)
@@ -72,6 +74,8 @@ class TestResearchExecution(unittest.TestCase):
                     "Compare ktheta=0 and 10000 at fixed kr=1 for trajectory geometry."
                 )
                 campaign = execution.create_campaign(plan)
+                campaign["stages"][0]["tool"] = "run_dkt_comparison_study"
+                campaign["stages"][0]["execution_mode"] = "new_numerical_data"
                 with self.assertRaises(PermissionError):
                     execution.execute_campaign_stage(
                         campaign, 0, {"kr": 1.0}, execution_authorized=True
