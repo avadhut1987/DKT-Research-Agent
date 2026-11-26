@@ -39,9 +39,9 @@ def render_mean_ergodic_panel(title: str = "Mean ergodicity (von Neumann L² dia
         kr = c1.number_input("k_r", value=1.0, step=0.05, format="%.4f",
                               key="me_kr", label_visibility="collapsed")
         c2.markdown(r"$k_\theta$")
-        kt = c2.number_input("k_theta", value=0.0, step=0.25, format="%.4f",
+        kt = c2.number_input("k_theta", value=10000.0, step=0.25, format="%.4f",
                               key="me_kt", label_visibility="collapsed")
-        p = c3.number_input("p (rotation about y)", value=float(math.pi / 2),
+        p = c3.number_input("p", value=float(math.pi / 2),
                             format="%.6f", key="me_p")
         obs = st.multiselect("Observables (use several: single observables can be "
                              "blind by symmetry)", list(DEFAULT_BATTERY),
@@ -78,7 +78,7 @@ def render_mean_ergodic_panel(title: str = "Mean ergodicity (von Neumann L² dia
             rows = [{"observable": o, "D_N/Var(f) at largest N": summary["rel_D"][o],
                      "tail exponent α": r.alpha, "± α": r.alpha_err,
                      "indicator": r.verdict.split()[0]} for o, r in results.items()]
-            st.dataframe(pd.DataFrame(rows), use_container_width=True)
+            st.dataframe(pd.DataFrame(rows), width="stretch")
             st.info(f"Worst observable: **{summary['worst_observable']}** "
                     f"(D_N/Var = {summary['worst_rel_D']:.2e}); "
                     f"all observables decay: **{summary['all_decay']}**")
