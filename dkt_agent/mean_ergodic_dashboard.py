@@ -23,14 +23,13 @@ def render_mean_ergodic_panel(title: str = "Mean ergodicity (von Neumann L² dia
     panel = nullcontext() if in_tab else st.expander(title, expanded=False)
     with panel:
         st.markdown(
-            r"""Estimates **$D_N = \left\|A_N f - \langle f\rangle\right\|^2$**
-            (mean-square distance of the time average from the phase-space average)
-            over uniformly sampled initial conditions.
-
-            - $D_N \to 0$: the $L^2$ limit is the constant $\langle f\rangle$.
-            - A nonzero plateau: the limit may be a non-constant invariant function.
-
-            Mean ergodicity is *weaker* than Birkhoff (pointwise) ergodicity."""
+            r"Estimates **$D_N = \\left\\|A_N f - \\langle f\\rangle\\right\\|^2$** "
+            "(mean-square distance of the time average from the phase-space average) "
+            "over uniformly sampled initial conditions.\n\n"
+            r"- $D_N \\to 0$: the $L^2$ limit is the constant $\\langle f\\rangle$. "
+            "\n"
+            "- A nonzero plateau: the limit may be a non-constant invariant function.\n\n"
+            "Mean ergodicity is *weaker* than Birkhoff (pointwise) ergodicity."
         )
         c1, c2, c3 = st.columns(3)
         c1.markdown(r"$k_r$")
