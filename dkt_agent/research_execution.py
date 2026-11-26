@@ -69,6 +69,14 @@ def create_campaign(plan: dict[str, Any]) -> dict[str, Any]:
         "updated_at": _now(),
         "status": "planned",
         "plan": plan,
+        "execution_authorization": (
+            "authorized_by_user"
+            if plan.get("execution_authorization") == "authorized_by_user"
+            else "not_authorized"
+        ),
+        "execution_authorized_at": _now()
+        if plan.get("execution_authorization") == "authorized_by_user"
+        else None,
         "stages": [
             {
                 "index": i,
@@ -172,8 +180,17 @@ def execute_campaign_stage(
             raise PermissionError("Review the read-only evidence and explicitly decide whether new calculations are still needed.")
     if mode is None or mode != stage["execution_mode"]:
         raise ValueError("The planned tool/mode is not enabled by the execution policy.")
-    if mode == "new_numerical_data" and not execution_authorized:
-        raise PermissionError("Explicit authorization is required for new numerical data.")
+    campaign_authorized = (
+        campaign.get("execution_authorization") == "authorized_by_user"
+        or campaign.get("plan", {}).get("execution_authorization") == "authorized_by_user"
+    )
+    if mode == "new_numerical_data" and (
+        not execution_authorized or not campaign_authorized
+    ):
+        raise PermissionError(
+            "Explicit user authorization must be recorded in the campaign before "
+            "new numerical data can be generated."
+        )
     if mode == "read_only" and tool_name not in TOOL_MODES:
         raise ValueError("Read-only tool is not allow-listed.")
 
@@ -217,6 +234,31 @@ def execute_campaign_stage(
         })
         _save(campaign)
         raise
+
+
+def record_execution_authorization(
+    campaign: dict[str, Any], *, authorized: bool
+) -> None:
+    """Persist an explicit user authorization decision in the campaign audit log."""
+    if not isinstance(authorized, bool):
+        raise ValueError("Execution authorization must be boolean.")
+    if not isinstance(campaign, dict) or "campaign_id" not in campaign:
+        raise ValueError("A valid research campaign is required.")
+
+    decision = "authorized_by_user" if authorized else "not_authorized"
+    previous = campaign.get("execution_authorization", "not_authorized")
+    if previous == decision:
+        return
+
+    campaign["execution_authorization"] = decision
+    campaign["execution_authorized_at"] = _now() if authorized else None
+    campaign.setdefault("events", []).append({
+        "at": _now(),
+        "event": "execution_authorization_recorded",
+        "decision": decision,
+    })
+    campaign["updated_at"] = _now()
+    _save(campaign)
 
 
 def record_evidence_review(campaign: dict[str, Any], *, proceed_with_new_calculations: bool) -> None:
