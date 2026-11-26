@@ -14,7 +14,7 @@ from dkt_agent.mean_ergodicity_tools import CAVEAT, save_mean_ergodic_artifacts
 
 
 def render_mean_ergodic_panel(
-    title: str = "Mean ergodicity (von Neumann L² diagnostic)",
+    title: str = "Mean ergodicity (von Neumann L2 diagnostic)",
     *,
     in_tab: bool = False,
 ) -> None:
