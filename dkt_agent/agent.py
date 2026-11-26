@@ -450,7 +450,7 @@ def main():
     print("Model: Gemini 2.5 Flash")
     print("Physics engine: QuantumKickedTop.jl")
     print("Framework: LangGraph")
-    print("Available tools: 20")
+    print("Available research tools: 23")
     print("\nEnter a research request, or type 'exit' to quit.")
     print("For multiline requests, type /multi and finish with /send.\n")
 
