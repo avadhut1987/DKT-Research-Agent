@@ -7,6 +7,7 @@ on:
     branches:
       - main
       - feature/mixing-hierarchy-diagnostics
+      - feature/periodic-orbit-hierarchy
   workflow_dispatch:
 
 permissions:
@@ -36,4 +37,5 @@ jobs:
         run: |
           python -m pytest -q \
             tests/python/test_mixing_hierarchy.py \
-            tests/python/test_advanced_diagnostics.py
+            tests/python/test_advanced_diagnostics.py \
+            tests/python/test_periodic_orbits.py

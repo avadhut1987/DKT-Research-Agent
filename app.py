@@ -30,6 +30,7 @@ from dkt_agent.research_tools import (
 )
 from dkt_agent.tools import (simulate_dkt, simulate_dkt_grid, run_entanglement_dynamics, run_entanglement_heatmap)
 from dkt_agent.streamlit_mixing_dashboard import render_mixing_hierarchy_dashboard
+from dkt_agent.periodic_orbit_dashboard import render_periodic_orbit_panel
 import matplotlib.pyplot as plt
 
 def filename_token(value: float | int) -> str:
@@ -1475,6 +1476,7 @@ with diagnose_tab:
         "Diagnostic",
         [
             "Fixed points and local stability",
+            "Periodic orbits (all searched periods)",
             "Trajectory geometry",
             "Observable time series",
             "Finite-time Lyapunov exponents and KS estimate",
@@ -1484,7 +1486,10 @@ with diagnose_tab:
         key="ws_diagnostic",
     )
 
-    if diagnostic == "Fixed points and local stability":
+    if diagnostic == "Periodic orbits (all searched periods)":
+        render_periodic_orbit_panel(in_tab=True)
+
+    elif diagnostic == "Fixed points and local stability":
         with st.form("ws_fixed_points_form"):
             c1, c2 = st.columns(2)
             with c1:

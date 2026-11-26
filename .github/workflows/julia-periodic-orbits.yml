@@ -1,0 +1,54 @@
+name: Julia periodic-orbit smoke test
+
+on:
+  push:
+    branches: [feature/periodic-orbit-hierarchy]
+  pull_request:
+    branches: [main]
+
+jobs:
+  periodic-orbits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.12'
+      - name: Instantiate lightweight StaticArrays environment
+        run: julia --project=scripts/julia/periodic_orbit_env -e 'using Pkg; Pkg.instantiate()'
+      - name: Run low-cost arbitrary-period smoke test
+        run: |
+          mkdir -p results/ci
+          julia --project=scripts/julia/periodic_orbit_env scripts/julia/periodic_orbit_search.jl \
+            0.0 0.0 1.5707963267948966 4 32 1e-8 100 20261126 \
+            results/ci/periodic_orbits.csv
+          test -s results/ci/periodic_orbits.csv
+          test -s results/ci/periodic_orbits_points.csv
+          julia --project=scripts/julia/periodic_orbit_env scripts/julia/periodic_orbit_search.jl \
+            1.0 0.0 1.5707963267948966 2 16 1e-8 100 20261126 \
+            results/ci/periodic_orbits_kr1_kt0.csv
+          julia --project=scripts/julia/periodic_orbit_env scripts/julia/periodic_orbit_search.jl \
+            1.0 10000.0 1.5707963267948966 2 16 1e-8 100 20261126 \
+            results/ci/periodic_orbits_kr1_kt10000.csv
+          test -s results/ci/periodic_orbits_kr1_kt0.csv
+          test -s results/ci/periodic_orbits_kr1_kt10000.csv
+          python - <<'PY'
+          import csv
+          with open('results/ci/periodic_orbits.csv', newline='') as f:
+              rows = list(csv.DictReader(f))
+          periods = {int(row['primitive_period']) for row in rows}
+          assert periods == {1, 4}, periods
+          assert sum(int(row['primitive_period']) == 4 for row in rows) > 0
+          PY
+          PYTHONPATH=. python - <<'PY'
+          from dkt_agent.periodic_orbit_tools import run_periodic_orbit_search
+          result = run_periodic_orbit_search(
+              0.0, 0.0, max_period=4, n_seeds=16,
+              tolerance=1e-8, max_iterations=100, seed=20261126,
+              results_root="results/ci/python_wrapper",
+          )
+          assert int(result["search"]["orbits_by_primitive_period"].get("4", 0)) > 0
+          assert result["search"]["exhaustive"] is False
+          PY

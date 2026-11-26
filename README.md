@@ -499,3 +499,14 @@ Copyright (c) 2026 Avadhut V. Purohit.
 You are free to use, modify, distribute, and adapt this software in accordance with the terms of the MIT License.
 
 See the [LICENSE](LICENSE) file for the complete license text.
+
+
+## Periodic-orbit hierarchy
+
+The numerical periodic-orbit search detects primitive DKT cycles over a configurable
+period range, excludes lower-period repeats, deduplicates cyclic rotations, and
+reports closure residuals and Floquet multipliers. See [the periodic-orbit guide](docs/periodic_orbits.md)
+for the Julia command, Python API, Streamlit panel, output schema and numerical
+limitations. Searches are finite and non-exhaustive; absence from a result is not
+evidence of nonexistence. At fixed \(k_r\), \(k_\theta\) comparisons are interpreted
+as orbit-geometry comparisons, not changes in classical chaoticity.
