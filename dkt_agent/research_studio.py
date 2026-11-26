@@ -32,23 +32,23 @@ def _render_scientific_text(value: str) -> str:
         protected.append(match.group(0))
         return f"\x00MATH{len(protected) - 1}\x00"
 
-    rendered = re.sub(r"\\$[^$]+\\$", protect_math, value)
+    rendered = re.sub(r"\$[^$]+\$", protect_math, value)
     replacements = (
-        (r"\\bk[_\\s-]*theta\\b", r"$k_\\theta$"),
-        (r"\\bk[_\\s-]*r\\b", r"$k_r$"),
-        (r"\\btheta[_\\s-]*0\\b", r"$\\theta_0$"),
-        (r"\\bphi[_\\s-]*0\\b", r"$\\phi_0$"),
-        (r"\\bpi\\s*/\\s*2\\b", r"$\\pi/2$"),
-        (r"\\blambda[_\\s-]*1\\b", r"$\\lambda_1$"),
-        (r"\\blambda[_\\s-]*2\\b", r"$\\lambda_2$"),
-        (r"\\bL\\s*\\^?\\s*2\\b", r"$L^2$"),
-        (r"\\bDelta[_\\s-]*theta\\b", r"$\\Delta\\theta$"),
-        (r"\\bDelta[_\\s-]*phi\\b", r"$\\Delta\\phi$"),
+        (r"\bk[_\s-]*theta\b", r"$k_\theta$"),
+        (r"\bk[_\s-]*r\b", r"$k_r$"),
+        (r"\btheta[_\s-]*0\b", r"$\theta_0$"),
+        (r"\bphi[_\s-]*0\b", r"$\phi_0$"),
+        (r"\bpi\s*/\s*2\b", r"$\pi/2$"),
+        (r"\blambda[_\s-]*1\b", r"$\lambda_1$"),
+        (r"\blambda[_\s-]*2\b", r"$\lambda_2$"),
+        (r"\bL\s*\^?\s*2\b", r"$L^2$"),
+        (r"\bDelta[_\s-]*theta\b", r"$\Delta\theta$"),
+        (r"\bDelta[_\s-]*phi\b", r"$\Delta\phi$"),
     )
     for pattern, replacement in replacements:
         rendered = re.sub(pattern, replacement, rendered, flags=re.IGNORECASE)
     for index, original in enumerate(protected):
-        rendered = rendered.replace(f"\\x00MATH{index}\\x00", original)
+        rendered = rendered.replace(f"\x00MATH{index}\x00", original)
     return rendered
 
 
