@@ -1125,7 +1125,7 @@ with st.sidebar:
             "Changes phase-space geometry and its orientation/structure; "
             "it does not control the degree of classical chaos."
         )
-        st.latex(r"k = k_r+k_\theta, \qquad k\prime = k_r-k_\theta")
+        st.latex(r"k = k_r+k_\theta, \qquad k' = k_r-k_\theta")
 
     with st.expander("Interactive DKT simulation", expanded=False):
         st.caption("Evolve one classical initial condition under the DKT map.")
