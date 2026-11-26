@@ -4,7 +4,12 @@ on:
   pull_request:
     paths:
       - "dkt_agent/research_orchestrator.py"
+      - "dkt_agent/research_execution.py"
+      - "dkt_agent/research_tools.py"
+      - "dkt_agent/research_studio.py"
+      - "dkt_agent/agent.py"
       - "tests/python/test_research_orchestrator.py"
+      - "tests/python/test_research_execution.py"
       - ".github/workflows/research-orchestrator.yml"
   push:
     branches: [main]
@@ -24,8 +29,10 @@ jobs:
         with:
           python-version: "3.14"
       - name: Install planner dependency
-        run: python -m pip install "langchain-core==1.7.6" "streamlit>=1.40,<2"
+        run: python -m pip install "langchain-core==1.7.6" "streamlit>=1.40,<2" numpy scipy matplotlib
       - name: Import Research Studio
         run: PYTHONPATH=. python -c "from dkt_agent.research_studio import render_research_studio; print('Research Studio import successful')"
       - name: Run research planner tests
         run: PYTHONPATH=. python tests/python/test_research_orchestrator.py
+      - name: Run research execution and geometry tests
+        run: PYTHONPATH=. python tests/python/test_research_execution.py
