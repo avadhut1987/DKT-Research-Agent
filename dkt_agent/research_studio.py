@@ -33,6 +33,14 @@ def _question_defaults(question: str) -> dict[str, float | int]:
         vals = re.findall(r"k[_\s-]?theta\s*=\s*([-+]?\d+(?:\.\d+)?)", question, re.I)
         if len(vals) >= 2:
             values["ktheta_a"], values["ktheta_b"] = float(vals[0]), float(vals[1])
+    for key, pattern in (
+        ("theta0", r"(?:theta[_\s]?0|θ[_\s]?0)\s*=\s*([-+]?\d+(?:\.\d+)?)"),
+        ("phi0", r"(?:phi[_\s]?0|φ[_\s]?0)\s*=\s*([-+]?\d+(?:\.\d+)?)"),
+        ("p", r"\bp\s*=\s*([-+]?\d+(?:\.\d+)?)"),
+    ):
+        match = re.search(pattern, question, re.I)
+        if match:
+            values[key] = float(match.group(1))
     nsteps = re.search(r"(?:nsteps|number of kicks|kicks)\s*(?:=|of)?\s*(\d+)", question, re.I)
     if nsteps:
         values["nsteps"] = int(nsteps.group(1))
