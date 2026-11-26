@@ -326,7 +326,8 @@ def render_research_studio() -> None:
         question = st.text_area(
             "Research question", height=125,
             placeholder=(
-                r"Example: At fixed $k_r=1$, compare $k_\theta=0$ and $10^4$. "
+                "Example: At fixed average kicking strength 1, compare asymmetry "
+                "values 0 and 10^4. "
                 "Assess X, Y and Z separately, and distinguish observable-wise "
                 "ergodicity from global or region-restricted claims."
             ),
