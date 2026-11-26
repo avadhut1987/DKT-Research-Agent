@@ -121,6 +121,11 @@ def list_campaigns(limit: int = 20) -> list[dict[str, str]]:
                 "campaign_id": item["campaign_id"],
                 "status": item.get("status", "unknown"),
                 "research_question": item.get("plan", {}).get("research_question", ""),
+                "execution_authorization": item.get(
+                    "execution_authorization",
+                    item.get("plan", {}).get("execution_authorization", "not_authorized"),
+                ),
+                "evidence_review": item.get("evidence_review", {}).get("decision", "pending"),
                 "updated_at": item.get("updated_at", ""),
             })
         except (OSError, ValueError, KeyError, TypeError):
