@@ -19,6 +19,29 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CAMPAIGNS_ROOT = PROJECT_ROOT / "results" / "research_campaigns"
 
+# Streamlit keeps its ScriptRunner thread alive between reruns. Thread liveness
+# therefore cannot tell us whether a stage tool is still executing. Track the
+# actual in-process tool invocation by attempt ID instead.
+_ACTIVE_ATTEMPTS: set[str] = set()
+_ACTIVE_ATTEMPTS_LOCK = threading.Lock()
+
+
+def _mark_attempt_active(attempt_id: str) -> None:
+    with _ACTIVE_ATTEMPTS_LOCK:
+        _ACTIVE_ATTEMPTS.add(attempt_id)
+
+
+def _mark_attempt_inactive(attempt_id: str) -> None:
+    with _ACTIVE_ATTEMPTS_LOCK:
+        _ACTIVE_ATTEMPTS.discard(attempt_id)
+
+
+def _is_attempt_active(attempt_id: str | None) -> bool:
+    if not attempt_id:
+        return False
+    with _ACTIVE_ATTEMPTS_LOCK:
+        return attempt_id in _ACTIVE_ATTEMPTS
+
 # Keep the execution surface explicit. Never resolve arbitrary tool names from
 # user/model text or dynamically import a module based on a plan field.
 TOOL_MODES = {
@@ -64,13 +87,15 @@ def inspect_stage_liveness(
 
     host = stage.get("runner_host")
     pid = stage.get("runner_pid")
-    thread_id = stage.get("runner_thread_id")
-    if host == socket.gethostname() and pid == os.getpid() and thread_id:
-        alive = any(thread.ident == thread_id and thread.is_alive()
-                    for thread in threading.enumerate())
+    attempt_id = stage.get("active_attempt_id")
+    if host == socket.gethostname() and pid == os.getpid():
+        # Streamlit reuses its script thread across reruns. Only an actual
+        # tool invocation, not a live thread, means the stage is still active.
+        active = _is_attempt_active(attempt_id)
         return {
-            "running": True, "stale": not alive,
-            "reason": "runner_thread_active" if alive else "runner_thread_missing",
+            "running": True,
+            "stale": not active,
+            "reason": "tool_invocation_active" if active else "tool_invocation_not_active",
         }
 
     started = _parse_timestamp(stage.get("started_at"))
@@ -348,6 +373,7 @@ def execute_campaign_stage(
         "tool": tool_name, "execution_mode": mode,
     })
     _save(campaign)
+    _mark_attempt_active(attempt_id)
     try:
         raw_result = tool.invoke(arguments)
         if isinstance(raw_result, str):
@@ -398,6 +424,8 @@ def execute_campaign_stage(
         })
         _save(campaign)
         raise
+    finally:
+        _mark_attempt_inactive(attempt_id)
 
 
 def record_execution_authorization(
