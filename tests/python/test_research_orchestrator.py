@@ -64,6 +64,18 @@ class TestResearchOrchestrator(unittest.TestCase):
         p = build_research_plan("Run a controlled parameter sweep.")
         self.assertEqual(p["workflow"][0]["tool"], "run_dkt_parameter_sweep")
 
+    def test_csv_summary_route(self):
+        p = build_research_plan("Summarize the existing research CSV statistics.")
+        self.assertEqual(p["workflow"][0]["tool"], "summarize_research_csv")
+
+    def test_existing_trajectory_comparison_route(self):
+        p = build_research_plan("Compare two existing trajectories.")
+        self.assertEqual(p["workflow"][0]["tool"], "compare_dkt_simulations")
+
+    def test_single_simulation_route(self):
+        p = build_research_plan("Simulate one classical DKT trajectory.")
+        self.assertEqual(p["workflow"][0]["tool"], "run_dkt_simulation")
+
     def test_classical_quantum_route(self):
         p = build_research_plan("Study classical-quantum correspondence.")
         self.assertEqual(p["research_intent"], "classical_quantum_correspondence")
