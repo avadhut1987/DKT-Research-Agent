@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 import tempfile
+import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,6 +34,101 @@ TOOL_MODES = {
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _parse_timestamp(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
+def is_stage_terminal(status: str) -> bool:
+    """Statuses that satisfy workflow dependencies without another execution."""
+    return status in {"completed", "reused_existing_evidence"}
+
+
+def inspect_stage_liveness(
+    stage: dict[str, Any], *, stale_after_seconds: int = 600
+) -> dict[str, Any]:
+    """Distinguish an active stage from a process/thread that has disappeared.
+
+    New records carry host, PID and Streamlit script-thread identity. Legacy
+    records fall back to an age-based check because they have no owner metadata.
+    """
+    if stage.get("status") != "running":
+        return {"running": False, "stale": False, "reason": "stage_not_running"}
+
+    host = stage.get("runner_host")
+    pid = stage.get("runner_pid")
+    thread_id = stage.get("runner_thread_id")
+    if host == socket.gethostname() and pid == os.getpid() and thread_id:
+        alive = any(thread.ident == thread_id and thread.is_alive()
+                    for thread in threading.enumerate())
+        return {
+            "running": True, "stale": not alive,
+            "reason": "runner_thread_active" if alive else "runner_thread_missing",
+        }
+
+    started = _parse_timestamp(stage.get("started_at"))
+    age = (datetime.now(timezone.utc) - started).total_seconds() if started else None
+    if host == socket.gethostname() and isinstance(pid, int) and pid != os.getpid():
+        try:
+            os.kill(pid, 0)
+            process_alive = True
+        except ProcessLookupError:
+            process_alive = False
+        except PermissionError:
+            process_alive = True
+        if not process_alive:
+            return {"running": True, "stale": True, "reason": "runner_process_missing", "age_seconds": age}
+    stale = age is not None and age >= max(1, stale_after_seconds)
+    return {
+        "running": True, "stale": stale,
+        "reason": "legacy_or_remote_runner_timeout" if stale else "runner_may_still_be_active",
+        "age_seconds": age,
+    }
+
+
+def recover_interrupted_stage(
+    campaign: dict[str, Any], stage_index: int, *, stale_after_seconds: int = 600
+) -> dict[str, Any]:
+    """Record a dead/stale running attempt as interrupted; never rerun it."""
+    stages = campaign.get("stages", [])
+    if isinstance(stage_index, bool) or not isinstance(stage_index, int) or not 0 <= stage_index < len(stages):
+        raise ValueError("Invalid research stage index.")
+    stage = stages[stage_index]
+    liveness = inspect_stage_liveness(stage, stale_after_seconds=stale_after_seconds)
+    if not liveness["running"]:
+        raise ValueError("This stage is not marked as running.")
+    if not liveness["stale"]:
+        raise RuntimeError("The stage runner may still be active; recovery is not safe yet.")
+
+    recovered_at = _now()
+    attempt_id = stage.get("active_attempt_id")
+    for attempt in stage.get("attempt_history", []):
+        if attempt.get("attempt_id") == attempt_id and attempt.get("status") == "running":
+            attempt.update({
+                "status": "interrupted", "completed_at": recovered_at,
+                "error": "Runner disappeared before the stage completion was persisted.",
+            })
+    stage.update({
+        "status": "interrupted", "completed_at": recovered_at,
+        "error": "Execution was interrupted before completion could be recorded. Review the attempt history before retrying.",
+        "runner_pid": None, "runner_host": None, "runner_thread_id": None,
+        "active_attempt_id": None,
+    })
+    campaign["status"] = "interrupted"
+    campaign["updated_at"] = recovered_at
+    campaign.setdefault("events", []).append({
+        "at": recovered_at, "event": "stage_interruption_recovered",
+        "stage_index": stage_index, "liveness": liveness,
+    })
+    _save(campaign)
+    return campaign
 
 
 def _campaign_path(campaign_id: str) -> Path:
@@ -85,6 +182,11 @@ def create_campaign(plan: dict[str, Any]) -> dict[str, Any]:
                 "execution_mode": step["execution_mode"],
                 "status": "pending",
                 "attempts": 0,
+                "attempt_history": [],
+                "active_attempt_id": None,
+                "runner_pid": None,
+                "runner_host": None,
+                "runner_thread_id": None,
                 "input_arguments": None,
                 "started_at": None,
                 "completed_at": None,
@@ -219,9 +321,24 @@ def execute_campaign_stage(
         raise ValueError("Read-only tool is not allow-listed.")
 
     tool = _resolve_tool(tool_name)
+    attempt_number = int(stage.get("attempts", 0)) + 1
+    attempt_id = uuid.uuid4().hex
+    started_at = _now()
+    attempt = {
+        "attempt_id": attempt_id, "attempt_number": attempt_number,
+        "status": "running", "started_at": started_at,
+        "completed_at": None, "input_arguments": arguments,
+        "runner_pid": os.getpid(), "runner_host": socket.gethostname(),
+        "runner_thread_id": threading.get_ident(), "error": None,
+    }
+    stage.setdefault("attempt_history", []).append(attempt)
     stage.update({
-        "status": "running", "attempts": int(stage.get("attempts", 0)) + 1,
-        "input_arguments": arguments, "started_at": _now(), "error": None,
+        "status": "running", "attempts": attempt_number,
+        "active_attempt_id": attempt_id,
+        "runner_pid": os.getpid(), "runner_host": socket.gethostname(),
+        "runner_thread_id": threading.get_ident(),
+        "input_arguments": arguments, "started_at": started_at,
+        "completed_at": None, "result": None, "error": None,
     })
     campaign["status"] = "running"
     campaign["updated_at"] = _now()
@@ -239,7 +356,19 @@ def execute_campaign_stage(
                 result = raw_result
         else:
             result = raw_result
-        stage.update({"status": "completed", "completed_at": _now(), "result": result})
+        if isinstance(result, dict) and (
+            str(result.get("status", "")).lower() in {"error", "failed", "failure"}
+            or result.get("success") is False
+        ):
+            detail = result.get("error") or result.get("message") or result.get("status")
+            raise RuntimeError(f"Research tool reported failure: {detail}")
+        completed_at = _now()
+        attempt.update({"status": "completed", "completed_at": completed_at, "result": result})
+        stage.update({
+            "status": "completed", "completed_at": completed_at, "result": result,
+            "error": None, "runner_pid": None, "runner_host": None,
+            "runner_thread_id": None, "active_attempt_id": None,
+        })
         campaign["status"] = (
             "completed" if all(s["status"] in {"completed", "reused_existing_evidence"} for s in stages)
             else "paused"
@@ -252,7 +381,14 @@ def execute_campaign_stage(
         _save(campaign)
         return campaign
     except Exception as exc:
-        stage.update({"status": "failed", "completed_at": _now(), "error": f"{type(exc).__name__}: {exc}"})
+        failed_at = _now()
+        failure = f"{type(exc).__name__}: {exc}"
+        attempt.update({"status": "failed", "completed_at": failed_at, "error": failure})
+        stage.update({
+            "status": "failed", "completed_at": failed_at, "error": failure,
+            "runner_pid": None, "runner_host": None,
+            "runner_thread_id": None, "active_attempt_id": None,
+        })
         campaign["status"] = "failed"
         campaign["updated_at"] = _now()
         campaign["events"].append({
