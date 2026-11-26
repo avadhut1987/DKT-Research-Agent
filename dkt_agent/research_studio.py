@@ -202,7 +202,7 @@ def _render_stage_result(stage: dict) -> None:
             key=f"stage_result_{stage.get('index', 0)}",
         )
     if stage.get("error"):
-        st.error(stage["error"]")
+        st.error(stage["error"])
 
 
 def _duration_seconds(started: str | None, finished: str | None) -> float | None:
