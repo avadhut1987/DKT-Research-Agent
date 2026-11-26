@@ -52,5 +52,5 @@ def test_research_studio_renders_plain_text_parameters_as_latex():
 def test_research_studio_preserves_existing_latex_and_original_question():
     from dkt_agent.research_studio import _render_scientific_text
 
-    source = r"Compare $k_\\theta$ at fixed $k_r=1$."
+    source = r"Compare $k_\theta$ at fixed $k_r=1$."
     assert _render_scientific_text(source) == source
