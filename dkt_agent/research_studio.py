@@ -146,29 +146,27 @@ def _render_execution(campaign: dict) -> None:
             with c1:
                 kr = st.number_input(r"$k_r$", value=float(defaults["kr"]), format="%.8g")
                 kt_a = st.number_input(r"$k_{\theta,a}$", value=float(defaults["ktheta_a"]), format="%.8g")
+                theta0 = st.number_input(r"$\theta_0$", value=float(defaults["theta0"]), format="%.8g")
             with c2:
                 kt_b = st.number_input(r"$k_{\theta,b}$", value=float(defaults["ktheta_b"]), format="%.8g")
+                phi0 = st.number_input(r"$\phi_0$", value=float(defaults["phi0"]), format="%.8g")
+                delta_theta = st.number_input(r"Patch half-width $\Delta\theta$", min_value=0.001, max_value=0.5, value=0.08, format="%.3f")
+            with c3:
                 p = st.number_input(r"$p$", value=float(defaults["p"]), format="%.8g")
-            with c3:
-                n_trajectories = st.slider("Matched initial conditions", 2, 24, 8)
-                nsteps = st.number_input("Kicks per trajectory", min_value=100, max_value=50000, value=2000, step=500)
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                seed = st.number_input("Random seed", min_value=0, value=20261126, step=1)
-            with c2:
-                n_z = st.number_input("Equal-area z bins", min_value=2, max_value=100, value=30)
-            with c3:
-                n_phi = st.number_input("Azimuthal bins", min_value=2, max_value=200, value=60)
-            st.caption("Each initial condition is reused for both k_theta values. The ensemble is sampled uniformly over the sphere.")
+                delta_phi = st.number_input(r"Patch half-width $\Delta\phi$", min_value=0.001, max_value=3.14159, value=0.08, format="%.3f")
+                grid_size = st.slider("Grid points per angular direction", 3, 31, 7, 2)
+            nsteps = st.number_input("Kicks per trajectory", min_value=1, max_value=50000, value=2000, step=500)
+            st.caption("Both maps receive the same local angular grid of initial conditions. The cloud is a geometric probe, not an invariant phase-space region.")
             submitted = st.form_submit_button(
-                "Execute matched-ensemble geometry comparison",
+                "Execute matched-cloud geometry comparison",
                 type="primary", disabled=not authorized, use_container_width=True,
             )
         if submitted:
             args = {"kr": kr, "ktheta_values": [kt_a, kt_b],
-                    "n_trajectories": n_trajectories, "nsteps": int(nsteps),
-                    "p": p, "seed": int(seed), "n_z": int(n_z), "n_phi": int(n_phi)}
-            with st.spinner("Generating matched ensembles and comparing empirical phase-space distributions…"):
+                    "theta0": theta0, "phi0": phi0,
+                    "delta_theta": delta_theta, "delta_phi": delta_phi,
+                    "grid_size": grid_size, "nsteps": int(nsteps), "p": p}
+            with st.spinner("Evolving the matched local clouds and measuring their geometry…"):
                 _run_stage(campaign, index, args, authorized=True)
             st.rerun()
     elif tool_name == "mean_ergodicity_langchain_tool":
