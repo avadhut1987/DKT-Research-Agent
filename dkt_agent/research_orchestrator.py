@@ -85,9 +85,9 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
                 ["k_r", "two k_theta values", "theta_0 and phi_0", "number of kicks", "p (default pi/2)"],
                 "Trajectory separation alone does not establish changed chaos, Lyapunov behaviour or ergodicity."))
             steps.append(_step("3 · Matched-ensemble geometry comparison", "run_dkt_geometry_ensemble_comparison",
-                "Compare pooled empirical phase-space distributions using the same uniform-sphere initial conditions for both k_theta values.",
-                ["k_r", "two k_theta values", "matched ensemble size and random seed", "kick count", "equal-area spherical partition", "p"],
-                "Finite-partition Jensen-Shannon divergence measures sampled distributional differences; it does not prove distinct invariant measures, local ergodicity or changed chaoticity."))
+                "Evolve a common local angular grid under both maps and compare the finite-time cloud's principal spreads, orientation and matched-point separations.",
+                ["k_r", "two k_theta values", "local patch centre (theta_0, phi_0)", "angular patch widths", "grid resolution", "kick count", "p"],
+                "Finite-time cloud covariance and matched-point separations describe deformation of the chosen initial-condition patch; they do not establish an invariant region, local ergodicity or changed chaoticity."))
     elif _has(t, r"mean.?ergod", r"von neumann", r"l²", r"l\^2", r"d_n"):
         intent = "mean_ergodicity"
         scope = ["Treat mean ergodicity separately from Birkhoff/pointwise ergodicity and mixing.",
