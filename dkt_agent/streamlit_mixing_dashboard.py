@@ -45,13 +45,14 @@ def _ensemble_zip_bytes(ensemble: dict) -> bytes:
 def render_mixing_hierarchy_dashboard() -> None:
     """Render an ensemble-first workspace for finite-data hierarchy diagnostics."""
     st.divider()
-    st.header("Ergodic Hierarchy — Visual Dashboard")
+    st.header("Ensemble-based ergodic-hierarchy diagnostics")
     st.caption(
-        "Generate, save, and analyse a reproducible DKT ensemble in one step; "
-        "the application handles the trajectory files and metadata automatically."
+        "Generate or select a reproducible ensemble, then inspect complementary "
+        "finite-data diagnostics for Birkhoff averages, correlation decay, "
+        "and finite-partition dependence."
     )
 
-    with st.expander("Generate and save a DKT trajectory ensemble", expanded=False):
+    with st.expander("Generate a new trajectory ensemble", expanded=False):
         st.write(
             "The application generates a grid of distinct initial conditions using "
             "one common DKT map. Every orbit is saved as a separate parameter-labelled "
@@ -304,18 +305,23 @@ def render_mixing_hierarchy_dashboard() -> None:
     from dkt_agent.mean_ergodic_dashboard import render_mean_ergodic_panel
 
     tab_mean, tab_ergodic, tab_weak, tab_strong, tab_summary = st.tabs([
-        "Mean ergodicity",
-        "Birkhoff averages",
+        "L² mean ergodicity",
+        "Birkhoff variance",
         "Weak-mixing indicators",
-        "Finite-partition alpha",
-        "Numerical tables & files",
+        "Finite-partition α",
+        "Tables & downloads",
     ])
 
     with tab_mean:
+        st.caption(
+            "Independent sampled-initial-condition test of the von Neumann "
+            "L² mean-ergodicity criterion. It is distinct from the ensemble "
+            "Birkhoff-variance analysis in the next tab."
+        )
         render_mean_ergodic_panel(in_tab=True)
 
     with tab_ergodic:
-        st.subheader("Selected-observable Birkhoff-average variance")
+        st.subheader("Ensemble variance of finite-time Birkhoff averages")
         rows = ergodic.get("rows", [])
         if rows:
             frame = pd.DataFrame(rows)
@@ -390,7 +396,7 @@ def render_mixing_hierarchy_dashboard() -> None:
         )
 
     with tab_summary:
-        st.subheader("Input and diagnostic summary")
+        st.subheader("Run provenance and diagnostic summary")
         summary_frame = pd.DataFrame([
             {"Item": "Trajectory files", "Value": len(result.get("input_trajectory_csvs", []))},
             {"Item": "Transient discarded", "Value": result.get("parameters", {}).get("transient_discarded")},
