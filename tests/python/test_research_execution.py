@@ -67,6 +67,29 @@ class TestResearchExecution(unittest.TestCase):
                     )
                 self.assertEqual(updated["stages"][0]["status"], "completed")
 
+
+    def test_authorization_can_be_revoked_even_if_original_plan_was_authorized(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan(
+                    "Compare ktheta=0 and 10000 at fixed kr=1 for trajectory geometry.",
+                    execution_authorized=True,
+                )
+                campaign = execution.create_campaign(plan)
+                self.assertEqual(campaign["execution_authorization"], "authorized_by_user")
+
+                execution.record_execution_authorization(campaign, authorized=False)
+                loaded = execution.load_campaign(campaign["campaign_id"])
+                self.assertEqual(loaded["execution_authorization"], "not_authorized")
+                self.assertIsNone(loaded["execution_authorized_at"])
+
+                loaded["stages"][0]["tool"] = "run_dkt_comparison_study"
+                loaded["stages"][0]["execution_mode"] = "new_numerical_data"
+                with self.assertRaises(PermissionError):
+                    execution.execute_campaign_stage(
+                        loaded, 0, {"kr": 1.0}, execution_authorized=True
+                    )
+
     def test_boolean_flag_alone_cannot_bypass_campaign_authorization(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
