@@ -1,5 +1,6 @@
+import json
 import unittest
-from dkt_agent.research_orchestrator import build_research_plan
+from dkt_agent.research_orchestrator import build_research_plan, plan_dkt_research
 
 class TestResearchOrchestrator(unittest.TestCase):
     def test_fixed_kr_ktheta_geometry_guardrail(self):
@@ -75,6 +76,14 @@ class TestResearchOrchestrator(unittest.TestCase):
     def test_single_simulation_route(self):
         p = build_research_plan("Simulate one classical DKT trajectory.")
         self.assertEqual(p["workflow"][0]["tool"], "run_dkt_simulation")
+
+    def test_langchain_planner_tool_contract(self):
+        self.assertEqual(plan_dkt_research.name, "plan_dkt_research")
+        result = json.loads(plan_dkt_research.invoke({
+            "research_question": "Investigate mean ergodicity."
+        }))
+        self.assertEqual(result["status"], "plan_created")
+        self.assertFalse(result["execution_performed"])
 
     def test_classical_quantum_route(self):
         p = build_research_plan("Study classical-quantum correspondence.")
