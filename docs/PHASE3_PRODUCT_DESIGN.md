@@ -62,7 +62,7 @@ A feature must preserve scientific algorithms and defaults unless explicitly int
 
 Research Studio campaigns persist a plan snapshot and an ordered stage ledger. Each stage records its execution mode, exact arguments, attempt count, timestamps, result or error. Campaigns are stored under `results/research_campaigns/` and can be resumed. Execution is restricted to an explicit allow-list of validated tools; arbitrary tool names from model output are never dynamically resolved.
 
-Read-only evidence discovery may be run independently. Numerical stages require both recorded user authorization and a separate execution action. Stages run in order, and later stages cannot start until earlier stages complete. Failed stages retain their inputs and error record and may be retried. This is a human-supervised execution foundation; it is not yet an unrestricted autonomous agent or an automatic scientific reviewer.
+Read-only evidence discovery may be run independently. After discovery, the researcher must record whether the evidence is sufficient or whether new calculations are still needed. Numerical stages require both recorded user authorization and a separate execution action. Stages run in order, and later stages cannot start until earlier stages complete. Failed stages retain their inputs and error record and may be retried. This is a human-supervised execution foundation; it is not yet an unrestricted autonomous agent or an automatic scientific reviewer.
 
 ## Observable-resolved and local ergodicity
 
