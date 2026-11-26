@@ -323,7 +323,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                     frame[axis], errors="coerce"
                 ).dropna()
                 row[f"Mean {axis}"] = values.mean()
-                row[f"Mean {axis}²"] = (values ** 2).mean()
+                row[f"Mean {axis} squared"] = (values ** 2).mean()
                 row[f"Std. {axis}"] = values.std(ddof=0)
             statistics_rows.append(row)
 
