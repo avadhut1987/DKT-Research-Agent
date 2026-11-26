@@ -187,7 +187,8 @@ def execute_campaign_stage(
         raise ValueError("The planned tool/mode is not enabled by the execution policy.")
     campaign_authorized = (
         campaign.get("execution_authorization") == "authorized_by_user"
-        or campaign.get("plan", {}).get("execution_authorization") == "authorized_by_user"
+        if "execution_authorization" in campaign
+        else campaign.get("plan", {}).get("execution_authorization") == "authorized_by_user"
     )
     if mode == "new_numerical_data" and (
         not execution_authorized or not campaign_authorized
@@ -251,7 +252,10 @@ def record_execution_authorization(
         raise ValueError("A valid research campaign is required.")
 
     decision = "authorized_by_user" if authorized else "not_authorized"
-    previous = campaign.get("execution_authorization", "not_authorized")
+    previous = campaign.get(
+        "execution_authorization",
+        campaign.get("plan", {}).get("execution_authorization", "not_authorized"),
+    )
     if previous == decision:
         return
 
