@@ -13,6 +13,7 @@ from dkt_agent.research_execution import (
     execute_campaign_stage,
     list_campaigns,
     load_campaign,
+    record_evidence_review,
 )
 
 
@@ -96,6 +97,36 @@ def _render_execution(campaign: dict) -> None:
             with right:
                 st.caption(status)
             _render_stage_result(stage)
+
+    evidence_complete = any(
+        s["tool"] == "search_research_evidence" and s["status"] == "completed"
+        for s in stages
+    )
+    numerical_pending = any(
+        s["execution_mode"] == "new_numerical_data" and s["status"] in {"pending", "failed"}
+        for s in stages
+    )
+    if evidence_complete and numerical_pending and not campaign.get("evidence_review"):
+        with st.container(border=True):
+            st.markdown("**Evidence sufficiency checkpoint**")
+            st.write(
+                "Review the read-only search results above. Decide whether they already answer "
+                "the question, or whether the planned numerical work is still necessary."
+            )
+            left, right = st.columns(2)
+            with left:
+                if st.button("Evidence is sufficient · stop here", key=f"evidence_stop_{campaign['campaign_id']}"):
+                    record_evidence_review(campaign, proceed_with_new_calculations=False)
+                    st.rerun()
+            with right:
+                if st.button("Evidence is insufficient · proceed to numerical work", type="primary",
+                             key=f"evidence_proceed_{campaign['campaign_id']}"):
+                    record_evidence_review(campaign, proceed_with_new_calculations=True)
+                    st.rerun()
+        return
+    if campaign.get("evidence_review", {}).get("decision") == "stop_existing_evidence_sufficient":
+        st.success("The campaign stopped after evidence review. No new numerical data were generated.")
+        return
 
     next_stage = next((s for s in stages if s["status"] in {"pending", "failed"}), None)
     if next_stage is None:
