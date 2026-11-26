@@ -262,7 +262,7 @@ def _render_execution(campaign: dict) -> None:
             args = {"k_r": kr, "k_theta": kt, "observables": observables,
                     "n_kicks": int(n_kicks), "n_initial_conditions": int(n_initial),
                     "p": p, "seed": int(seed)}
-            with st.spinner("Estimating the observable-wise finite-data L² diagnostics…"):
+            with st.spinner("Estimating the observable-wise finite-data L2 diagnostics…"):
                 _run_stage(campaign, index, args, authorized=True)
             st.rerun()
     elif tool_name == "run_ergodicity_variance_study":
