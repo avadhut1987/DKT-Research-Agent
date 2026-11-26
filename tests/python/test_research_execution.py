@@ -368,7 +368,7 @@ class TestResearchExecution(unittest.TestCase):
                     updated = execution.execute_campaign_stage(
                         campaign, 0, {"query": "fixed points"}
                     )
-                self.assertTrue(tool.self_active)
+                self.assertTrue(tool.assert_active)
                 self.assertEqual(updated["stages"][0]["status"], "completed")
                 attempt_id = updated["stages"][0]["attempt_history"][-1]["attempt_id"]
                 self.assertFalse(execution._is_attempt_active(attempt_id))
