@@ -31,6 +31,7 @@ from dkt_agent.research_tools import (
 from dkt_agent.tools import (simulate_dkt, simulate_dkt_grid, run_entanglement_dynamics, run_entanglement_heatmap)
 from dkt_agent.streamlit_mixing_dashboard import render_mixing_hierarchy_dashboard
 from dkt_agent.periodic_orbit_dashboard import render_periodic_orbit_panel
+from dkt_agent.research_studio import render_research_studio
 import matplotlib.pyplot as plt
 
 def filename_token(value: float | int) -> str:
@@ -1476,9 +1477,9 @@ st.caption(
     "Explain and the main chat use the Gemini research agent."
 )
 
-simulation_results_tab, diagnose_tab, compare_tab, data_tab, explain_tab = st.tabs([
+simulation_results_tab, diagnose_tab, compare_tab, data_tab, research_studio_tab, explain_tab = st.tabs([
     "Simulation results", "Diagnostics", "Comparisons",
-    "Data & evidence", "Research assistant",
+    "Data & evidence", "Research Studio", "Research assistant",
 ])
 
 # ------------------------------------------------------------------
@@ -2042,6 +2043,10 @@ with data_tab:
 # ------------------------------------------------------------------
 # 4. EXPLAIN
 # ------------------------------------------------------------------
+
+with research_studio_tab:
+    render_research_studio()
+
 
 with explain_tab:
     st.subheader("Explain DKT physics and research results")
