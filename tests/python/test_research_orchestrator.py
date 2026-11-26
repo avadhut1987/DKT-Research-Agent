@@ -46,7 +46,7 @@ class TestResearchOrchestrator(unittest.TestCase):
 
     def test_trajectory_geometry_route(self):
         p = build_research_plan("Estimate correlation dimension and box-counting for an existing trajectory.")
-        self.assertEqual(p["workflow"][0]["tool"], "diagnose_classical_trajectory")
+        self.assertEqual(p["workflow"][-1]["tool"], "diagnose_classical_trajectory")
 
     def test_observable_timeseries_route(self):
         p = build_research_plan("Analyse observable time series and Birkhoff averages.")
@@ -54,11 +54,11 @@ class TestResearchOrchestrator(unittest.TestCase):
 
     def test_empirical_measure_route(self):
         p = build_research_plan("Compare empirical phase-space measures from existing trajectories.")
-        self.assertEqual(p["workflow"][0]["tool"], "compare_trajectory_measures")
+        self.assertEqual(p["workflow"][-1]["tool"], "compare_trajectory_measures")
 
     def test_csv_inspection_route(self):
         p = build_research_plan("Inspect existing CSV columns and records.")
-        self.assertEqual(p["workflow"][0]["tool"], "read_research_csv_tool")
+        self.assertEqual(p["workflow"][-1]["tool"], "read_research_csv_tool")
 
     def test_parameter_sweep_route(self):
         p = build_research_plan("Run a controlled parameter sweep.")
@@ -66,11 +66,11 @@ class TestResearchOrchestrator(unittest.TestCase):
 
     def test_csv_summary_route(self):
         p = build_research_plan("Summarize the existing research CSV statistics.")
-        self.assertEqual(p["workflow"][0]["tool"], "summarize_research_csv")
+        self.assertEqual(p["workflow"][-1]["tool"], "summarize_research_csv")
 
     def test_existing_trajectory_comparison_route(self):
         p = build_research_plan("Compare two existing trajectories.")
-        self.assertEqual(p["workflow"][0]["tool"], "compare_dkt_simulations")
+        self.assertEqual(p["workflow"][-1]["tool"], "compare_dkt_simulations")
 
     def test_single_simulation_route(self):
         p = build_research_plan("Simulate one classical DKT trajectory.")
