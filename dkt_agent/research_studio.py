@@ -14,6 +14,7 @@ from dkt_agent.research_execution import (
     list_campaigns,
     load_campaign,
     record_evidence_review,
+    record_execution_authorization,
 )
 
 
@@ -46,6 +47,20 @@ def _question_defaults(question: str) -> dict[str, float | int]:
     if nsteps:
         values["nsteps"] = int(nsteps.group(1))
     return values
+
+
+def _campaign_is_authorized(campaign: dict) -> bool:
+    """Read current and legacy campaign authorization fields."""
+    return (
+        campaign.get("execution_authorization") == "authorized_by_user"
+        or campaign.get("plan", {}).get("execution_authorization") == "authorized_by_user"
+    )
+
+
+def _record_authorization_if_requested(campaign: dict, authorized: bool) -> None:
+    """Persist the explicit checkbox decision before a numerical stage starts."""
+    if authorized and not _campaign_is_authorized(campaign):
+        record_execution_authorization(campaign, authorized=True)
 
 
 def _run_stage(campaign: dict, index: int, arguments: dict, authorized: bool = False) -> None:
@@ -148,7 +163,7 @@ def _render_execution(campaign: dict) -> None:
     defaults = _question_defaults(plan.get("research_question", ""))
     st.markdown("**Review numerical inputs**")
     st.caption("These values are shown before execution and are saved with the campaign record.")
-    authorized = plan.get("execution_authorization") == "authorized_by_user"
+    authorized = _campaign_is_authorized(campaign)
     if not authorized:
         authorized = st.checkbox(
             "I authorize this campaign to generate new numerical data",
@@ -173,6 +188,7 @@ def _render_execution(campaign: dict) -> None:
                 use_container_width=True,
             )
         if submitted:
+            _record_authorization_if_requested(campaign, authorized)
             args = {"kr": kr, "ktheta_a": kt_a, "ktheta_b": kt_b,
                     "theta0": theta0, "phi0": phi0, "p": p,
                     "nsteps": int(nsteps), "comparison_mode": "fixed_kr"}
@@ -201,6 +217,7 @@ def _render_execution(campaign: dict) -> None:
                 type="primary", disabled=not authorized, use_container_width=True,
             )
         if submitted:
+            _record_authorization_if_requested(campaign, authorized)
             args = {"kr": kr, "ktheta_values": [kt_a, kt_b],
                     "theta0": theta0, "phi0": phi0,
                     "delta_theta": delta_theta, "delta_phi": delta_phi,
@@ -232,6 +249,7 @@ def _render_execution(campaign: dict) -> None:
                 use_container_width=True,
             )
         if submitted:
+            _record_authorization_if_requested(campaign, authorized)
             args = {"k_r": kr, "k_theta": kt, "observables": observables,
                     "n_kicks": int(n_kicks), "n_initial_conditions": int(n_initial),
                     "p": p, "seed": int(seed)}
@@ -257,6 +275,7 @@ def _render_execution(campaign: dict) -> None:
                 type="primary", disabled=not authorized, use_container_width=True,
             )
         if submitted:
+            _record_authorization_if_requested(campaign, authorized)
             args = {"kr": kr, "ktheta": kt, "p": p, "n_trajectories": n_trajectories,
                     "nsteps": int(nsteps), "transient": int(transient), "seed": int(seed)}
             with st.spinner("Generating the matched ensemble and analysing nine observables…"):
@@ -345,6 +364,31 @@ def render_research_studio() -> None:
     st.divider()
     overview, execution, record = st.tabs(["Investigation overview", "Execute workflow", "Campaign record"])
     with overview:
+        auth_columns = st.columns(3)
+        is_authorized = _campaign_is_authorized(campaign)
+        auth_columns[0].metric(
+            "Numerical execution authorization",
+            "Authorized" if is_authorized else "Not authorized",
+        )
+        evidence_decision = campaign.get("evidence_review", {}).get("decision")
+        evidence_label = {
+            "proceed_with_new_calculations": "Proceed approved",
+            "stop_existing_evidence_sufficient": "Stopped after review",
+        }.get(evidence_decision, "Review pending")
+        auth_columns[1].metric("Evidence sufficiency review", evidence_label)
+        auth_columns[2].metric("Campaign status", campaign.get("status", "unknown").replace("_", " ").title())
+        if is_authorized:
+            authorized_at = campaign.get("execution_authorized_at")
+            if authorized_at:
+                st.caption(f"User authorization recorded at {authorized_at}.")
+            else:
+                st.caption("User authorization is present in this saved campaign.")
+        else:
+            st.warning(
+                "New numerical calculations are not authorized in this campaign. "
+                "Read-only evidence discovery remains available."
+            )
+
         st.markdown(f"**Research intent:** `{plan['research_intent']}`")
         st.markdown("**Scope and controlled variables**")
         for item in plan["scope_and_controls"]:
