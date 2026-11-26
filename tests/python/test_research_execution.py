@@ -198,5 +198,86 @@ class TestResearchExecution(unittest.TestCase):
                     )
 
 
+
+    def test_stage_level_evidence_review_can_reuse_trajectory_and_run_geometry_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan(
+                    "Review existing evidence first. Compare ktheta=0 and 10000 at fixed kr=1 "
+                    "for trajectory geometry and matched local clouds."
+                )
+                campaign = execution.create_campaign(plan)
+                self.assertEqual(campaign["stages"][0]["tool"], "search_research_evidence")
+                campaign["stages"][0]["status"] = "completed"
+                campaign["stages"][0]["result"] = {"matches": ["prior matched trajectory"]}
+                execution.save_campaign(campaign)
+                execution.record_evidence_review(
+                    campaign,
+                    stage_decisions={
+                        1: {"action": "reuse", "note": "Prior matched comparison: results/old_pair.csv"},
+                        2: {"action": "execute", "note": ""},
+                    },
+                )
+                loaded = execution.load_campaign(campaign["campaign_id"])
+                self.assertEqual(loaded["stages"][1]["status"], "reused_existing_evidence")
+                self.assertEqual(loaded["stages"][2]["status"], "pending")
+                self.assertEqual(loaded["evidence_review"]["decision"], "selective_stage_review")
+
+                class FakeTool:
+                    def invoke(self, arguments):
+                        return '{"status":"success","geometry_only":true}'
+
+                execution.record_execution_authorization(loaded, authorized=True)
+                loaded = execution.load_campaign(campaign["campaign_id"])
+                with patch.object(execution, "_resolve_tool", return_value=FakeTool()):
+                    updated = execution.execute_campaign_stage(
+                        loaded, 2, {"kr": 1.0}, execution_authorized=True
+                    )
+                self.assertEqual(updated["stages"][2]["status"], "completed")
+                self.assertEqual(updated["status"], "completed")
+                self.assertTrue(any(
+                    event["event"] == "stage_level_evidence_review_recorded"
+                    for event in updated["events"]
+                ))
+
+    def test_stage_reuse_requires_a_provenance_note(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan(
+                    "Review existing evidence first. Compare ktheta=0 and 10000 at fixed kr=1."
+                )
+                campaign = execution.create_campaign(plan)
+                campaign["stages"][0]["status"] = "completed"
+                execution.save_campaign(campaign)
+                with self.assertRaises(ValueError):
+                    execution.record_evidence_review(
+                        campaign,
+                        stage_decisions={
+                            1: {"action": "reuse", "note": ""},
+                            2: {"action": "execute", "note": ""},
+                        },
+                    )
+
+    def test_reused_stage_cannot_be_executed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan(
+                    "Review existing evidence first. Compare ktheta=0 and 10000 at fixed kr=1."
+                )
+                campaign = execution.create_campaign(plan)
+                campaign["stages"][0]["status"] = "completed"
+                execution.save_campaign(campaign)
+                execution.record_evidence_review(
+                    campaign,
+                    stage_decisions={
+                        1: {"action": "reuse", "note": "Prior run 2026-10-01"},
+                        2: {"action": "execute", "note": ""},
+                    },
+                )
+                with self.assertRaises(ValueError):
+                    execution.execute_campaign_stage(
+                        campaign, 1, {"kr": 1.0}, execution_authorized=True
+                    )
+
 if __name__ == "__main__":
     unittest.main()

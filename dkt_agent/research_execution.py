@@ -171,19 +171,22 @@ def execute_campaign_stage(
     *,
     execution_authorized: bool = False,
 ) -> dict[str, Any]:
-    """Execute exactly the next pending stage, recording inputs, result and provenance."""
+    """Execute the next pending stage, respecting stage-level evidence decisions."""
     if not isinstance(campaign, dict) or not isinstance(arguments, dict):
         raise ValueError("Campaign and stage arguments must be dictionaries.")
     stages = campaign.get("stages", [])
     if isinstance(stage_index, bool) or not isinstance(stage_index, int) or not 0 <= stage_index < len(stages):
         raise ValueError("Invalid research stage index.")
     stage = stages[stage_index]
-    if stage["status"] == "completed":
-        raise ValueError("This research stage is already complete.")
+    terminal_statuses = {"completed", "reused_existing_evidence"}
+    if stage["status"] in terminal_statuses:
+        raise ValueError("This research stage is already complete or covered by existing evidence.")
     if stage["status"] == "running":
         raise ValueError("This research stage is already marked as running.")
-    if any(s["status"] != "completed" for s in stages[:stage_index]):
-        raise ValueError("Complete earlier workflow stages before executing this stage.")
+    if any(s["status"] not in terminal_statuses for s in stages[:stage_index]):
+        raise ValueError("Complete or review earlier workflow stages before executing this stage.")
+    if stage.get("review_decision", {}).get("action") == "reuse":
+        raise PermissionError("This stage was marked as covered by existing evidence and cannot be executed.")
     tool_name = stage["tool"]
     mode = TOOL_MODES.get(tool_name)
     evidence_was_searched = any(
@@ -192,7 +195,11 @@ def execute_campaign_stage(
     )
     if mode == "new_numerical_data" and evidence_was_searched:
         review = campaign.get("evidence_review", {}).get("decision")
-        if review != "proceed_with_new_calculations":
+        stage_review = stage.get("review_decision", {})
+        if stage_review:
+            if stage_review.get("action") != "execute":
+                raise PermissionError("This stage was not approved for new numerical execution in the evidence review.")
+        elif review != "proceed_with_new_calculations":
             raise PermissionError("Review the read-only evidence and explicitly decide whether new calculations are still needed.")
     if mode is None or mode != stage["execution_mode"]:
         raise ValueError("The planned tool/mode is not enabled by the execution policy.")
@@ -233,7 +240,10 @@ def execute_campaign_stage(
         else:
             result = raw_result
         stage.update({"status": "completed", "completed_at": _now(), "result": result})
-        campaign["status"] = "completed" if all(s["status"] == "completed" for s in stages) else "paused"
+        campaign["status"] = (
+            "completed" if all(s["status"] in {"completed", "reused_existing_evidence"} for s in stages)
+            else "paused"
+        )
         campaign["updated_at"] = _now()
         campaign["events"].append({
             "at": _now(), "event": "stage_completed", "stage_index": stage_index,
@@ -281,25 +291,69 @@ def record_execution_authorization(
     _save(campaign)
 
 
-def record_evidence_review(campaign: dict[str, Any], *, proceed_with_new_calculations: bool) -> None:
-    """Persist a human review decision after read-only evidence discovery."""
-    if not isinstance(proceed_with_new_calculations, bool):
-        raise ValueError("Evidence-review decision must be boolean.")
+def record_evidence_review(
+    campaign: dict[str, Any],
+    *,
+    proceed_with_new_calculations: bool | None = None,
+    stage_decisions: dict[int, dict[str, str]] | None = None,
+) -> None:
+    """Persist either a legacy campaign-wide or a selective per-stage evidence review."""
     evidence_stages = [
         stage for stage in campaign.get("stages", [])
         if stage.get("tool") == "search_research_evidence"
     ]
     if not evidence_stages or any(stage.get("status") != "completed" for stage in evidence_stages):
         raise ValueError("Complete read-only evidence discovery before recording its review.")
-    decision = (
-        "proceed_with_new_calculations"
-        if proceed_with_new_calculations else "stop_existing_evidence_sufficient"
-    )
-    campaign["evidence_review"] = {"decision": decision, "reviewed_at": _now()}
-    campaign.setdefault("events", []).append({
-        "at": _now(), "event": "evidence_review_recorded", "decision": decision,
-    })
-    campaign["status"] = "paused" if proceed_with_new_calculations else "completed_existing_evidence"
+
+    numerical_stages = [
+        stage for stage in campaign.get("stages", [])
+        if stage.get("execution_mode") == "new_numerical_data"
+    ]
+    if stage_decisions is not None:
+        expected = {stage["index"] for stage in numerical_stages}
+        if set(stage_decisions) != expected:
+            raise ValueError("Provide an evidence decision for every planned numerical stage.")
+        normalized: dict[str, dict[str, str]] = {}
+        for stage in numerical_stages:
+            choice = stage_decisions[stage["index"]]
+            action = choice.get("action")
+            note = str(choice.get("note", "")).strip()
+            if action not in {"execute", "reuse"}:
+                raise ValueError("Each stage decision must be 'execute' or 'reuse'.")
+            if action == "reuse" and not note:
+                raise ValueError("A source/reference note is required when reusing existing evidence.")
+            stage["review_decision"] = {"action": action, "note": note, "reviewed_at": _now()}
+            if action == "reuse":
+                stage.update({
+                    "status": "reused_existing_evidence",
+                    "completed_at": _now(),
+                    "result": {"evidence_reuse_note": note, "generated_by_this_campaign": False},
+                    "error": None,
+                })
+            normalized[str(stage["index"])] = {"action": action, "note": note}
+
+        execute_any = any(item["action"] == "execute" for item in normalized.values())
+        decision = "selective_stage_review" if execute_any else "stop_existing_evidence_sufficient"
+        campaign["evidence_review"] = {
+            "decision": decision, "stage_decisions": normalized, "reviewed_at": _now()
+        }
+        campaign.setdefault("events", []).append({
+            "at": _now(), "event": "stage_level_evidence_review_recorded",
+            "stage_decisions": normalized,
+        })
+        campaign["status"] = "paused" if execute_any else "completed_existing_evidence"
+    else:
+        if not isinstance(proceed_with_new_calculations, bool):
+            raise ValueError("Evidence-review decision must be boolean.")
+        decision = (
+            "proceed_with_new_calculations"
+            if proceed_with_new_calculations else "stop_existing_evidence_sufficient"
+        )
+        campaign["evidence_review"] = {"decision": decision, "reviewed_at": _now()}
+        campaign.setdefault("events", []).append({
+            "at": _now(), "event": "evidence_review_recorded", "decision": decision,
+        })
+        campaign["status"] = "paused" if proceed_with_new_calculations else "completed_existing_evidence"
     _save(campaign)
 
 
