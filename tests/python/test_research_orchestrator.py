@@ -36,6 +36,34 @@ class TestResearchOrchestrator(unittest.TestCase):
         self.assertEqual(p["execution_authorization"], "authorized_by_user")
         self.assertFalse(p["execution_performed"])
 
+    def test_fixed_point_route(self):
+        p = build_research_plan("Find DKT fixed points and local stability.")
+        self.assertEqual(p["workflow"][0]["tool"], "find_dkt_fixed_points")
+
+    def test_standalone_periodic_orbit_route(self):
+        p = build_research_plan("Search for primitive periodic orbits.")
+        self.assertEqual(p["workflow"][0]["tool"], "search_dkt_periodic_orbits")
+
+    def test_trajectory_geometry_route(self):
+        p = build_research_plan("Estimate correlation dimension and box-counting for an existing trajectory.")
+        self.assertEqual(p["workflow"][0]["tool"], "diagnose_classical_trajectory")
+
+    def test_observable_timeseries_route(self):
+        p = build_research_plan("Analyse observable time series and Birkhoff averages.")
+        self.assertEqual(p["workflow"][0]["tool"], "diagnose_observable_timeseries")
+
+    def test_empirical_measure_route(self):
+        p = build_research_plan("Compare empirical phase-space measures from existing trajectories.")
+        self.assertEqual(p["workflow"][0]["tool"], "compare_trajectory_measures")
+
+    def test_csv_inspection_route(self):
+        p = build_research_plan("Inspect existing CSV columns and records.")
+        self.assertEqual(p["workflow"][0]["tool"], "read_research_csv_tool")
+
+    def test_parameter_sweep_route(self):
+        p = build_research_plan("Run a controlled parameter sweep.")
+        self.assertEqual(p["workflow"][0]["tool"], "run_dkt_parameter_sweep")
+
     def test_classical_quantum_route(self):
         p = build_research_plan("Study classical-quantum correspondence.")
         self.assertEqual(p["research_intent"], "classical_quantum_correspondence")
