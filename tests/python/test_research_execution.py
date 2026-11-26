@@ -73,5 +73,58 @@ class TestResearchExecution(unittest.TestCase):
                 self.assertIn("local cloud is an initial-condition probe", " ".join(result["interpretation_limits"]))
 
 
+    def test_evidence_review_is_required_before_numerical_stage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan(
+                    "Review existing evidence and compare ktheta=0 and 10000 at fixed kr=1 for geometry."
+                )
+                campaign = execution.create_campaign(plan)
+                self.assertEqual(campaign["stages"][0]["tool"], "search_research_evidence")
+                campaign["stages"][0]["status"] = "completed"
+                campaign["stages"][0]["result"] = {"matches": []}
+                execution.save_campaign(campaign)
+                with self.assertRaises(PermissionError):
+                    execution.execute_campaign_stage(
+                        campaign, 1, {"kr": 1.0}, execution_authorized=True
+                    )
+
+                execution.record_evidence_review(
+                    campaign, proceed_with_new_calculations=True
+                )
+
+                class FakeTool:
+                    def invoke(self, arguments):
+                        return '{"status":"success","checked_arguments":true}'
+
+                with patch.object(execution, "_resolve_tool", return_value=FakeTool()):
+                    updated = execution.execute_campaign_stage(
+                        campaign, 1, {"kr": 1.0}, execution_authorized=True
+                    )
+                self.assertEqual(updated["stages"][1]["status"], "completed")
+                self.assertEqual(
+                    updated["evidence_review"]["decision"],
+                    "proceed_with_new_calculations",
+                )
+
+    def test_evidence_review_can_stop_new_calculations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan(
+                    "Review existing evidence and compare ktheta=0 and 10000 at fixed kr=1 for geometry."
+                )
+                campaign = execution.create_campaign(plan)
+                campaign["stages"][0]["status"] = "completed"
+                execution.save_campaign(campaign)
+                execution.record_evidence_review(
+                    campaign, proceed_with_new_calculations=False
+                )
+                self.assertEqual(campaign["status"], "completed_existing_evidence")
+                with self.assertRaises(PermissionError):
+                    execution.execute_campaign_stage(
+                        campaign, 1, {"kr": 1.0}, execution_authorized=True
+                    )
+
+
 if __name__ == "__main__":
     unittest.main()
