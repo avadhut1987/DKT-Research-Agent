@@ -163,6 +163,24 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             ["Exact relative CSV path returned by evidence search", "maximum rows to inspect"],
             "A partial CSV read must be identified as partial; retrieved records do not validate the underlying method."))
         gates.append("Use the exact path returned by search_research_evidence; do not reconstruct filenames.")
+    elif _has(t, r"summarize.*csv", r"csv.*summary", r"csv.*statistics"):
+        intent = "research_csv_summary"
+        steps.append(_step("2 · Read-only CSV summary", "summarize_research_csv",
+            "Summarize schema, missingness and descriptive statistics from an existing results CSV.",
+            ["Exact path relative to results/", "maximum rows to inspect"],
+            "Descriptive statistics do not validate the scientific method or establish dynamical properties."))
+    elif _has(t, r"compare.*existing trajectories", r"compare.*trajectory csv", r"two existing trajectories"):
+        intent = "trajectory_comparison"
+        steps.append(_step("2 · Existing trajectory comparison", "compare_dkt_simulations",
+            "Compare two existing trajectories kick by kick using their exact recorded paths.",
+            ["Two exact trajectory CSV paths", "matching step indices"],
+            "Trajectory separation alone does not establish chaos, ergodicity or mixing."))
+    elif _has(t, r"simulate.*trajectory", r"run.*simulation", r"generate.*trajectory"):
+        intent = "single_trajectory_simulation"
+        steps.append(_step("2 · Classical trajectory simulation", "run_dkt_simulation",
+            "Generate a single classical DKT trajectory with explicitly supplied parameters.",
+            ["k_r, k_theta, p", "theta_0, phi_0", "number of kicks"],
+            "A trajectory by itself does not establish chaos, ergodicity or mixing."))
     elif _has(t, r"parameter sweep", r"sweep.*parameter", r"scan.*phase space"):
         intent = "parameter_sweep"
         steps.append(_step("2 · Controlled parameter sweep", "run_dkt_parameter_sweep",
