@@ -70,6 +70,8 @@ For direction-dependent questions, preserve separate results for (X,Y,Z) and the
 
 The current samplers draw initial conditions uniformly over the full sphere. Observable-wise differences under that sampling support only finite-data statements about the tested observables and ensemble. They do not establish ergodicity on a spatially restricted region. A future local-region workflow must first define a dynamically meaningful invariant region or component and a justified conditional invariant measure; merely sampling initial points inside an arbitrary patch is not sufficient to define a measure-preserving restricted system.
 
-## Matched-ensemble geometry comparison
+## Matched local-cloud geometry comparison
 
-At fixed (k_r) and (p), the geometry comparison uses the same reproducible uniform-sphere initial conditions for both selected (k_\theta) values. It reports pooled empirical-measure divergence and per-initial-condition divergences on a common equal-area spherical partition, together with all simulation paths and settings. This is a finite-window distributional comparison; it does not establish distinct invariant measures or changed classical chaoticity.
+At fixed $k_r$ and $p$, the geometry workflow constructs one small angular grid of initial conditions around a specified $(\theta_0,\phi_0)$ patch and evolves the exact same grid under both selected $k_\theta$ values. At every kick it records the cloud covariance eigenvalues, principal axes, RMS radius, anisotropy, and matched-point separations. The principal-axis alignment uses an absolute dot product to account for eigenvector sign ambiguity.
+
+This is a finite-time deformation/orientation probe for the selected initial patch. The patch is not assumed to be invariant, and the diagnostic does not establish local ergodicity, mixing, distinct invariant measures, or changed classical chaoticity. A uniform full-sphere ensemble would be a poor default for this specific geometric purpose because area preservation can keep the pooled density uniform while local structures deform.
