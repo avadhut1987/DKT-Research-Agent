@@ -36,7 +36,7 @@ def render_mean_ergodic_panel(title: str = "Mean ergodicity (von Neumann L² dia
         c1.markdown(r"$k_r$")
         kr = c1.number_input("k_r", value=1.0, step=0.05, format="%.4f",
                               key="me_kr", label_visibility="collapsed")
-        c2.markdown(r"$k_\\theta$")
+        c2.markdown(r"$k_\theta$")
         kt = c2.number_input("k_theta", value=0.0, step=0.25, format="%.4f",
                               key="me_kt", label_visibility="collapsed")
         p = c3.number_input("p (rotation about y)", value=float(math.pi / 2),
