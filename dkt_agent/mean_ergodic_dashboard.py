@@ -97,7 +97,7 @@ def render_mean_ergodic_panel(
             if not obs:
                 st.warning("Select at least one observable.")
             else:
-                with st.spinner("Iterating the map and estimating the L² diagnostic…"):
+                with st.spinner("Iterating the map and estimating the L2 diagnostic…"):
                     results, summary = mean_ergodic_battery(
                         kr=kr,
                         ktheta=kt,
