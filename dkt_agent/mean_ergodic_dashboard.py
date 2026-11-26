@@ -23,14 +23,22 @@ def render_mean_ergodic_panel(title: str = "Mean ergodicity (von Neumann L² dia
     panel = nullcontext() if in_tab else st.expander(title, expanded=False)
     with panel:
         st.markdown(
-            "Estimates **D_N = ‖A_N f − ⟨f⟩‖²** (mean-square distance of the time average "
-            "from the phase-space average) over uniformly sampled initial conditions. "
-            "D_N → 0: the L² limit is the constant ⟨f⟩. A plateau: the limit is a "
-            "non-constant invariant function. Mean ergodicity is *weaker* than Birkhoff "
-            "(pointwise) ergodicity.")
+            r"""Estimates **$D_N = \left\|A_N f - \langle f\rangle\right\|^2$**
+            (mean-square distance of the time average from the phase-space average)
+            over uniformly sampled initial conditions.
+
+            - $D_N \to 0$: the $L^2$ limit is the constant $\langle f\rangle$.
+            - A nonzero plateau: the limit may be a non-constant invariant function.
+
+            Mean ergodicity is *weaker* than Birkhoff (pointwise) ergodicity."""
+        )
         c1, c2, c3 = st.columns(3)
-        kr = c1.number_input("k_r", value=1.0, step=0.05, format="%.4f", key="me_kr")
-        kt = c2.number_input("k_θ", value=0.0, step=0.25, format="%.4f", key="me_kt")
+        c1.markdown(r"$k_r$")
+        kr = c1.number_input("k_r", value=1.0, step=0.05, format="%.4f",
+                              key="me_kr", label_visibility="collapsed")
+        c2.markdown(r"$k_\\theta$")
+        kt = c2.number_input("k_theta", value=0.0, step=0.25, format="%.4f",
+                              key="me_kt", label_visibility="collapsed")
         p = c3.number_input("p (rotation about y)", value=float(math.pi / 2),
                             format="%.6f", key="me_p")
         obs = st.multiselect("Observables (use several: single observables can be "
@@ -61,8 +69,10 @@ def render_mean_ergodic_panel(title: str = "Mean ergodicity (von Neumann L² dia
 
         if "me_results" in st.session_state:
             results, summary, pr = st.session_state["me_results"]
-            st.caption(f"Showing k_r={pr[0]:g}, k_θ={pr[1]:g}, p={pr[2]:.4f}, N={pr[3]}, "
-                       f"M={pr[4]}, seed={pr[5]}")
+            st.markdown(
+                rf"Showing $k_r={pr[0]:g}$, $k_\theta={pr[1]:g}$, "
+                rf"$p={pr[2]:.4f}$, $N={pr[3]}$, $M={pr[4]}$, seed={pr[5]}"
+            )
             rows = [{"observable": o, "D_N/Var(f) at largest N": summary["rel_D"][o],
                      "tail exponent α": r.alpha, "± α": r.alpha_err,
                      "indicator": r.verdict.split()[0]} for o, r in results.items()]
