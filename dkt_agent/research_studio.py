@@ -102,7 +102,7 @@ def _run_stage(campaign: dict, index: int, arguments: dict, authorized: bool = F
             campaign, index, arguments, execution_authorized=authorized
         )
         st.session_state["research_studio_campaign"] = updated
-        st.success(f"Completed: {updated['stages'][index]['label']}")
+        st.success(f"Completed: {_render_scientific_text(updated['stages'][index]['label'])}")
     except Exception as exc:
         st.session_state["research_studio_campaign"] = campaign
         st.error(f"Stage could not be completed: {exc}")
@@ -110,7 +110,7 @@ def _run_stage(campaign: dict, index: int, arguments: dict, authorized: bool = F
 
 def _render_stage_result(stage: dict) -> None:
     if stage.get("result") is not None:
-        with st.expander(f"View result · {stage['label']}", expanded=False):
+        with st.expander(f"View result · {_render_scientific_text(stage['label'])}", expanded=False):
             st.json(stage["result"])
             st.download_button(
                 "Download stage result (JSON)",
@@ -140,7 +140,7 @@ def _render_execution(campaign: dict) -> None:
         with st.container(border=True):
             left, right = st.columns([4, 1])
             with left:
-                st.markdown(f"**{stage['index'] + 1}. {stage['label']}**")
+                st.markdown(f"**{stage['index'] + 1}. {_render_scientific_text(stage['label'])}**")
                 st.caption(f"{stage['tool']} · {stage['execution_mode'].replace('_', ' ')}")
             with right:
                 st.caption(status)
