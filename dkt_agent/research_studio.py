@@ -51,10 +51,9 @@ def _question_defaults(question: str) -> dict[str, float | int]:
 
 def _campaign_is_authorized(campaign: dict) -> bool:
     """Read current and legacy campaign authorization fields."""
-    return (
-        campaign.get("execution_authorization") == "authorized_by_user"
-        or campaign.get("plan", {}).get("execution_authorization") == "authorized_by_user"
-    )
+    if "execution_authorization" in campaign:
+        return campaign.get("execution_authorization") == "authorized_by_user"
+    return campaign.get("plan", {}).get("execution_authorization") == "authorized_by_user"
 
 
 def _record_authorization_if_requested(campaign: dict, authorized: bool) -> None:
@@ -164,7 +163,14 @@ def _render_execution(campaign: dict) -> None:
     st.markdown("**Review numerical inputs**")
     st.caption("These values are shown before execution and are saved with the campaign record.")
     authorized = _campaign_is_authorized(campaign)
-    if not authorized:
+    if authorized:
+        if st.button(
+            "Revoke numerical-execution authorization",
+            key=f"revoke_authorization_{campaign['campaign_id']}",
+        ):
+            record_execution_authorization(campaign, authorized=False)
+            st.rerun()
+    else:
         authorized = st.checkbox(
             "I authorize this campaign to generate new numerical data",
             key=f"authorize_campaign_{campaign['campaign_id']}",
