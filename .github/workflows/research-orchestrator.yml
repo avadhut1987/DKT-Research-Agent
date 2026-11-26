@@ -10,6 +10,7 @@ on:
       - "dkt_agent/agent.py"
       - "tests/python/test_research_orchestrator.py"
       - "tests/python/test_research_execution.py"
+      - "tests/python/test_streamlit_math_notation.py"
       - ".github/workflows/research-orchestrator.yml"
   push:
     branches: [main]
@@ -34,10 +35,12 @@ jobs:
         with:
           python-version: "3.14"
       - name: Install planner dependency
-        run: python -m pip install "langchain-core==1.7.6" "streamlit>=1.40,<2" numpy scipy matplotlib
+        run: python -m pip install "langchain-core==1.7.6" "streamlit>=1.40,<2" numpy scipy matplotlib pytest
       - name: Import Research Studio
         run: PYTHONPATH=. python -c "from dkt_agent.research_studio import render_research_studio; print('Research Studio import successful')"
       - name: Run research planner tests
         run: PYTHONPATH=. python tests/python/test_research_orchestrator.py
       - name: Run research execution and geometry tests
         run: PYTHONPATH=. python tests/python/test_research_execution.py
+      - name: Run Streamlit mathematical-notation tests
+        run: PYTHONPATH=. python -m pytest -q tests/python/test_streamlit_math_notation.py
