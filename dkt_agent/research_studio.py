@@ -18,6 +18,40 @@ from dkt_agent.research_execution import (
 )
 
 
+def _render_scientific_text(value: str) -> str:
+    """Convert common plain-text DKT notation to Streamlit-rendered LaTeX.
+
+    This is presentation-only: it never changes stored questions, plan data,
+    tool arguments, campaign records, or numerical values.
+    """
+    if not isinstance(value, str) or not value:
+        return value
+    protected: list[str] = []
+
+    def protect_math(match: re.Match[str]) -> str:
+        protected.append(match.group(0))
+        return f"\x00MATH{len(protected) - 1}\x00"
+
+    rendered = re.sub(r"\\$[^$]+\\$", protect_math, value)
+    replacements = (
+        (r"\\bk[_\\s-]*theta\\b", r"$k_\\theta$"),
+        (r"\\bk[_\\s-]*r\\b", r"$k_r$"),
+        (r"\\btheta[_\\s-]*0\\b", r"$\\theta_0$"),
+        (r"\\bphi[_\\s-]*0\\b", r"$\\phi_0$"),
+        (r"\\bpi\\s*/\\s*2\\b", r"$\\pi/2$"),
+        (r"\\blambda[_\\s-]*1\\b", r"$\\lambda_1$"),
+        (r"\\blambda[_\\s-]*2\\b", r"$\\lambda_2$"),
+        (r"\\bL\\s*\\^?\\s*2\\b", r"$L^2$"),
+        (r"\\bDelta[_\\s-]*theta\\b", r"$\\Delta\\theta$"),
+        (r"\\bDelta[_\\s-]*phi\\b", r"$\\Delta\\phi$"),
+    )
+    for pattern, replacement in replacements:
+        rendered = re.sub(pattern, replacement, rendered, flags=re.IGNORECASE)
+    for index, original in enumerate(protected):
+        rendered = rendered.replace(f"\\x00MATH{index}\\x00", original)
+    return rendered
+
+
 def _question_defaults(question: str) -> dict[str, float | int]:
     """Extract only explicit scalar values; otherwise use documented tool defaults."""
     values: dict[str, float | int] = {
@@ -312,8 +346,7 @@ def render_research_studio() -> None:
         else:
             labels = {
                 f"{item['campaign_id']} · {item['status']} · "
-                f"{'authorized' if item.get('execution_authorization') == 'authorized_by_user' else 'not authorized'} · "
-                f"{item['research_question'][:90]}": item["campaign_id"]
+                f"{'authorized' if item.get('execution_authorization') == 'authorized_by_user' else 'not authorized'}": item["campaign_id"]
                 for item in saved
             }
             selected = st.selectbox("Saved campaigns", list(labels), key="research_campaign_resume")
@@ -322,30 +355,34 @@ def render_research_studio() -> None:
                 st.session_state["research_studio_latest_plan"] = st.session_state["research_studio_campaign"]["plan"]
                 st.rerun()
 
-    with st.form("research_studio_plan_form"):
-        question = st.text_area(
-            "Research question", height=125,
-            placeholder=(
-                "Example: At fixed average kicking strength 1, compare asymmetry "
-                "values 0 and 10^4. "
-                "Assess X, Y and Z separately, and distinguish observable-wise "
-                "ergodicity from global or region-restricted claims."
-            ),
-            help="State the physical question, controlled variables, observables and relevant existing data.",
+    question = st.text_area(
+        "Research question", height=125, key="research_studio_question",
+        placeholder=(
+            "Example: At fixed average kicking strength 1, compare asymmetry "
+            "values 0 and 10^4. "
+            "Assess X, Y and Z separately, and distinguish observable-wise "
+            "ergodicity from global or region-restricted claims."
+        ),
+        help="Enter the question in plain text. A rendered mathematical-notation preview appears below; the saved question remains unchanged.",
+    )
+    if question.strip():
+        with st.container(border=True):
+            st.caption("Mathematical-notation preview")
+            st.markdown(_render_scientific_text(question))
+    c1, c2 = st.columns(2)
+    with c1:
+        data_state = st.selectbox(
+            "Existing data",
+            ["Not sure / discover first", "Relevant data already available", "No suitable data available"],
+            key="research_studio_existing_data",
         )
-        c1, c2 = st.columns(2)
-        with c1:
-            data_state = st.selectbox(
-                "Existing data",
-                ["Not sure / discover first", "Relevant data already available", "No suitable data available"],
-            )
-        with c2:
-            authorize = st.checkbox(
-                "I explicitly authorize new numerical calculations if required",
-                value=False,
-                help="Authorization is recorded; numerical work still requires a separate execution action.",
-            )
-        submitted = st.form_submit_button("Create research plan", type="primary", use_container_width=True)
+    with c2:
+        authorize = st.checkbox(
+            "I explicitly authorize new numerical calculations if required",
+            value=False, key="research_studio_initial_authorization",
+            help="Authorization is recorded; numerical work still requires a separate execution action.",
+        )
+    submitted = st.button("Create research plan", type="primary", use_container_width=True)
 
     if submitted:
         if not question.strip():
@@ -401,29 +438,31 @@ def render_research_studio() -> None:
                 "Read-only evidence discovery remains available."
             )
 
+        st.markdown("**Research question**")
+        st.markdown(_render_scientific_text(plan.get("research_question", "")))
         st.markdown(f"**Research intent:** `{plan['research_intent']}`")
         st.markdown("**Scope and controlled variables**")
         for item in plan["scope_and_controls"]:
-            st.markdown(f"- {item}")
+            st.markdown(f"- {_render_scientific_text(item)}")
         st.markdown("**Proposed workflow**")
         for index, step in enumerate(plan["workflow"], start=1):
             with st.container(border=True):
                 left, right = st.columns([4, 1])
                 with left:
-                    st.markdown(f"**{index}. {step['action']}**")
-                    st.caption(step["why_this_step"])
+                    st.markdown(f"**{index}. {_render_scientific_text(step['action'])}**")
+                    st.caption(_render_scientific_text(step["why_this_step"]))
                 with right:
                     st.caption(step["execution_mode"].replace("_", " ").title())
                 with st.expander("Method, required inputs and scientific caveat", expanded=False):
                     st.caption(f"Tool: `{step['tool']}`")
                     st.markdown("**Required inputs**")
                     for item in step["required_inputs"]:
-                        st.markdown(f"- {item}")
-                    st.info(step["scientific_caveat"])
+                        st.markdown(f"- {_render_scientific_text(item)}")
+                    st.info(_render_scientific_text(step["scientific_caveat"]))
         if plan["clarifications_or_gates"]:
             st.markdown("**Scientific and data gates**")
             for item in plan["clarifications_or_gates"]:
-                st.warning(item)
+                st.warning(_render_scientific_text(item))
 
     with execution:
         st.markdown(f"**Campaign:** `{campaign['campaign_id']}`")
