@@ -47,5 +47,31 @@ class TestResearchExecution(unittest.TestCase):
                     )
 
 
+    def test_matched_local_cloud_geometry_diagnostic(self):
+        import json
+        from dkt_agent import research_tools
+
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(research_tools, "_new_output_dir", return_value=Path(directory)):
+                raw = research_tools.run_dkt_geometry_ensemble_comparison.invoke({
+                    "kr": 1.0,
+                    "ktheta_values": [0.0, 3.0],
+                    "theta0": 0.75,
+                    "phi0": -1.0,
+                    "delta_theta": 0.05,
+                    "delta_phi": 0.05,
+                    "grid_size": 3,
+                    "nsteps": 8,
+                    "p": 1.5707963267948966,
+                })
+                result = json.loads(raw)
+                self.assertEqual(result["status"], "success")
+                self.assertEqual(result["parameters"]["n_initial_conditions"], 9)
+                self.assertLess(result["max_norm_error"], 1e-10)
+                self.assertGreater(result["final_matched_cloud_separation"]["rms"], 0.0)
+                self.assertTrue(Path(result["artifacts"]["geometry_by_kick_csv"]).is_file())
+                self.assertIn("local cloud is an initial-condition probe", " ".join(result["interpretation_limits"]))
+
+
 if __name__ == "__main__":
     unittest.main()
