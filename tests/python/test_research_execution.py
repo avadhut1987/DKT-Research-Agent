@@ -307,7 +307,7 @@ class TestResearchExecution(unittest.TestCase):
                     for event in loaded["events"]
                 ))
 
-    def test_live_runner_cannot_be_recovered(self):
+    def test_live_tool_invocation_cannot_be_recovered(self):
         import os
         import socket
         import threading
@@ -315,17 +315,63 @@ class TestResearchExecution(unittest.TestCase):
         stage = {
             "status": "running", "runner_host": socket.gethostname(),
             "runner_pid": os.getpid(), "runner_thread_id": threading.get_ident(),
+            "active_attempt_id": "attempt-live",
             "started_at": "2000-01-01T00:00:00+00:00",
         }
+        execution._mark_attempt_active("attempt-live")
+        try:
+            state = execution.inspect_stage_liveness(stage)
+            self.assertFalse(state["stale"])
+            self.assertEqual(state["reason"], "tool_invocation_active")
+            with tempfile.TemporaryDirectory() as directory:
+                with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                    plan = build_research_plan("Find DKT fixed points.")
+                    campaign = execution.create_campaign(plan)
+                    campaign["stages"][0].update(stage)
+                    with self.assertRaises(RuntimeError):
+                        execution.recover_interrupted_stage(campaign, 0)
+        finally:
+            execution._mark_attempt_inactive("attempt-live")
+
+    def test_idle_streamlit_script_thread_does_not_keep_stage_running(self):
+        import os
+        import socket
+        import threading
+
+        # Streamlit reuses its ScriptRunner thread across reruns. A live
+        # thread without a registered tool invocation is therefore stale.
+        stage = {
+            "status": "running", "runner_host": socket.gethostname(),
+            "runner_pid": os.getpid(), "runner_thread_id": threading.get_ident(),
+            "active_attempt_id": "attempt-idle",
+            "started_at": execution._now(),
+        }
+        self.assertTrue(threading.current_thread().is_alive())
         state = execution.inspect_stage_liveness(stage)
-        self.assertFalse(state["stale"])
+        self.assertTrue(state["stale"])
+        self.assertEqual(state["reason"], "tool_invocation_not_active")
+
+    def test_attempt_activity_marker_is_cleared_after_execution(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
-                plan = build_research_plan("Find DKT fixed points.")
+                plan = build_research_plan("Search existing evidence for DKT fixed points.")
                 campaign = execution.create_campaign(plan)
-                campaign["stages"][0].update(stage)
-                with self.assertRaises(RuntimeError):
-                    execution.recover_interrupted_stage(campaign, 0)
+
+                class SuccessfulTool:
+                    def invoke(self, arguments):
+                        attempt_id = campaign["stages"][0]["active_attempt_id"]
+                        self.assert_active = execution._is_attempt_active(attempt_id)
+                        return '{"status":"success"}'
+
+                tool = SuccessfulTool()
+                with patch.object(execution, "_resolve_tool", return_value=tool):
+                    updated = execution.execute_campaign_stage(
+                        campaign, 0, {"query": "fixed points"}
+                    )
+                self.assertTrue(tool.self_active)
+                self.assertEqual(updated["stages"][0]["status"], "completed")
+                attempt_id = updated["stages"][0]["attempt_history"][-1]["attempt_id"]
+                self.assertFalse(execution._is_attempt_active(attempt_id))
 
     def test_failed_tool_payload_is_not_recorded_as_completed(self):
         with tempfile.TemporaryDirectory() as directory:
