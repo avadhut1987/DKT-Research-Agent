@@ -9,6 +9,11 @@ class TestResearchOrchestrator(unittest.TestCase):
         self.assertTrue(any("not changed chaoticity" in x for x in p["scope_and_controls"]))
         self.assertFalse(p["execution_performed"])
 
+    def test_periodic_orbit_question_uses_direct_orbit_comparison(self):
+        p = build_research_plan("Compare periodic-orbit geometry at fixed kr=1 for ktheta=0 and 10000.")
+        self.assertEqual(p["research_intent"], "fixed_kr_ktheta_geometry")
+        self.assertEqual([x["tool"] for x in p["workflow"]], ["compare_dkt_periodic_orbits"])
+
     def test_mean_ergodicity_distinguished(self):
         p = build_research_plan("Investigate von Neumann mean ergodicity and Birkhoff variance.")
         self.assertEqual(p["research_intent"], "mean_ergodicity")
