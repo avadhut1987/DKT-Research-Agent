@@ -17,7 +17,7 @@ CAPABILITIES = {
     "search_dkt_periodic_orbits": ("Primitive periodic-orbit search", "new_numerical_data"),
     "compare_dkt_simulations": ("Compare two existing trajectories kick by kick", "existing_data_required"),
     "run_dkt_comparison_study": ("Controlled two-trajectory comparison", "new_numerical_data"),
-    "run_dkt_geometry_ensemble_comparison": ("Matched-ensemble phase-space geometry comparison", "new_numerical_data"),
+    "run_dkt_geometry_ensemble_comparison": ("Matched local-cloud phase-space geometry comparison", "new_numerical_data"),
     "compare_dkt_periodic_orbits": ("Fixed-k_r periodic-orbit geometry comparison", "new_numerical_data"),
     "mean_ergodicity_langchain_tool": ("von Neumann L² mean-ergodicity diagnostic", "new_numerical_data"),
     "run_ergodicity_variance_study": ("Birkhoff-average ensemble variance", "new_numerical_data"),
