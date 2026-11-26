@@ -318,10 +318,12 @@ def render(res: MeanErgodicResult, path: Optional[str] = None, show: bool = Fals
     n = np.arange(1, res.N + 1)
     c0 = res.C[0] if res.C[0] != 0 else 1.0
     ces = np.cumsum(res.C) / n / c0
-    ces_abs = np.cumsum(np.abs(res.C)) / n / c0
-    ax.semilogx(n, ces, color="C0", lw=1.4, label=r"$\frac{1}{n}\sum_{k<n} C(k)/C(0)$  (mean-ergodic)")
-    ax.semilogx(n, ces_abs, color="C2", lw=1.0, alpha=0.8,
-                label=r"$\frac{1}{n}\sum_{k<n} |C(k)|/C(0)$  (weak-mixing, for contrast)")
+    # Weak mixing uses the Cesàro mean of squared correlations, not |C(k)|.
+    ces_sq = np.cumsum(res.C ** 2) / n / (c0 ** 2)
+    ax.semilogx(n, ces, color="C0", lw=1.4,
+                label=r"$\\frac{1}{n}\\sum_{k<n} C(k)/C(0)$  (mean-ergodic)")
+    ax.semilogx(n, ces_sq, color="C2", lw=1.0, alpha=0.8,
+                label=r"$\\frac{1}{n}\\sum_{k<n} |C(k)/C(0)|^2$  (weak-mixing indicator)")
     ax.axhline(0, color="k", lw=0.6)
     ax.set_xlabel("n"); ax.set_title("(d) Cesàro means of the autocorrelation", fontsize=10)
     ax.legend(fontsize=8, frameon=False); ax.grid(alpha=0.25)
