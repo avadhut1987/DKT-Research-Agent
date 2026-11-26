@@ -56,3 +56,22 @@ The DKT Research Agent is a scientific research environment, not a chat wrapper 
 
 ## Phase 3 acceptance criteria
 A feature must preserve scientific algorithms and defaults unless explicitly intended otherwise; have focused tests; expose inputs, outputs, provenance and limitations; fit the information architecture; use consistent terminology; avoid duplicate workflows; pass relevant CI; and be reviewed in the running Streamlit application before merge.
+
+
+## Phase 3B execution architecture
+
+Research Studio campaigns persist a plan snapshot and an ordered stage ledger. Each stage records its execution mode, exact arguments, attempt count, timestamps, result or error. Campaigns are stored under `results/research_campaigns/` and can be resumed. Execution is restricted to an explicit allow-list of validated tools; arbitrary tool names from model output are never dynamically resolved.
+
+Read-only evidence discovery may be run independently. After discovery, the researcher must record whether the evidence is sufficient or whether new calculations are still needed. Numerical stages require both recorded user authorization and a separate execution action. Stages run in order, and later stages cannot start until earlier stages complete. Failed stages retain their inputs and error record and may be retried. This is a human-supervised execution foundation; it is not yet an unrestricted autonomous agent or an automatic scientific reviewer.
+
+## Observable-resolved and local ergodicity
+
+For direction-dependent questions, preserve separate results for (X,Y,Z) and the available quadratic/cross observables. Combine the existing nine-observable mean-ergodicity battery with the Birkhoff-average ensemble-variance study where appropriate. Do not compress mixed outcomes into a single global verdict.
+
+The current samplers draw initial conditions uniformly over the full sphere. Observable-wise differences under that sampling support only finite-data statements about the tested observables and ensemble. They do not establish ergodicity on a spatially restricted region. A future local-region workflow must first define a dynamically meaningful invariant region or component and a justified conditional invariant measure; merely sampling initial points inside an arbitrary patch is not sufficient to define a measure-preserving restricted system.
+
+## Matched local-cloud geometry comparison
+
+At fixed $k_r$ and $p$, the geometry workflow constructs one small angular grid of initial conditions around a specified $(\theta_0,\phi_0)$ patch and evolves the exact same grid under both selected $k_\theta$ values. At every kick it records the cloud covariance eigenvalues, principal axes, RMS radius, anisotropy, and matched-point separations. The principal-axis alignment uses an absolute dot product to account for eigenvector sign ambiguity.
+
+This is a finite-time deformation/orientation probe for the selected initial patch. The patch is not assumed to be invariant, and the diagnostic does not establish local ergodicity, mixing, distinct invariant measures, or changed classical chaoticity. A uniform full-sphere ensemble would be a poor default for this specific geometric purpose because area preservation can keep the pooled density uniform while local structures deform.

@@ -4,7 +4,7 @@ import json
 import re
 from typing import Any
 
-PLANNER_VERSION = "0.1.0"
+PLANNER_VERSION = "0.2.0"
 CAPABILITIES = {
     "search_research_evidence": ("Search existing research evidence", "read_only"),
     "read_research_csv_tool": ("Inspect an existing research CSV", "read_only"),
@@ -17,6 +17,7 @@ CAPABILITIES = {
     "search_dkt_periodic_orbits": ("Primitive periodic-orbit search", "new_numerical_data"),
     "compare_dkt_simulations": ("Compare two existing trajectories kick by kick", "existing_data_required"),
     "run_dkt_comparison_study": ("Controlled two-trajectory comparison", "new_numerical_data"),
+    "run_dkt_geometry_ensemble_comparison": ("Matched local-cloud phase-space geometry comparison", "new_numerical_data"),
     "compare_dkt_periodic_orbits": ("Fixed-k_r periodic-orbit geometry comparison", "new_numerical_data"),
     "mean_ergodicity_langchain_tool": ("von Neumann L² mean-ergodicity diagnostic", "new_numerical_data"),
     "run_ergodicity_variance_study": ("Birkhoff-average ensemble variance", "new_numerical_data"),
@@ -50,7 +51,25 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             "Locate existing records before repeating calculations or quoting numerical results.",
             ["Focused keywords: parameters, observables, diagnostic and run identifier."],
             "Search results locate evidence; they do not validate a method or prove an asymptotic property."))
-    if _has(t, r"k[_\s-]?theta", r"kθ", r"asymmetry", r"phase.?space geometry") and _has(t, r"fixed\s*k[_\s-]?r", r"same\s*k[_\s-]?r", r"k[_\s-]?r\s*=", r"vary", r"compare", r"geometry"):
+    if _has(t, r"direction.?dependent", r"directional", r"along\s+[xyz]", r"observable.?wise", r"axis.?wise", r"not\s+global", r"local\s+ergod") and _has(t, r"ergod", r"mix", r"birkhoff", r"observable"):
+        intent = "direction_dependent_ergodicity"
+        scope = [
+            "Evaluate X, Y, Z and selected quadratic/cross observables separately; do not collapse them into one global verdict.",
+            "Use mean-ergodicity and finite-time Birkhoff-average diagnostics as distinct, complementary tests.",
+            "Report conclusions only for the tested observables, sampling domain, initial-condition ensemble and time windows.",
+            "Observable-wise differences do not by themselves establish ergodicity on a spatially restricted region of phase space.",
+        ]
+        steps.append(_step("2 · Observable-resolved mean-ergodicity test", "mean_ergodicity_langchain_tool",
+            "The nine-observable battery tests whether the finite-data L² indicator behaves differently for X, Y, Z and quadratic/cross observables.",
+            ["k_r, k_theta, p", "observables: x, y, z, x2, y2, z2, xy, yz, xz", "maximum N", "initial-condition count M", "random seed"],
+            "D_N is a finite-sampling L² indicator for each tested observable under uniform full-sphere sampling; it is not a proof of pointwise ergodicity or local ergodicity on a restricted phase-space region."))
+        steps.append(_step("3 · Observable-resolved Birkhoff-variance study", "run_ergodicity_variance_study",
+            "Cross-check finite-time averages across distinct uniformly sampled initial conditions for the same nine observables.",
+            ["k_r, k_theta, p", "ensemble size", "kick count and transient", "random seed"],
+            "Finite-ensemble variance trends are not proofs of ergodicity; a separate region-conditioned sampling protocol is required for local phase-space claims."))
+        if _has(t, r"local", r"region", r"neighbou?rhood", r"subset", r"island", r"component"):
+            gates.append("The current mean-ergodicity and Birkhoff-variance samplers use the full uniform sphere. Region-restricted local ergodicity is not yet implemented; define a phase-space region and add a validated region-conditioned sampling method before making that claim.")
+    elif _has(t, r"k[_\s-]?theta", r"kθ", r"asymmetry", r"phase.?space geometry") and _has(t, r"fixed\s*k[_\s-]?r", r"same\s*k[_\s-]?r", r"k[_\s-]?r\s*=", r"vary", r"compare", r"geometry"):
         intent = "fixed_kr_ktheta_geometry"
         scope = ["Hold k_r, p, initial-condition protocol and numerical settings fixed.",
                  "Vary k_theta only; interpret differences as phase-space/trajectory geometry, not changed chaoticity.",
@@ -65,6 +84,10 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
                 "A matched comparison isolates the change in k_theta at fixed k_r.",
                 ["k_r", "two k_theta values", "theta_0 and phi_0", "number of kicks", "p (default pi/2)"],
                 "Trajectory separation alone does not establish changed chaos, Lyapunov behaviour or ergodicity."))
+            steps.append(_step("3 · Matched-ensemble geometry comparison", "run_dkt_geometry_ensemble_comparison",
+                "Evolve a common local angular grid under both maps and compare the finite-time cloud's principal spreads, orientation and matched-point separations.",
+                ["k_r", "two k_theta values", "local patch centre (theta_0, phi_0)", "angular patch widths", "grid resolution", "kick count", "p"],
+                "Finite-time cloud covariance and matched-point separations describe deformation of the chosen initial-condition patch; they do not establish an invariant region, local ergodicity or changed chaoticity."))
     elif _has(t, r"mean.?ergod", r"von neumann", r"l²", r"l\^2", r"d_n"):
         intent = "mean_ergodicity"
         scope = ["Treat mean ergodicity separately from Birkhoff/pointwise ergodicity and mixing.",

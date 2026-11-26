@@ -790,3 +790,183 @@ def run_lyapunov_parameter_scan(
     }
     (out / "lyapunov_parameter_scan_summary.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     return json.dumps(result, indent=2)
+
+
+@tool
+def run_dkt_geometry_ensemble_comparison(
+    kr: float,
+    ktheta_values: list[float],
+    theta0: float = 0.75,
+    phi0: float = -1.0,
+    delta_theta: float = 0.08,
+    delta_phi: float = 0.08,
+    grid_size: int = 7,
+    nsteps: int = 2000,
+    p: float = 1.5707963267948966,
+) -> str:
+    """Compare matched local clouds under two ktheta values at fixed kr and p.
+
+    A common small angular grid of initial conditions is evolved under both
+    maps. At each kick, compute cloud covariance eigenvalues/principal axes,
+    RMS cloud radius and matched-point separations. This probes finite-time
+    deformation/orientation of a local initial-condition cloud, not ergodicity,
+    invariant measures or the degree of classical chaos.
+    """
+    import csv
+    import json
+    import math
+    import numpy as np
+    from dkt_agent.mean_ergodicity import dkt_step
+
+    for name, value in (("kr", kr), ("theta0", theta0), ("phi0", phi0),
+                        ("delta_theta", delta_theta), ("delta_phi", delta_phi), ("p", p)):
+        if not math.isfinite(float(value)):
+            raise ValueError(f"{name} must be finite.")
+    if not isinstance(ktheta_values, list) or len(ktheta_values) != 2:
+        raise ValueError("ktheta_values must contain exactly two values.")
+    values = [float(value) for value in ktheta_values]
+    if not all(math.isfinite(value) for value in values) or values[0] == values[1]:
+        raise ValueError("ktheta_values must be distinct finite values.")
+    if not 0.0 <= float(theta0) <= math.pi:
+        raise ValueError("theta0 must lie in [0, pi].")
+    if not 0.0 < float(delta_theta) <= 0.5:
+        raise ValueError("delta_theta must lie in (0, 0.5].")
+    if not 0.0 < float(delta_phi) <= math.pi:
+        raise ValueError("delta_phi must lie in (0, pi].")
+    if isinstance(grid_size, bool) or not isinstance(grid_size, int) or not 3 <= grid_size <= 31:
+        raise ValueError("grid_size must be between 3 and 31.")
+    if isinstance(nsteps, bool) or not isinstance(nsteps, int) or not 1 <= nsteps <= 50000:
+        raise ValueError("nsteps must be between 1 and 50000.")
+
+    theta_values = np.linspace(
+        max(0.0, float(theta0) - float(delta_theta)),
+        min(math.pi, float(theta0) + float(delta_theta)),
+        grid_size,
+    )
+    phi_values = float(phi0) + np.linspace(-float(delta_phi), float(delta_phi), grid_size)
+    theta_grid, phi_grid = np.meshgrid(theta_values, phi_values, indexing="ij")
+    theta_initial = theta_grid.ravel()
+    phi_initial = (phi_grid.ravel() + math.pi) % (2.0 * math.pi) - math.pi
+    radius = np.sin(theta_initial)
+    initial = np.column_stack((
+        radius * np.cos(phi_initial),
+        radius * np.sin(phi_initial),
+        np.cos(theta_initial),
+    ))
+    states = [initial.copy(), initial.copy()]
+    maps = [(float(kr) + value, float(kr) - value) for value in values]
+
+    def cloud_metrics(points):
+        centre = np.mean(points, axis=0)
+        covariance = np.cov(points, rowvar=False, bias=True)
+        eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+        order = np.argsort(eigenvalues)[::-1]
+        eigenvalues = np.maximum(eigenvalues[order], 0.0)
+        eigenvectors = eigenvectors[:, order]
+        spreads = np.sqrt(eigenvalues)
+        rms_radius = float(np.sqrt(np.mean(np.sum((points - centre) ** 2, axis=1))))
+        anisotropy = float(eigenvalues[0] / max(eigenvalues[-1], np.finfo(float).eps))
+        return centre, spreads, eigenvectors, rms_radius, anisotropy
+
+    out = _new_output_dir("geometry_cloud_comparison_")
+    csv_path = out / "local_cloud_geometry_by_kick.csv"
+    fields = [
+        "kick", "matched_mean_separation", "matched_rms_separation", "matched_max_separation",
+        "principal_axis_abs_alignment",
+    ]
+    for label in ("a", "b"):
+        fields.extend([
+            f"centroid_{label}_x", f"centroid_{label}_y", f"centroid_{label}_z",
+            f"major_spread_{label}", f"middle_spread_{label}", f"minor_spread_{label}",
+            f"principal_axis_{label}_x", f"principal_axis_{label}_y", f"principal_axis_{label}_z",
+            f"rms_cloud_radius_{label}", f"anisotropy_ratio_{label}",
+        ])
+    final_metrics = [None, None]
+    max_norm_error = 0.0
+    with csv_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for kick in range(nsteps + 1):
+            metrics = [cloud_metrics(state) for state in states]
+            separation = np.linalg.norm(states[0] - states[1], axis=1)
+            axis_dot = abs(float(np.dot(metrics[0][2][:, 0], metrics[1][2][:, 0])))
+            row = {
+                "kick": kick,
+                "matched_mean_separation": float(np.mean(separation)),
+                "matched_rms_separation": float(np.sqrt(np.mean(separation**2))),
+                "matched_max_separation": float(np.max(separation)),
+                "principal_axis_abs_alignment": axis_dot,
+            }
+            for label, item in zip(("a", "b"), metrics):
+                centre, spreads, axes, rms_radius, anisotropy = item
+                row.update({
+                    f"centroid_{label}_x": float(centre[0]),
+                    f"centroid_{label}_y": float(centre[1]),
+                    f"centroid_{label}_z": float(centre[2]),
+                    f"major_spread_{label}": float(spreads[0]),
+                    f"middle_spread_{label}": float(spreads[1]),
+                    f"minor_spread_{label}": float(spreads[2]),
+                    f"principal_axis_{label}_x": float(axes[0, 0]),
+                    f"principal_axis_{label}_y": float(axes[1, 0]),
+                    f"principal_axis_{label}_z": float(axes[2, 0]),
+                    f"rms_cloud_radius_{label}": rms_radius,
+                    f"anisotropy_ratio_{label}": anisotropy,
+                })
+            writer.writerow(row)
+            final_metrics = metrics
+            if kick < nsteps:
+                for index, (k, kp) in enumerate(maps):
+                    states[index] = np.column_stack(dkt_step(
+                        states[index][:, 0], states[index][:, 1], states[index][:, 2],
+                        k=k, kp=kp, p=float(p),
+                    ))
+                for state in states:
+                    max_norm_error = max(
+                        max_norm_error,
+                        float(np.max(np.abs(np.linalg.norm(state, axis=1) - 1.0))),
+                    )
+
+    def summarize(item):
+        centre, spreads, axes, rms_radius, anisotropy = item
+        return {
+            "centroid": centre.tolist(),
+            "principal_spreads": spreads.tolist(),
+            "principal_axes_as_columns": axes.tolist(),
+            "rms_cloud_radius": rms_radius,
+            "anisotropy_ratio": anisotropy,
+        }
+
+    result = {
+        "status": "success",
+        "parameters": {
+            "kr": float(kr), "ktheta_values": values, "p": float(p),
+            "theta0": float(theta0), "phi0": float(phi0),
+            "delta_theta": float(delta_theta), "delta_phi": float(delta_phi),
+            "grid_size": grid_size, "n_initial_conditions": int(len(initial)),
+            "nsteps": nsteps,
+            "initial_condition_protocol": "Matched regular angular grid in a local patch around (theta0, phi0); phi is wrapped to [-pi, pi).",
+        },
+        "initial_cloud": initial.tolist(),
+        "final_cloud_geometry": {
+            f"ktheta={values[0]:g}": summarize(final_metrics[0]),
+            f"ktheta={values[1]:g}": summarize(final_metrics[1]),
+        },
+        "final_matched_cloud_separation": {
+            "mean": float(np.mean(np.linalg.norm(states[0] - states[1], axis=1))),
+            "rms": float(np.sqrt(np.mean(np.sum((states[0] - states[1])**2, axis=1)))),
+            "maximum": float(np.max(np.linalg.norm(states[0] - states[1], axis=1))),
+        },
+        "max_norm_error": max_norm_error,
+        "artifacts": {"directory": str(out), "geometry_by_kick_csv": str(csv_path)},
+        "interpretation_limits": [
+            "The two maps use identical initial conditions, kr, p, and kick count; only ktheta changes.",
+            "Covariance eigenvalues and principal axes describe finite-time deformation of the chosen local initial-condition cloud.",
+            "Principal-axis alignment is reported using the absolute dot product because an eigenvector and its negative represent the same axis.",
+            "The local cloud is an initial-condition probe, not an invariant region or an invariant measure.",
+            "These geometric diagnostics do not establish local or global ergodicity, mixing, distinct invariant measures, or changes in classical chaoticity.",
+            "At fixed kr, ktheta must not be interpreted as changing Lyapunov behaviour, KS entropy, or the regular-to-chaotic transition.",
+        ],
+    }
+    with (out / "geometry_cloud_summary.json").open("w", encoding="utf-8") as handle:
+        json.dump(result, handle, indent=2)
+    return json.dumps(result, indent=2)

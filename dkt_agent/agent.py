@@ -26,6 +26,7 @@ from dkt_agent.research_tools import (
     diagnose_observable_timeseries,
     summarize_research_csv,
     run_dkt_parameter_sweep,
+    run_dkt_geometry_ensemble_comparison,
     diagnose_lyapunov_ks,
     diagnose_mixing_correlations,
     run_ergodicity_variance_study,
@@ -97,6 +98,7 @@ AVAILABLE TOOLS
 11. diagnose_observable_timeseries: Computes finite-time averages of X,Y,Z and quadratic observables, block-mean fluctuations, and finite-lag autocorrelations for an existing trajectory.
 12. summarize_research_csv: Produces read-only schema, missingness, and numeric descriptive statistics for an existing CSV under results/.
 13. run_dkt_parameter_sweep: Runs a controlled one-parameter sweep over kr or ktheta (2–8 values) and compares empirical phase-space measures. Use only when new execution is explicitly requested or authorized.
+14. run_dkt_geometry_ensemble_comparison: Evolves the same local angular grid of initial conditions under two ktheta values at fixed kr and p, then compares cloud covariance spreads, principal-axis orientation and matched-point separations at each kick. This is a finite-time local-cloud geometry probe, not a chaos or ergodicity proof.
 
 
 14. diagnose_lyapunov_ks: Uses the Julia package's analytic tangent Jacobian and periodic QR orthonormalization to estimate both finite-time Lyapunov exponents and the finite-time Pesin sum of positive exponents; returns multiple time-window checkpoints.
@@ -120,6 +122,16 @@ QUANTUM ENTANGLEMENT POLICY
 7. An early/late averaging-window difference is a finite-time stability diagnostic, not proof of asymptotic convergence.
 8. A heatmap with failed cells is partial; never replace failed/NaN values by zero or interpret them as zero entanglement.
 9. For classical-quantum correspondence, compare classical X,Y,Z with quantum <Jx>/s,<Jy>/s,<Jz>/s from the same coherent-state orientation, Floquet parameters and kick indices. Treat differences as finite-time expectation-value differences; wavepacket spreading means they need not remain equal to a single classical orbit. Entanglement entropy is a separate observable, not a phase-space coordinate.
+
+OBSERVABLE-RESOLVED AND DIRECTION-DEPENDENT ERGODICITY
+
+1. When a question asks whether X, Y, and Z (or other specified observables) behave differently, preserve the observable-wise results. Use the nine-observable mean-ergodicity battery and, when appropriate, the Birkhoff-average variance study.
+2. Report each tested observable separately, including its finite-data indicator, uncertainty, time-window dependence, and sampling protocol. Do not replace a mixed observable-wise outcome with a single global "ergodic" or "non-ergodic" label.
+3. Observable-specific mean-ergodicity indicators are not equivalent to a proof of pointwise ergodicity, nor do they establish ergodicity restricted to a spatial region of phase space.
+4. The current mean-ergodicity and Birkhoff-variance samplers use uniform full-sphere initial-condition sampling. If the question asks about a local region, island, neighbourhood, or restricted phase-space component, state that region-conditioned sampling is not currently implemented; do not silently treat full-sphere results as local results.
+5. Direction-dependent numerical outcomes should be described as operational statements about the tested observables and ensemble. They do not automatically imply that the full map is ergodic in some directions and non-ergodic in others in a measure-theoretic sense.
+6. Keep mean ergodicity, Birkhoff/pointwise ergodicity, weak mixing, and strong mixing distinct. Finite correlations and finite-partition alpha coefficients remain diagnostics, not proofs.
+
 
 TOOL-SELECTION POLICY
 
@@ -169,6 +181,9 @@ TOOL-SELECTION POLICY
 20. Jensen-Shannon divergence compares empirical distributions on the selected partition. It does not by itself establish different invariant measures, ergodicity, mixing, or a change in chaoticity.
 
 22. Do not attribute changes in classical chaoticity, Lyapunov behaviour, or the regular-to-chaotic transition to ktheta. At fixed kr, interpret ktheta comparisons as trajectory/phase-space-geometry comparisons.
+23. When the user requests an ensemble-level phase-space geometry comparison at fixed kr for two ktheta values, use run_dkt_geometry_ensemble_comparison. It evolves a matched local angular grid and reports per-kick cloud spreads, principal axes, axis alignment and matched-point separations. Explain that the initial patch is a geometric probe, not an invariant region or invariant measure.
+24. Use run_dkt_comparison_study for a single matched initial-condition trajectory pair; do not treat that single pair as an ensemble geometry result.
+25. Do not use a ktheta Lyapunov scan to claim that ktheta changes chaoticity. If finite-time Lyapunov values are requested for a numerical consistency check, explicitly state that kr controls chaoticity and that ktheta-dependent orbit estimates are not evidence of a changed chaos regime.
 23. When the user requests classical-quantum correspondence, use run_classical_quantum_comparison_tool with the supplied spin s, kr, ktheta, initial angles and kick count. Do not silently run it unless execution is requested or authorized.
 24. When the user requests a combined ergodic-hierarchy analysis of existing data, use diagnose_mixing_hierarchy with at least two exact trajectory CSV paths from distinct initial conditions. The tool cannot infer map parameters from coordinates, so verify that all files were generated with identical kr, ktheta and p. Do not silently generate new trajectories; ask for authorization if the required ensemble does not already exist.
 25. For a direct von Neumann mean-ergodicity question, use mean_ergodicity_langchain_tool. Prefer the nine-observable battery; a single observable may be symmetry-blind. Interpret D_N decay or a plateau only as finite-data evidence for the tested observables and sampled N,M. Report the Monte Carlo uncertainty and finite-sample limitations. Do not call this a proof of pointwise ergodicity or mixing.
@@ -390,6 +405,7 @@ def build_agent():
             diagnose_observable_timeseries,
             summarize_research_csv,
             run_dkt_parameter_sweep,
+            run_dkt_geometry_ensemble_comparison,
             diagnose_lyapunov_ks,
             diagnose_mixing_correlations,
             run_ergodicity_variance_study,
@@ -450,7 +466,7 @@ def main():
     print("Model: Gemini 2.5 Flash")
     print("Physics engine: QuantumKickedTop.jl")
     print("Framework: LangGraph")
-    print("Available research tools: 23")
+    print("Available research tools: 24")
     print("\nEnter a research request, or type 'exit' to quit.")
     print("For multiline requests, type /multi and finish with /send.\n")
 
