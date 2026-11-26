@@ -301,12 +301,18 @@ def render_mixing_hierarchy_dashboard() -> None:
             "to calculate and display numerical results in the four tabs."
         )
 
-    tab_ergodic, tab_weak, tab_strong, tab_summary = st.tabs([
+    from dkt_agent.mean_ergodic_dashboard import render_mean_ergodic_panel
+
+    tab_mean, tab_ergodic, tab_weak, tab_strong, tab_summary = st.tabs([
+        "Mean ergodicity",
         "Birkhoff averages",
         "Weak-mixing indicators",
         "Finite-partition alpha",
         "Numerical tables & files",
     ])
+
+    with tab_mean:
+        render_mean_ergodic_panel(in_tab=True)
 
     with tab_ergodic:
         st.subheader("Selected-observable Birkhoff-average variance")
