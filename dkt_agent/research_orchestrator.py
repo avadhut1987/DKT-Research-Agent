@@ -50,7 +50,25 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             "Locate existing records before repeating calculations or quoting numerical results.",
             ["Focused keywords: parameters, observables, diagnostic and run identifier."],
             "Search results locate evidence; they do not validate a method or prove an asymptotic property."))
-    if _has(t, r"k[_\s-]?theta", r"kθ", r"asymmetry", r"phase.?space geometry") and _has(t, r"fixed\s*k[_\s-]?r", r"same\s*k[_\s-]?r", r"k[_\s-]?r\s*=", r"vary", r"compare", r"geometry"):
+    if _has(t, r"direction.?dependent", r"directional", r"along\\s+[xyz]", r"observable.?wise", r"axis.?wise", r"not\\s+global", r"local\\s+ergod") and _has(t, r"ergod", r"mix", r"birkhoff", r"observable"):
+        intent = "direction_dependent_ergodicity"
+        scope = [
+            "Evaluate X, Y, Z and selected quadratic/cross observables separately; do not collapse them into one global verdict.",
+            "Use mean-ergodicity and finite-time Birkhoff-average diagnostics as distinct, complementary tests.",
+            "Report conclusions only for the tested observables, sampling domain, initial-condition ensemble and time windows.",
+            "Observable-wise differences do not by themselves establish ergodicity on a spatially restricted region of phase space.",
+        ]
+        steps.append(_step("2 · Observable-resolved mean-ergodicity test", "mean_ergodicity_langchain_tool",
+            "The nine-observable battery tests whether the finite-data L² indicator behaves differently for X, Y, Z and quadratic/cross observables.",
+            ["k_r, k_theta, p", "observables: x, y, z, x2, y2, z2, xy, yz, xz", "maximum N", "initial-condition count M", "random seed"],
+            "D_N is a finite-sampling L² indicator for each tested observable under uniform full-sphere sampling; it is not a proof of pointwise ergodicity or local ergodicity on a restricted phase-space region."))
+        steps.append(_step("3 · Observable-resolved Birkhoff-variance study", "run_ergodicity_variance_study",
+            "Cross-check finite-time averages across distinct uniformly sampled initial conditions for the same nine observables.",
+            ["k_r, k_theta, p", "ensemble size", "kick count and transient", "random seed"],
+            "Finite-ensemble variance trends are not proofs of ergodicity; a separate region-conditioned sampling protocol is required for local phase-space claims."))
+        if _has(t, r"local", r"region", r"neighbou?rhood", r"subset", r"island", r"component"):
+            gates.append("The current mean-ergodicity and Birkhoff-variance samplers use the full uniform sphere. Region-restricted local ergodicity is not yet implemented; define a phase-space region and add a validated region-conditioned sampling method before making that claim.")
+    elif _has(t, r"k[_\\s-]?theta", r"kθ", r"asymmetry", r"phase.?space geometry") and _has(t, r"fixed\s*k[_\s-]?r", r"same\s*k[_\s-]?r", r"k[_\s-]?r\s*=", r"vary", r"compare", r"geometry"):
         intent = "fixed_kr_ktheta_geometry"
         scope = ["Hold k_r, p, initial-condition protocol and numerical settings fixed.",
                  "Vary k_theta only; interpret differences as phase-space/trajectory geometry, not changed chaoticity.",
