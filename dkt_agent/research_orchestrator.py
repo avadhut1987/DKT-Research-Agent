@@ -50,7 +50,7 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             "Locate existing records before repeating calculations or quoting numerical results.",
             ["Focused keywords: parameters, observables, diagnostic and run identifier."],
             "Search results locate evidence; they do not validate a method or prove an asymptotic property."))
-    if _has(t, r"direction.?dependent", r"directional", r"along\\s+[xyz]", r"observable.?wise", r"axis.?wise", r"not\\s+global", r"local\\s+ergod") and _has(t, r"ergod", r"mix", r"birkhoff", r"observable"):
+    if _has(t, r"direction.?dependent", r"directional", r"along\s+[xyz]", r"observable.?wise", r"axis.?wise", r"not\s+global", r"local\s+ergod") and _has(t, r"ergod", r"mix", r"birkhoff", r"observable"):
         intent = "direction_dependent_ergodicity"
         scope = [
             "Evaluate X, Y, Z and selected quadratic/cross observables separately; do not collapse them into one global verdict.",
@@ -68,7 +68,7 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             "Finite-ensemble variance trends are not proofs of ergodicity; a separate region-conditioned sampling protocol is required for local phase-space claims."))
         if _has(t, r"local", r"region", r"neighbou?rhood", r"subset", r"island", r"component"):
             gates.append("The current mean-ergodicity and Birkhoff-variance samplers use the full uniform sphere. Region-restricted local ergodicity is not yet implemented; define a phase-space region and add a validated region-conditioned sampling method before making that claim.")
-    elif _has(t, r"k[_\\s-]?theta", r"kθ", r"asymmetry", r"phase.?space geometry") and _has(t, r"fixed\s*k[_\s-]?r", r"same\s*k[_\s-]?r", r"k[_\s-]?r\s*=", r"vary", r"compare", r"geometry"):
+    elif _has(t, r"k[_\s-]?theta", r"kθ", r"asymmetry", r"phase.?space geometry") and _has(t, r"fixed\s*k[_\s-]?r", r"same\s*k[_\s-]?r", r"k[_\s-]?r\s*=", r"vary", r"compare", r"geometry"):
         intent = "fixed_kr_ktheta_geometry"
         scope = ["Hold k_r, p, initial-condition protocol and numerical settings fixed.",
                  "Vary k_theta only; interpret differences as phase-space/trajectory geometry, not changed chaoticity.",
