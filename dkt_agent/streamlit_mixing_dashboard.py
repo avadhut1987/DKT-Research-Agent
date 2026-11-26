@@ -315,7 +315,7 @@ def render_mixing_hierarchy_dashboard() -> None:
     with tab_mean:
         st.caption(
             "Independent sampled-initial-condition test of the von Neumann "
-            "L² mean-ergodicity criterion. It is distinct from the ensemble "
+            r"$L^2$ mean-ergodicity criterion. It is distinct from the ensemble "
             "Birkhoff-variance analysis in the next tab."
         )
         render_mean_ergodic_panel(in_tab=True)
