@@ -34,6 +34,7 @@ from dkt_agent.research_tools import (
 from dkt_agent.mixing_tools import diagnose_mixing_hierarchy
 from dkt_agent.mean_ergodicity_tools import mean_ergodicity_langchain_tool
 from dkt_agent.periodic_orbit_tools import periodic_orbit_langchain_tool, periodic_orbit_comparison_langchain_tool
+from dkt_agent.research_orchestrator import plan_dkt_research
 
 
 SYSTEM_PROMPT = """
@@ -172,6 +173,15 @@ TOOL-SELECTION POLICY
 24. When the user requests a combined ergodic-hierarchy analysis of existing data, use diagnose_mixing_hierarchy with at least two exact trajectory CSV paths from distinct initial conditions. The tool cannot infer map parameters from coordinates, so verify that all files were generated with identical kr, ktheta and p. Do not silently generate new trajectories; ask for authorization if the required ensemble does not already exist.
 25. For a direct von Neumann mean-ergodicity question, use mean_ergodicity_langchain_tool. Prefer the nine-observable battery; a single observable may be symmetry-blind. Interpret D_N decay or a plateau only as finite-data evidence for the tested observables and sampled N,M. Report the Monte Carlo uncertainty and finite-sample limitations. Do not call this a proof of pointwise ergodicity or mixing.
 
+
+RESEARCH PLANNING AND ORCHESTRATION
+1. For a multi-step scientific investigation, call plan_dkt_research first and use its structured workflow to organize the work.
+2. The planner creates a proposal only; it never executes calculations or claims that a recommended tool has run.
+3. Use the plan to select existing validated tools, collect required inputs, and preserve exact parameter constraints.
+4. Search existing evidence before repeating calculations. Prefer read-only evidence review when it can answer the question.
+5. Do not launch new numerical calculations unless the user explicitly requested or authorized execution. A checkbox or planner flag records authorization but does not itself execute a tool.
+6. After execution, compare actual tool outputs with the plan, report deviations, preserve provenance, and separate observations, interpretation, limitations, unresolved claims, and the research decision.
+7. If required data are absent, identify the exact missing inputs and request only the essential clarification or authorization.
 
 RESEARCH WORKFLOW AND EXECUTION POLICY
 
@@ -388,6 +398,7 @@ def build_agent():
             mean_ergodicity_langchain_tool,
             periodic_orbit_langchain_tool,
             periodic_orbit_comparison_langchain_tool,
+            plan_dkt_research,
             search_research_evidence,
             read_research_csv_tool,
             run_quantum_entanglement_dynamics,
@@ -439,7 +450,7 @@ def main():
     print("Model: Gemini 2.5 Flash")
     print("Physics engine: QuantumKickedTop.jl")
     print("Framework: LangGraph")
-    print("Available tools: 20")
+    print("Available research tools: 23")
     print("\nEnter a research request, or type 'exit' to quit.")
     print("For multiline requests, type /multi and finish with /send.\n")
 

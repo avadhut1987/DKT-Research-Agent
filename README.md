@@ -173,6 +173,10 @@ Finite-time differences between a single classical trajectory and quantum expect
 
 ### 6. AI-Assisted Research Interface
 
+The application also includes a **Research Studio** for plan-first investigations. It translates a scientific question into a structured workflow, identifies suitable existing tools and required inputs, distinguishes read-only evidence retrieval from new numerical execution, and records authorization gates. Planning itself does not run calculations.
+
+The research planner is designed to preserve the model-specific scientific constraints, including the distinction between the roles of $k_r$ and $k_\theta$, and the limitations of finite-data ergodic-hierarchy diagnostics. See [Phase 3 product and interface principles](docs/PHASE3_PRODUCT_DESIGN.md).
+
 The LangGraph research agent provides access to simulation and analysis tools through natural-language interaction.
 
 Capabilities include:
