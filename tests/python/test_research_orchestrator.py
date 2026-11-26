@@ -3,7 +3,7 @@ from dkt_agent.research_orchestrator import build_research_plan
 
 class TestResearchOrchestrator(unittest.TestCase):
     def test_fixed_kr_ktheta_geometry_guardrail(self):
-        p = build_research_plan("Compare ktheta=0 and 10000 at fixed kr=1 for periodic orbit geometry.")
+        p = build_research_plan("Compare ktheta=0 and 10000 at fixed kr=1 for trajectory geometry.")
         self.assertEqual(p["research_intent"], "fixed_kr_ktheta_geometry")
         self.assertEqual(p["workflow"][0]["tool"], "run_dkt_comparison_study")
         self.assertTrue(any("not changed chaoticity" in x for x in p["scope_and_controls"]))
