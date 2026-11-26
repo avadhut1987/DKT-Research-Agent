@@ -90,5 +90,22 @@ class TestResearchOrchestrator(unittest.TestCase):
         self.assertEqual(p["research_intent"], "classical_quantum_correspondence")
         self.assertEqual(p["workflow"][0]["tool"], "run_classical_quantum_comparison_tool")
 
+    def test_direction_dependent_ergodicity_is_observable_resolved(self):
+        p = build_research_plan(
+            "Investigate direction-dependent ergodicity: perhaps ergodic along Y and Z but not X."
+        )
+        self.assertEqual(p["research_intent"], "direction_dependent_ergodicity")
+        tools = [step["tool"] for step in p["workflow"]]
+        self.assertEqual(tools, ["mean_ergodicity_langchain_tool", "run_ergodicity_variance_study"])
+        self.assertTrue(any("X, Y, Z" in item for item in p["scope_and_controls"]))
+        self.assertTrue(any("not a proof" in step["scientific_caveat"] for step in p["workflow"]))
+
+    def test_region_restricted_local_ergodicity_is_explicitly_gated(self):
+        p = build_research_plan(
+            "Test local ergodicity in a phase-space region; compare X, Y and Z observables."
+        )
+        self.assertEqual(p["research_intent"], "direction_dependent_ergodicity")
+        self.assertTrue(any("Region-restricted local ergodicity" in item for item in p["clarifications_or_gates"]))
+
 if __name__ == "__main__":
     unittest.main()
