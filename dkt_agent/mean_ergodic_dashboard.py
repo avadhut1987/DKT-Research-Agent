@@ -8,15 +8,10 @@ Usage in app.py (one line, anywhere inside the page body):
 """
 from __future__ import annotations
 
-import io
-import json
 import math
 
-import numpy as np
-
-from dkt_agent.mean_ergodicity import (DEFAULT_BATTERY, mean_ergodic_analysis,
-                                       mean_ergodic_battery, render, render_battery)
-from dkt_agent.mean_ergodicity_tools import (\n    CAVEAT, save_mean_ergodic_artifacts,\n)
+from dkt_agent.mean_ergodicity import DEFAULT_BATTERY, mean_ergodic_battery, render
+from dkt_agent.mean_ergodicity_tools import CAVEAT, save_mean_ergodic_artifacts
 
 
 def render_mean_ergodic_panel(title: str = "Mean ergodicity (von Neumann L² diagnostic)"):
