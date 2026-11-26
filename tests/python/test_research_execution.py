@@ -279,5 +279,77 @@ class TestResearchExecution(unittest.TestCase):
                         campaign, 1, {"kr": 1.0}, execution_authorized=True
                     )
 
+
+    def test_interrupted_running_stage_can_be_recovered_without_rerunning(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan("Find DKT fixed points.")
+                campaign = execution.create_campaign(plan)
+                stage = campaign["stages"][0]
+                stage.update({
+                    "status": "running",
+                    "started_at": "2000-01-01T00:00:00+00:00",
+                    "active_attempt_id": "attempt-old",
+                    "attempt_history": [{
+                        "attempt_id": "attempt-old", "attempt_number": 1,
+                        "status": "running", "started_at": "2000-01-01T00:00:00+00:00",
+                    }],
+                })
+                execution.save_campaign(campaign)
+
+                recovered = execution.recover_interrupted_stage(campaign, 0)
+                loaded = execution.load_campaign(campaign["campaign_id"])
+                self.assertEqual(recovered["stages"][0]["status"], "interrupted")
+                self.assertEqual(loaded["stages"][0]["attempt_history"][0]["status"], "interrupted")
+                self.assertEqual(loaded["stages"][0]["attempts"], 0)
+                self.assertTrue(any(
+                    event["event"] == "stage_interruption_recovered"
+                    for event in loaded["events"]
+                ))
+
+    def test_live_runner_cannot_be_recovered(self):
+        import os
+        import socket
+        import threading
+
+        stage = {
+            "status": "running", "runner_host": socket.gethostname(),
+            "runner_pid": os.getpid(), "runner_thread_id": threading.get_ident(),
+            "started_at": "2000-01-01T00:00:00+00:00",
+        }
+        state = execution.inspect_stage_liveness(stage)
+        self.assertFalse(state["stale"])
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan("Find DKT fixed points.")
+                campaign = execution.create_campaign(plan)
+                campaign["stages"][0].update(stage)
+                with self.assertRaises(RuntimeError):
+                    execution.recover_interrupted_stage(campaign, 0)
+
+    def test_failed_tool_payload_is_not_recorded_as_completed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan("Find DKT fixed points.")
+                campaign = execution.create_campaign(plan)
+
+                class FailedTool:
+                    def invoke(self, arguments):
+                        return '{"status":"error","message":"evidence index unavailable"}'
+
+                with patch.object(execution, "_resolve_tool", return_value=FailedTool()):
+                    with self.assertRaises(RuntimeError):
+                        execution.execute_campaign_stage(campaign, 0, {"query": "fixed points"})
+                loaded = execution.load_campaign(campaign["campaign_id"])
+                self.assertEqual(loaded["stages"][0]["status"], "failed")
+                self.assertEqual(loaded["stages"][0]["attempt_history"][0]["status"], "failed")
+                self.assertIsNone(loaded["stages"][0]["result"])
+
+    def test_reused_evidence_is_terminal_for_workflow_dependencies(self):
+        self.assertTrue(execution.is_stage_terminal("completed"))
+        self.assertTrue(execution.is_stage_terminal("reused_existing_evidence"))
+        self.assertFalse(execution.is_stage_terminal("pending"))
+        self.assertFalse(execution.is_stage_terminal("interrupted"))
+
 if __name__ == "__main__":
     unittest.main()
