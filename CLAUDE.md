@@ -23,10 +23,16 @@ Parameter p = rotation angle about y (default pi/2).
 Existing tools analyse saved trajectory CSVs from grid-sampled ICs; the new module generates a
 uniformly sampled ensemble (needed for its error bars). No CSV-input version yet.
 
+## Integration status
+- Registered mean_ergodicity_langchain_tool in dkt_agent/agent.py.
+- Added render_mean_ergodic_panel() to app.py as a separate Streamlit expander.
+- The dashboard saves artifacts from its in-memory results instead of repeating the full calculation.
+- The correlation plot now uses the Cesàro mean of squared normalized correlations as the finite-data weak-mixing indicator.
+- The existing mixing-hierarchy dashboard retains its separate finite-partition alpha-coefficient diagnostic for strong mixing.
+
 ## Next tasks (in order)
-1. Register mean_ergodicity_langchain_tool in the agent; add render_mean_ergodic_panel() to app.py.
-2. Periodic-orbit finder: Newton on T^n(x)=x on the sphere, with stability from the Jacobian.
-3. Husimi-scar module: Husimi Q of Floquet eigenstates, symmetry-resolved first; score the
+1. Periodic-orbit finder: Newton on T^n(x)=x on the sphere, with stability from the Jacobian.
+2. Husimi-scar module: Husimi Q of Floquet eigenstates, symmetry-resolved first; score the
    overlap with classical period-n orbits (scar measure, coherent-state overlap).
-4. Optional: mean-ergodicity from saved trajectory CSVs.
+3. Optional: mean-ergodicity from saved trajectory CSVs.
 Scientific wording: report finite-data indicators, never proofs.
