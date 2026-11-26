@@ -26,6 +26,7 @@ from dkt_agent.research_tools import (
     diagnose_observable_timeseries,
     summarize_research_csv,
     run_dkt_parameter_sweep,
+    run_dkt_geometry_ensemble_comparison,
     diagnose_lyapunov_ks,
     diagnose_mixing_correlations,
     run_ergodicity_variance_study,
@@ -97,6 +98,7 @@ AVAILABLE TOOLS
 11. diagnose_observable_timeseries: Computes finite-time averages of X,Y,Z and quadratic observables, block-mean fluctuations, and finite-lag autocorrelations for an existing trajectory.
 12. summarize_research_csv: Produces read-only schema, missingness, and numeric descriptive statistics for an existing CSV under results/.
 13. run_dkt_parameter_sweep: Runs a controlled one-parameter sweep over kr or ktheta (2–8 values) and compares empirical phase-space measures. Use only when new execution is explicitly requested or authorized.
+14. run_dkt_geometry_ensemble_comparison: Generates matched uniform-sphere initial-condition ensembles at two ktheta values with fixed kr and p, then compares pooled and per-initial-condition empirical phase-space measures. This is a finite-sample geometry comparison, not a chaos or ergodicity proof.
 
 
 14. diagnose_lyapunov_ks: Uses the Julia package's analytic tangent Jacobian and periodic QR orthonormalization to estimate both finite-time Lyapunov exponents and the finite-time Pesin sum of positive exponents; returns multiple time-window checkpoints.
@@ -400,6 +402,7 @@ def build_agent():
             diagnose_observable_timeseries,
             summarize_research_csv,
             run_dkt_parameter_sweep,
+            run_dkt_geometry_ensemble_comparison,
             diagnose_lyapunov_ks,
             diagnose_mixing_correlations,
             run_ergodicity_variance_study,
@@ -460,7 +463,7 @@ def main():
     print("Model: Gemini 2.5 Flash")
     print("Physics engine: QuantumKickedTop.jl")
     print("Framework: LangGraph")
-    print("Available research tools: 23")
+    print("Available research tools: 24")
     print("\nEnter a research request, or type 'exit' to quit.")
     print("For multiline requests, type /multi and finish with /send.\n")
 
