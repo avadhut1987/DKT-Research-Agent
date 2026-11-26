@@ -73,9 +73,29 @@ st.set_page_config(
 st.markdown("""
 <style>
 .block-container {
-    max-width: 1100px;
-    padding-top: 2rem;
+    max-width: 1320px;
+    padding-top: 1.5rem;
     padding-bottom: 3rem;
+}
+[data-testid="stSidebar"] {
+    border-right: 1px solid rgba(128,128,128,.14);
+}
+.stTabs [data-baseweb="tab-list"] {
+    gap: .35rem;
+    border-bottom: 1px solid rgba(128,128,128,.18);
+}
+.stTabs [data-baseweb="tab"] {
+    padding: .65rem 1rem;
+    border-radius: 9px 9px 0 0;
+}
+div[data-testid="stMetric"] {
+    border: 1px solid rgba(128,128,128,.18);
+    border-radius: 12px;
+    padding: .75rem .9rem;
+    background: rgba(128,128,128,.035);
+}
+div[data-testid="stForm"], div[data-testid="stExpander"] {
+    border-radius: 12px;
 }
 [data-testid="stChatMessage"] {
     border: 1px solid rgba(128,128,128,.18);
@@ -87,9 +107,9 @@ st.markdown("""
 
 st.title("⚛️ DKT Research Assistant")
 st.caption(
-    "A research interface for Double Kicked Top simulations, "
-    "analysis, and evidence retrieval."
+    "Classical dynamics  ·  Quantum entanglement  ·  Ergodic hierarchy  ·  Research evidence"
 )
+st.caption("Run classical and quantum simulations from the sidebar; their outputs are collected in the Simulation results tab.")
 
 
 def content_to_text(content: Any) -> str:
@@ -201,7 +221,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             {"Setting": "Maximum iterations",
              "Value": parameters.get("max_iterations")},
         ])
-        st.dataframe(settings, use_container_width=True, hide_index=True)
+        st.dataframe(settings, width="stretch", hide_index=True)
 
         if points:
             st.markdown("**Fixed-point coordinates and stability**")
@@ -214,7 +234,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             columns = [c for c in preferred if c in frame.columns]
             st.dataframe(
                 frame[columns],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -310,7 +330,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             st.markdown("**Trajectory-averaged observables**")
             st.dataframe(
                 pd.DataFrame(statistics_rows),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -433,7 +453,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                 })
             st.dataframe(
                 pd.DataFrame(rows),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -479,7 +499,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             if norm_rows:
                 st.dataframe(
                     pd.DataFrame(norm_rows),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -528,7 +548,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             path = artifacts.get(key)
             if path and Path(path).is_file():
                 st.markdown(f"**{title}**")
-                st.image(str(path), use_container_width=True)
+                st.image(str(path), width="stretch")
 
         for key, label in [
             ("correlation_curve_csv", "Download correlation curve CSV"),
@@ -567,7 +587,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                 })
             st.dataframe(
                 pd.DataFrame(rows),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -585,7 +605,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             fluctuation_frame = pd.DataFrame(fluctuation_rows)
             st.dataframe(
                 fluctuation_frame,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -665,7 +685,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             frame = pd.DataFrame(checkpoints)
             st.dataframe(
                 frame,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -713,7 +733,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                 })
             st.dataframe(
                 pd.DataFrame(rows),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -783,7 +803,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             with st.expander("Full variance-scaling data"):
                 st.dataframe(
                     frame,
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -794,7 +814,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             )
             st.dataframe(
                 reference,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -823,7 +843,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
         if labels and matrix:
             frame = pd.DataFrame(matrix, index=labels, columns=labels)
             frame.index.name = "Trajectory"
-            st.dataframe(frame, use_container_width=True)
+            st.dataframe(frame, width="stretch")
 
             values = [
                 matrix[i][j]
@@ -920,7 +940,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                 records.append(record)
             st.dataframe(
                 pd.DataFrame(records),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -965,7 +985,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             st.markdown("**Column-wise descriptive statistics**")
             st.dataframe(
                 pd.DataFrame(rows),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -1054,7 +1074,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                 ax.set_xlabel(r"$\phi_0$")
                 ax.set_ylabel(r"$\theta_0$")
                 fig.tight_layout()
-                st.pyplot(fig, use_container_width=True)
+                st.pyplot(fig, width="stretch")
                 plt.close(fig)
 
             metric_row([
@@ -1090,20 +1110,22 @@ def get_agent():
 
 
 with st.sidebar:
-    st.header("DKT parameters")
+    st.header("Quick simulations")
 
-    st.markdown("**Average kicking strength**")
-    st.latex(r"k_r = \frac{k+k'}{2}")
-    st.caption(
-        "Controls the degree of classical chaos and the "
-        "regular-to-chaotic transition."
-    )
-    st.markdown("**Asymmetry parameter**")
-    st.latex(r"k_\theta = \frac{k-k'}{2}")
-    st.caption(
-        "Changes phase-space geometry and its orientation/structure; "
-        "it does not control the degree of classical chaos."
-    )
+    with st.expander("DKT parameter guide", expanded=False):
+        st.markdown("**Average kicking strength**")
+        st.latex(r"k_r = \frac{k+k'}{2}")
+        st.caption(
+            "Controls the degree of classical chaos and the "
+            "regular-to-chaotic transition."
+        )
+        st.markdown("**Asymmetry parameter**")
+        st.latex(r"k_\theta = \frac{k-k'}{2}")
+        st.caption(
+            "Changes phase-space geometry and its orientation/structure; "
+            "it does not control the degree of classical chaos."
+        )
+        st.latex(r"k = k_r+k_\theta, \qquad k' = k_r-k_\theta")
 
     with st.expander("Interactive DKT simulation", expanded=False):
         st.caption("Evolve one classical initial condition under the DKT map.")
@@ -1122,12 +1144,12 @@ with st.sidebar:
                 value=0.0, step=100.0, format="%.4f",
             )
             sim_theta0 = st.number_input(
-                "Initial theta (radians)",
+                r"Initial polar angle $\theta_0$ (radians)",
                 min_value=0.0, max_value=3.141592653589793,
                 value=1.5707963268, step=0.05,
             )
             sim_phi0 = st.number_input(
-                "Initial phi (radians)",
+                r"Initial azimuth $\phi_0$ (radians)",
                 min_value=-3.141592653589793,
                 max_value=3.141592653589793,
                 value=-1.5707963268, step=0.05,
@@ -1150,7 +1172,7 @@ with st.sidebar:
 
             run_simulation = st.form_submit_button(
                 "Run DKT Simulation",
-                use_container_width=True,
+                width="stretch",
             )
 
         if run_simulation:
@@ -1209,7 +1231,7 @@ with st.sidebar:
 
             run_grid_simulation = st.form_submit_button(
                 "Run phase-space grid",
-                use_container_width=True,
+                width="stretch",
             )
 
         if run_grid_simulation:
@@ -1265,7 +1287,7 @@ with st.sidebar:
                 max_value=50000, value=1000, step=100, key="ed_n"
             )
             ed_run = st.form_submit_button(
-                "Run entropy dynamics", use_container_width=True
+                "Run entropy dynamics", width="stretch"
             )
 
         if ed_run:
@@ -1318,7 +1340,7 @@ with st.sidebar:
                 value=15, step=1, key="hm_grid"
             )
             hm_run = st.form_submit_button(
-                "Run averaged entropy heatmap", use_container_width=True
+                "Run averaged entropy heatmap", width="stretch"
             )
 
         if hm_run:
@@ -1342,7 +1364,7 @@ with st.sidebar:
     st.divider()
 
 
-    if st.button("Clear conversation", use_container_width=True):
+    if st.button("Clear conversation", width="stretch"):
         st.session_state.agent_messages = []
         st.session_state.chat_history = []
         st.rerun()
@@ -1448,17 +1470,15 @@ if "workspace_results" not in st.session_state:
 
 
 st.divider()
-st.header("DKT Research Workspaces")
+st.header("Research workspaces")
 st.caption(
     "Diagnose, Compare and Research Data execute selected tools directly. "
     "Explain and the main chat use the Gemini research agent."
 )
 
-diagnose_tab, compare_tab, data_tab, explain_tab = st.tabs([
-    "Diagnose",
-    "Compare",
-    "Research Data",
-    "Explain",
+simulation_results_tab, diagnose_tab, compare_tab, data_tab, explain_tab = st.tabs([
+    "Simulation results", "Diagnostics", "Comparisons",
+    "Data & evidence", "Research assistant",
 ])
 
 # ------------------------------------------------------------------
@@ -1466,10 +1486,10 @@ diagnose_tab, compare_tab, data_tab, explain_tab = st.tabs([
 # ------------------------------------------------------------------
 
 with diagnose_tab:
-    st.subheader("Diagnose DKT dynamics")
-    st.write(
-        "Select a diagnostic and provide the relevant parameters or "
-        "an existing trajectory CSV path."
+    st.subheader("Classical-dynamics diagnostics")
+    st.caption(
+        "Choose one of the seven diagnostic workflows. The controls below "
+        "are the actual inputs passed to the selected analysis."
     )
 
     diagnostic = st.selectbox(
@@ -1518,7 +1538,7 @@ with diagnose_tab:
 
             diagnose_submit = st.form_submit_button(
                 "Run fixed-point search",
-                use_container_width=True,
+                width="stretch",
             )
 
         if diagnose_submit:
@@ -1535,87 +1555,134 @@ with diagnose_tab:
 
     else:
         with st.form("ws_diagnostic_form"):
-            trajectory_path = st.text_input(
-                "Existing trajectory CSV path (if required)",
-                placeholder="Paste the exact path returned by the agent",
-                key="ws_diag_path",
-            )
-            diagnostic_parameters = st.text_area(
-                "Additional parameters or instructions",
-                placeholder=(
-                    "For example: kr=1, ktheta=0, transient=1000, "
-                    "nsteps=10000. Use the tool defaults for unspecified "
-                    "optional parameters."
-                ),
-                height=100,
-                key="ws_diag_parameters",
-            )
-            diagnose_submit = st.form_submit_button(
-                "Run diagnostic",
-                use_container_width=True,
-            )
-
-        if diagnose_submit:
+            trajectory_path = ""
+            if diagnostic in {"Trajectory geometry", "Observable time series", "Autocorrelation and mixing diagnostics"}:
+                trajectory_path = st.text_input(
+                    "Existing trajectory CSV path",
+                    placeholder="Paste the exact path returned by a simulation or evidence search",
+                    key="ws_diag_path",
+                )
             if diagnostic == "Trajectory geometry":
-                if not trajectory_path.strip():
-                    st.error("Please provide an existing trajectory CSV path.")
-                else:
-                    run_workspace_tool(
-                        diagnose_classical_trajectory,
-                        {"trajectory_csv": trajectory_path.strip()},
-                        "diagnose",
-                    )
-
+                st.markdown("**Geometric diagnostic settings**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_theiler = st.number_input("Theiler window", min_value=0, value=20, step=1, key="ws_geom_theiler")
+                with c2:
+                    d_pairs = st.number_input("Random point pairs", min_value=1000, max_value=2000000, value=200000, step=10000, key="ws_geom_pairs")
+                with c3:
+                    d_geom_seed = st.number_input("Random seed", min_value=0, value=1234, step=1, key="ws_geom_seed")
             elif diagnostic == "Observable time series":
-                if not trajectory_path.strip():
-                    st.error("Please provide an existing trajectory CSV path.")
-                else:
-                    run_workspace_tool(
-                        diagnose_observable_timeseries,
-                        {"trajectory_csv": trajectory_path.strip()},
-                        "diagnose",
-                    )
-
+                st.markdown("**Time-series settings**")
+                c1, c2 = st.columns(2)
+                with c1:
+                    d_ts_transient = st.number_input("Transient kicks to discard", min_value=0, value=0, step=10, key="ws_ts_transient")
+                with c2:
+                    d_ts_lag = st.number_input("Maximum autocorrelation lag", min_value=1, max_value=5000, value=200, step=10, key="ws_ts_lag")
             elif diagnostic == "Finite-time Lyapunov exponents and KS estimate":
-                run_workspace_tool(
-                    diagnose_lyapunov_ks,
-                    {
-                        "kr": 1.0,
-                        "ktheta": 0.0,
-                        "theta0": 0.75,
-                        "phi0": -1.0,
-                        "nsteps": 20000,
-                        "transient": 1000,
-                    },
-                    "diagnose",
-                )
-
-            elif diagnostic == "Autocorrelation and mixing diagnostics":
-                if not trajectory_path.strip():
-                    st.error("Please provide an existing trajectory CSV path.")
-                else:
-                    run_workspace_tool(
-                        diagnose_mixing_correlations,
-                        {"trajectory_csv": trajectory_path.strip()},
-                        "diagnose",
+                st.markdown("**Map and initial-condition parameters**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_lyap_kr = st.number_input(r"Average kicking strength $k_r$", value=1.0, step=0.1, key="ws_lyap_kr")
+                    d_lyap_kt = st.number_input(r"Asymmetry parameter $k_\theta$", value=0.0, step=100.0, key="ws_lyap_kt")
+                with c2:
+                    d_lyap_theta = st.number_input(r"Initial polar angle $\theta_0$", value=0.75, step=0.05, key="ws_lyap_theta")
+                    d_lyap_phi = st.number_input(r"Initial azimuth $\phi_0$", value=-1.0, step=0.05, key="ws_lyap_phi")
+                with c3:
+                    d_lyap_p = st.number_input(r"Rotation angle $p$", value=1.5707963267948966, step=0.05, key="ws_lyap_p")
+                st.markdown("**Evolution settings**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_lyap_steps = st.number_input("Total kicks", min_value=100, max_value=500000, value=20000, step=1000, key="ws_lyap_steps")
+                with c2:
+                    d_lyap_transient = st.number_input(
+                        "Transient kicks to discard",
+                        min_value=0,
+                        max_value=int(d_lyap_steps) - 100,
+                        value=min(1000, int(d_lyap_steps) - 100),
+                        step=100,
+                        key="ws_lyap_transient",
                     )
-
+                with c3:
+                    d_lyap_timeout = st.number_input("Timeout (seconds)", min_value=1, max_value=3600, value=900, step=30, key="ws_lyap_timeout")
+            elif diagnostic == "Autocorrelation and mixing diagnostics":
+                st.markdown("**Correlation settings**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_mix_transient = st.number_input("Transient kicks to discard", min_value=0, value=0, step=10, key="ws_mix_transient")
+                with c2:
+                    d_mix_lag = st.number_input("Maximum lag", min_value=1, max_value=5000, value=2000, step=50, key="ws_mix_lag")
+                with c3:
+                    d_mix_threshold = st.number_input("Correlation threshold", min_value=0.001, max_value=0.999, value=0.05, step=0.01, format="%.3f", key="ws_mix_threshold")
             elif diagnostic == "Birkhoff-average variance study":
-                run_workspace_tool(
-                    run_ergodicity_variance_study,
-                    {
-                        "kr": 1.0,
-                        "ktheta": 0.0,
-                        "n_trajectories": 8,
-                        "nsteps": 10000,
-                        "transient": 1000,
-                        "seed": 20261124,
-                    },
-                    "diagnose",
-                )
-
+                st.markdown("**Map parameters**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_birk_kr = st.number_input(r"Average kicking strength $k_r$", value=1.0, step=0.1, key="ws_birk_kr")
+                with c2:
+                    d_birk_kt = st.number_input(r"Asymmetry parameter $k_\theta$", value=0.0, step=100.0, key="ws_birk_kt")
+                with c3:
+                    d_birk_p = st.number_input(r"Rotation angle $p$", value=1.5707963267948966, step=0.05, key="ws_birk_p")
+                st.markdown("**Ensemble settings**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_birk_count = st.number_input("Initial conditions", min_value=3, max_value=24, value=8, step=1, key="ws_birk_count")
+                with c2:
+                    d_birk_steps = st.number_input("Total kicks", min_value=100, max_value=50000, value=10000, step=500, key="ws_birk_steps")
+                with c3:
+                    d_birk_transient = st.number_input(
+                        "Transient kicks to discard",
+                        min_value=0,
+                        max_value=int(d_birk_steps) - 2,
+                        value=min(1000, int(d_birk_steps) - 2),
+                        step=100,
+                        key="ws_birk_transient",
+                    )
+                d_birk_seed = st.number_input("Random seed", min_value=0, value=20261124, step=1, key="ws_birk_seed")
+            diagnose_submit = st.form_submit_button("Run diagnostic", type="primary", width="stretch")
+        if diagnose_submit:
+            if diagnostic in {"Trajectory geometry", "Observable time series", "Autocorrelation and mixing diagnostics"} and not trajectory_path.strip():
+                st.error("Please provide an existing trajectory CSV path.")
+            elif diagnostic == "Trajectory geometry":
+                run_workspace_tool(diagnose_classical_trajectory, {
+                    "trajectory_csv": trajectory_path.strip(),
+                    "theiler": int(d_theiler), "n_pairs": int(d_pairs), "seed": int(d_geom_seed),
+                }, "diagnose")
+            elif diagnostic == "Observable time series":
+                run_workspace_tool(diagnose_observable_timeseries, {
+                    "trajectory_csv": trajectory_path.strip(),
+                    "transient": int(d_ts_transient), "max_lag": int(d_ts_lag),
+                }, "diagnose")
+            elif diagnostic == "Finite-time Lyapunov exponents and KS estimate":
+                run_workspace_tool(diagnose_lyapunov_ks, {
+                    "kr": float(d_lyap_kr), "ktheta": float(d_lyap_kt),
+                    "theta0": float(d_lyap_theta), "phi0": float(d_lyap_phi),
+                    "p": float(d_lyap_p), "nsteps": int(d_lyap_steps),
+                    "transient": int(d_lyap_transient), "timeout": int(d_lyap_timeout),
+                }, "diagnose")
+            elif diagnostic == "Autocorrelation and mixing diagnostics":
+                run_workspace_tool(diagnose_mixing_correlations, {
+                    "trajectory_csv": trajectory_path.strip(),
+                    "transient": int(d_mix_transient), "max_lag": int(d_mix_lag),
+                    "threshold": float(d_mix_threshold),
+                }, "diagnose")
+            elif diagnostic == "Birkhoff-average variance study":
+                run_workspace_tool(run_ergodicity_variance_study, {
+                    "kr": float(d_birk_kr), "ktheta": float(d_birk_kt),
+                    "n_trajectories": int(d_birk_count), "nsteps": int(d_birk_steps),
+                    "transient": int(d_birk_transient), "seed": int(d_birk_seed),
+                    "p": float(d_birk_p),
+                }, "diagnose")
 
     show_workspace_result("diagnose")
+
+    with st.expander("Ensemble-based ergodic-hierarchy diagnostics", expanded=False):
+        st.caption(
+            "A separate multi-trajectory workflow for finite-data Birkhoff, "
+            "autocorrelation/Cesàro, and finite-partition alpha diagnostics. "
+            "These tests complement the single-trajectory tools above; they do "
+            "not establish mathematical ergodicity or mixing."
+        )
+        render_mixing_hierarchy_dashboard()
 
 
 # ------------------------------------------------------------------
@@ -1624,6 +1691,7 @@ with diagnose_tab:
 
 with compare_tab:
     st.subheader("Controlled comparisons")
+    st.caption("Vary one map parameter at a time, compare existing trajectories, or examine classical–quantum correspondence.")
 
 
     comparison_type = st.selectbox(
@@ -1678,7 +1746,7 @@ with compare_tab:
 
             c_run = st.form_submit_button(
                 "Run controlled comparison",
-                use_container_width=True,
+                width="stretch",
             )
 
         if c_run:
@@ -1737,7 +1805,7 @@ with compare_tab:
 
             c_run_kr = st.form_submit_button(
                 "Run controlled comparison",
-                use_container_width=True,
+                width="stretch",
             )
 
         if c_run_kr:
@@ -1769,7 +1837,7 @@ with compare_tab:
             )
             c_run = st.form_submit_button(
                 "Compare trajectories",
-                use_container_width=True,
+                width="stretch",
             )
 
         if c_run:
@@ -1795,7 +1863,7 @@ with compare_tab:
             )
             c_run = st.form_submit_button(
                 "Compare empirical measures",
-                use_container_width=True,
+                width="stretch",
             )
 
         if c_run:
@@ -1828,20 +1896,20 @@ with compare_tab:
                     step=1.0, key="ws_cq_s",
                 )
                 cq_kr = st.number_input(
-                    "kr", value=1.0, step=0.1,
+                    r"Average kicking strength $k_r$", value=1.0, step=0.1,
                     key="ws_cq_kr",
                 )
                 cq_kt = st.number_input(
-                    "ktheta", value=0.0, step=100.0,
+                    r"Asymmetry parameter $k_\theta$", value=0.0, step=100.0,
                     key="ws_cq_kt",
                 )
             with c2:
                 cq_theta = st.number_input(
-                    "Initial theta", value=0.75,
+                    r"Initial polar angle $\theta_0$", value=0.75,
                     key="ws_cq_theta",
                 )
                 cq_phi = st.number_input(
-                    "Initial phi", value=-1.0,
+                    r"Initial azimuth $\phi_0$", value=-1.0,
                     key="ws_cq_phi",
                 )
                 cq_n = st.number_input(
@@ -1849,10 +1917,14 @@ with compare_tab:
                     max_value=100000, value=1000, step=100,
                     key="ws_cq_n",
                 )
+                cq_p = st.number_input(
+                    r"Rotation angle $p$", value=1.5707963267948966,
+                    step=0.05, key="ws_cq_p",
+                )
 
             cq_run = st.form_submit_button(
                 "Run classical–quantum comparison",
-                use_container_width=True,
+                width="stretch",
             )
 
         if cq_run:
@@ -1865,7 +1937,7 @@ with compare_tab:
                     "theta0": float(cq_theta),
                     "phi0": float(cq_phi),
                     "nsteps": int(cq_n),
-                    "p": 1.5707963267948966,
+                    "p": float(cq_p),
                 },
                 "compare",
             )
@@ -1879,6 +1951,7 @@ with compare_tab:
 
 with data_tab:
     st.subheader("Research evidence and datasets")
+    st.caption("Search existing project outputs and inspect or summarize saved CSV data.")
 
     data_action = st.radio(
         "Choose an operation",
@@ -1920,7 +1993,7 @@ with data_tab:
 
         data_run = st.form_submit_button(
             "Run research-data operation",
-            use_container_width=True,
+            width="stretch",
         )
 
     if data_run:
@@ -1995,7 +2068,7 @@ with explain_tab:
         )
         explain_run = st.form_submit_button(
             "Explain",
-            use_container_width=True,
+            width="stretch",
         )
 
     if explain_run:
@@ -2024,662 +2097,563 @@ with explain_tab:
     show_workspace_result("explain")
 
 
-with st.expander("Interactive DKT simulation results", expanded=False):
-    if st.session_state.get("simulation_error"):
-        st.error(
-            "DKT simulation failed: "
-            + st.session_state["simulation_error"]
-        )
-
-    if "simulation_result" in st.session_state:
-        result = st.session_state["simulation_result"]
-
-        st.header("DKT Simulation Results")
-
-        metrics = st.columns(3)
-        metrics[0].metric(
-            "Trajectory points", result["trajectory_rows"]
-        )
-        metrics[1].metric(
-            "Initial norm", f'{result["initial_norm"]:.12f}'
-        )
-        metrics[2].metric(
-            "Maximum norm error", f'{result["max_norm_error"]:.3e}'
-        )
-
-        with st.expander("Simulation parameters", expanded=False):
-            parameters = result["parameters"]
-
-            parameter_columns = st.columns(4)
-            parameter_columns[0].metric(
-                r"$k_r$", f'{parameters["kr"]:g}'
+with simulation_results_tab:
+    with st.expander("Interactive DKT simulation results", expanded=False):
+        if st.session_state.get("simulation_error"):
+            st.error(
+                "DKT simulation failed: "
+                + st.session_state["simulation_error"]
             )
-            parameter_columns[1].metric(
-                r"$k_\theta$", f'{parameters["ktheta"]:g}'
+    
+        if "simulation_result" in st.session_state:
+            result = st.session_state["simulation_result"]
+    
+            st.header("DKT Simulation Results")
+    
+            metrics = st.columns(3)
+            metrics[0].metric(
+                "Trajectory points", result["trajectory_rows"]
             )
-            parameter_columns[2].metric(
-                r"$p$", f'{parameters["p"]:.6f}'
+            metrics[1].metric(
+                "Initial norm", f'{result["initial_norm"]:.12f}'
             )
-            parameter_columns[3].metric(
-                "Kicks", f'{parameters["nsteps"]}'
+            metrics[2].metric(
+                "Maximum norm error", f'{result["max_norm_error"]:.3e}'
             )
-
-            st.caption(
-                rf'$k={parameters["k"]:g},\quad '
-                rf"k'={parameters['kprime']:g},\quad "
-                rf'\theta_0={parameters["theta0"]:g},\quad '
-                rf'\phi_0={parameters["phi0"]:g}$'
-            )
-
-
-        trajectory = pd.DataFrame(result.get("trajectory", []))
-
-        if not trajectory.empty:
-            st.subheader("Classical trajectory")
-            st.caption("Evolution of the Cartesian components X, Y and Z.")
-
-            plot_data = trajectory.set_index("step")[["X", "Y", "Z"]]
-            st.line_chart(plot_data)
-
-            with st.expander("Trajectory data", expanded=False):
-                st.dataframe(
-                    trajectory.head(20),
-                    use_container_width=True,
+    
+            with st.expander("Simulation parameters", expanded=False):
+                parameters = result["parameters"]
+    
+                parameter_columns = st.columns(4)
+                parameter_columns[0].metric(
+                    r"$k_r$", f'{parameters["kr"]:g}'
                 )
+                parameter_columns[1].metric(
+                    r"$k_\theta$", f'{parameters["ktheta"]:g}'
+                )
+                parameter_columns[2].metric(
+                    r"$p$", f'{parameters["p"]:.6f}'
+                )
+                parameter_columns[3].metric(
+                    "Kicks", f'{parameters["nsteps"]}'
+                )
+    
                 st.caption(
-                    f"Showing the first 20 of {len(trajectory)} trajectory rows."
+                    rf'$k={parameters["k"]:g},\quad '
+                    rf"k'={parameters['kprime']:g},\quad "
+                    rf'\theta_0={parameters["theta0"]:g},\quad '
+                    rf'\phi_0={parameters["phi0"]:g}$'
                 )
-
-            parameters = result["parameters"]
-
-            trajectory_metadata = {
-                "Data type": "Single classical trajectory",
-                "kr": parameters["kr"],
-                "ktheta": parameters["ktheta"],
-                "k": parameters["k"],
-                "kprime": parameters["kprime"],
-                "p": parameters["p"],
-                "theta0": parameters["theta0"],
-                "phi0": parameters["phi0"],
-                "Total spin": "Not applicable (classical)",
-                "Number of kicks": parameters["nsteps"],
-                "Saved kicks": f"0 through {parameters['nsteps']}",
-                "Transient discarded": "None",
-                "Number of data rows": len(trajectory),
-            }
-
-            csv_data = csv_with_metadata(trajectory, trajectory_metadata)
-
-            trajectory_filename = (
-                f"dkt_trajectory"
-                f"_kr_{filename_token(parameters['kr'])}"
-                f"_ktheta_{filename_token(parameters['ktheta'])}"
-                f"_theta_{filename_token(parameters['theta0'])}"
-                f"_phi_{filename_token(parameters['phi0'])}.csv"
-            )
-
-            st.download_button(
-                "Download trajectory CSV",
-                data=csv_data,
-                file_name=trajectory_filename,
-                mime="text/csv",
-                use_container_width=True,
-            )
-        else:
-            st.warning("The simulation returned no trajectory data.")
-
-        st.caption(
-            "Scientific interpretation: kr controls the degree of classical "
-            "chaos; ktheta changes phase-space geometry, not the degree of chaos."
-        )
-
-
-with st.expander("θ–φ phase grid results", expanded=False):
-    if st.session_state.get("grid_simulation_error"):
-        st.error(
-            "Phase-space grid simulation failed: "
-            + st.session_state["grid_simulation_error"]
-        )
-
-    if "grid_simulation_result" in st.session_state:
-        grid_result = st.session_state["grid_simulation_result"]
-        grid_parameters = grid_result["parameters"]
-        grid_data = pd.DataFrame(grid_result["orbit_points"])
-
-        st.header("Final θ–φ phase-space portrait")
-        st.success("Phase-space grid simulation completed successfully.")
-
-        grid_metrics = st.columns(3)
-        grid_metrics[0].metric(
-            "Grid resolution",
-            f'{grid_parameters["grid_size"]} × '
-            f'{grid_parameters["grid_size"]}',
-        )
-        grid_metrics[1].metric(
-            "Number of kicks", grid_parameters["nsteps"]
-        )
-        grid_metrics[2].metric(
-            "Maximum norm error",
-            f'{grid_result["max_norm_error"]:.3e}',
-        )
-
-        with st.expander("Grid simulation parameters", expanded=False):
-            st.json(grid_parameters)
-
-        if not grid_data.empty:
-            fig, ax = plt.subplots(figsize=(10, 6))
-
-            ax.scatter(
-                grid_data["phi"],
-                grid_data["theta"],
-                color="black",
-                s=0.5,
-                marker=".",
-                alpha=1.0,
-                linewidths=0,
-                rasterized=True,
-            )
-
-            ax.set_xlim(-3.141592653589793, 3.141592653589793)
-            ax.set_ylim(0.0, 3.141592653589793)
-            ax.set_xlabel(r"$\phi$", fontsize=13)
-            ax.set_ylabel(r"$\theta$", fontsize=13)
-            ax.set_title(r"Final $\theta$–$\phi$ phase-space portrait")
-            ax.grid(False)
-            fig.tight_layout()
-
-            st.pyplot(fig, use_container_width=True)
-            plt.close(fig)
-
-            st.caption(
-                "Each point represents the state of one initial condition "
-                "at a given kick. Intermediate orbit points are included."
-            )
-
-            grid_parameters = grid_result["parameters"]
-
-            grid_metadata = {
-                "Data type": "Full classical phase-space portrait",
-                "kr": grid_parameters["kr"],
-                "ktheta": grid_parameters["ktheta"],
-                "k": grid_parameters["k"],
-                "kprime": grid_parameters["kprime"],
-                "p": grid_parameters["p"],
-                "Total spin": "Not applicable (classical)",
-                "Grid resolution": (
-                    f"{grid_parameters['grid_size']} x "
-                    f"{grid_parameters['grid_size']}"
-                ),
-                "Initial conditions": grid_parameters["initial_conditions"],
-                "Number of kicks": grid_parameters["nsteps"],
-                "Saved kicks": f"0 through {grid_parameters['nsteps']}",
-                "Transient discarded": "None",
-                "Total orbit points": len(grid_data),
-            }
-
-            csv_data = csv_with_metadata(grid_data, grid_metadata)
-
-            grid_filename = (
-                f"dkt_phase_space"
-                f"_kr_{filename_token(grid_parameters['kr'])}"
-                f"_ktheta_{filename_token(grid_parameters['ktheta'])}"
-                f"_grid_{grid_parameters['grid_size']}"
-                f"_T_{grid_parameters['nsteps']}.csv"
-            )
-
-            st.download_button(
-                "Download phase-space CSV",
-                data=csv_data,
-                file_name=grid_filename,
-                mime="text/csv",
-                use_container_width=True,
-            )
-        else:
-            st.warning("The grid simulation returned no orbit points.")
-
-        st.caption(
-            "Scientific interpretation: kr controls the degree of classical "
-            "chaos; ktheta changes phase-space geometry, not the degree of chaos."
-        )
-
-
-with st.expander("Entropy dynamics results", expanded=False):
-    if st.session_state.get("entanglement_dynamics_error"):
-        st.error(
-            "Entanglement dynamics failed: "
-            + st.session_state["entanglement_dynamics_error"]
-        )
-
-    if "entanglement_dynamics_result" in st.session_state:
-        er = st.session_state["entanglement_dynamics_result"]
-        edf = pd.DataFrame(er.get("data", []))
-
-        st.subheader("Quantum entanglement dynamics")
-        st.caption(
-            "Normalized von Neumann entropy of the evolving "
-            "spin-coherent state, including the initial product state."
-        )
-
-        metrics = st.columns(3)
-        metrics[0].metric("Time samples", er.get("rows", len(edf)))
-        metrics[1].metric(
-            "Initial normalized entropy",
-            f'{er.get("initial_entropy", float("nan")):.5g}',
-        )
-        metrics[2].metric(
-            "Maximum norm error",
-            f'{er.get("max_norm_error", float("nan")):.3e}',
-        )
-
-        if not edf.empty and {
-            "kick", "normalized_entropy"
-        }.issubset(edf.columns):
-            st.markdown("**Entropy evolution**")
-            st.line_chart(
-                edf.set_index("kick")[["normalized_entropy"]],
-                height=350,
-            )
-        else:
-            st.warning("Entropy time-series data are unavailable.")
-
-        with st.expander("Calculation parameters", expanded=False):
-            parameters = er.get("parameters", {})
-            if parameters:
-                parameter_table = pd.DataFrame(
-                    list(parameters.items()),
-                    columns=["Parameter", "Value"],
-                )
-                st.dataframe(
-                    parameter_table,
-                    use_container_width=True,
-                    hide_index=True,
-                )
-
-        with st.expander("Entropy time-series data", expanded=False):
-            st.dataframe(edf, use_container_width=True)
-
-        if not edf.empty:
-            ed_parameters = er["parameters"]
-
-            entropy_dynamics_metadata = {
-                "Data type": "Quantum entanglement entropy dynamics",
-                "Spin s": ed_parameters["s"],
-                "N = 2s": ed_parameters["N"],
-                "kr": ed_parameters["kr"],
-                "ktheta": ed_parameters["ktheta"],
-                "k": ed_parameters["k"],
-                "kprime": ed_parameters["kprime"],
-                "p": ed_parameters["p"],
-                "Initial theta": ed_parameters["theta0"],
-                "Initial phi": ed_parameters["phi0"],
-                "Subsystem dimension": ed_parameters["rdm_dim"],
-                "Number of kicks": ed_parameters["nsteps"],
-                "Saved kicks": f"0 through {ed_parameters['nsteps']}",
-                "Transient discarded": "None (complete time series)",
-                "Number of data rows": len(edf),
-            }
-
-            csv_data = csv_with_metadata(edf, entropy_dynamics_metadata)
-
-            entropy_dynamics_filename = (
-                f"dkt_entropy_dynamics"
-                f"_kr_{filename_token(ed_parameters['kr'])}"
-                f"_ktheta_{filename_token(ed_parameters['ktheta'])}"
-                f"_theta_{filename_token(ed_parameters['theta0'])}"
-                f"_phi_{filename_token(ed_parameters['phi0'])}"
-                f"_s_{filename_token(ed_parameters['s'])}"
-                f"_Q_{ed_parameters['rdm_dim']}.csv"
-            )
-
-            st.download_button(
-                "Download entropy dynamics CSV",
-                data=csv_data,
-                file_name=entropy_dynamics_filename,
-                mime="text/csv",
-                key="download_entropy_dynamics",
-            )
-
-        st.caption(
-            "Entanglement entropy characterizes quantum-state entanglement; "
-            "it is not itself a measure of classical chaoticity."
-        )
-
-
-with st.expander("Long-time-averaged entropy heatmap results", expanded=False):
-    if st.session_state.get("entanglement_heatmap_error"):
-        st.error(
-            "Entanglement heatmap failed: "
-            + st.session_state["entanglement_heatmap_error"]
-        )
-
-    if "entanglement_heatmap_result" in st.session_state:
-        hr = st.session_state["entanglement_heatmap_result"]
-        parameters = hr.get("parameters", {})
-
-        hdf = pd.DataFrame(hr.get("data", []))
-
-        if hdf.empty and hr.get("csv_path"):
-            csv_path = Path(hr["csv_path"])
-            if csv_path.is_file():
-                hdf = pd.read_csv(csv_path)
-
-        st.subheader("Long-time-averaged quantum entanglement")
-        st.caption(
-            "Normalized von Neumann entropy averaged over the specified "
-            "post-transient kick interval for each initial coherent-state "
-            "orientation."
-        )
-
-        successful = int(hr.get("successful_points", 0))
-        failed = int(hr.get("failed_points", 0))
-        total = int(hr.get("grid_points", successful + failed))
-
-        good = pd.DataFrame()
-        if not hdf.empty and "status" in hdf.columns:
-            good = hdf[hdf["status"] == "success"].copy()
-
-        metric_columns = st.columns(4)
-        metric_columns[0].metric("Grid points", total)
-        metric_columns[1].metric("Successful", successful)
-        metric_columns[2].metric("Failed", failed)
-        metric_columns[3].metric(
-            "Averaging kicks",
-            parameters.get("post_transient_samples", "—"),
-        )
-
-        if not good.empty and "normalized_average_entropy" in good.columns:
-            entropy_values = pd.to_numeric(
-                good["normalized_average_entropy"],
-                errors="coerce",
-            ).dropna()
-
-            if not entropy_values.empty:
-                st.markdown("**Entropy statistics across successful grid points**")
-
-                stats = st.columns(3)
-                stats[0].metric(
-                    "Mean entropy",
-                    f"{entropy_values.mean():.5f}",
-                )
-                stats[1].metric(
-                    "Minimum entropy",
-                    f"{entropy_values.min():.5f}",
-                )
-                stats[2].metric(
-                    "Maximum entropy",
-                    f"{entropy_values.max():.5f}",
-                )
-
-        required_columns = {
-            "theta", "phi", "normalized_average_entropy"
-        }
-
-        if not good.empty and required_columns.issubset(good.columns):
-            pivot = good.pivot(
-                index="theta",
-                columns="phi",
-                values="normalized_average_entropy",
-            ).sort_index().sort_index(axis=1)
-
-            fig, ax = plt.subplots(figsize=(10, 6))
-
-            mesh = ax.pcolormesh(
-                pivot.columns.to_numpy(),
-                pivot.index.to_numpy(),
-                pivot.to_numpy(),
-                shading="auto",
-                cmap="jet",
-                vmin=0,
-                vmax=1,
-            )
-
-            colorbar = fig.colorbar(mesh, ax=ax, pad=0.02)
-            colorbar.set_label("Normalized average entropy")
-
-            ax.set_xlabel(r"Initial azimuth $\phi_0$")
-            ax.set_ylabel(r"Initial polar angle $\theta_0$")
-            ax.set_title(
-                "Long-time-averaged normalized entanglement entropy"
-            )
-            fig.tight_layout()
-
-            st.pyplot(fig, use_container_width=True)
-            plt.close(fig)
-
-        else:
-            st.warning(
-                "No valid heatmap data are available. "
-                "Failed grid points have not been replaced by zero."
-            )
-
-        with st.expander("Heatmap calculation parameters", expanded=False):
-            if parameters:
-                parameter_labels = {
-                    "s": "Spin",
-                    "N": "Twice the spin",
-                    "kr": "Average kicking strength",
-                    "ktheta": "Asymmetry parameter",
-                    "k": "First kicking strength",
-                    "kprime": "Second kicking strength",
-                    "p": "Rotation angle",
-                    "nsteps": "Final kick",
-                    "transient_discarded": "Discarded transient kicks",
-                    "averaging_kicks": "Averaging kick interval",
-                    "post_transient_samples": "Samples per grid point",
-                    "rdm_dim": "Subsystem dimension",
-                    "grid_size": "Grid resolution",
+    
+    
+            trajectory = pd.DataFrame(result.get("trajectory", []))
+    
+            if not trajectory.empty:
+                st.subheader("Classical trajectory")
+                st.caption("Evolution of the Cartesian components X, Y and Z.")
+    
+                plot_data = trajectory.set_index("step")[["X", "Y", "Z"]]
+                st.line_chart(plot_data)
+    
+                with st.expander("Trajectory data", expanded=False):
+                    st.dataframe(
+                        trajectory.head(20),
+                        width="stretch",
+                    )
+                    st.caption(
+                        f"Showing the first 20 of {len(trajectory)} trajectory rows."
+                    )
+    
+                parameters = result["parameters"]
+    
+                trajectory_metadata = {
+                    "Data type": "Single classical trajectory",
+                    "kr": parameters["kr"],
+                    "ktheta": parameters["ktheta"],
+                    "k": parameters["k"],
+                    "kprime": parameters["kprime"],
+                    "p": parameters["p"],
+                    "theta0": parameters["theta0"],
+                    "phi0": parameters["phi0"],
+                    "Total spin": "Not applicable (classical)",
+                    "Number of kicks": parameters["nsteps"],
+                    "Saved kicks": f"0 through {parameters['nsteps']}",
+                    "Transient discarded": "None",
+                    "Number of data rows": len(trajectory),
                 }
-
-                parameter_table = pd.DataFrame([
-                    {
-                        "Parameter": parameter_labels.get(key, key),
-                        "Value": value,
-                    }
-                    for key, value in parameters.items()
-                ])
-
-                st.dataframe(
-                    parameter_table,
-                    use_container_width=True,
-                    hide_index=True,
+    
+                csv_data = csv_with_metadata(trajectory, trajectory_metadata)
+    
+                trajectory_filename = (
+                    f"dkt_trajectory"
+                    f"_kr_{filename_token(parameters['kr'])}"
+                    f"_ktheta_{filename_token(parameters['ktheta'])}"
+                    f"_theta_{filename_token(parameters['theta0'])}"
+                    f"_phi_{filename_token(parameters['phi0'])}.csv"
                 )
-
-        with st.expander("Heatmap data and diagnostics", expanded=False):
-            st.markdown("**Calculation status**")
-
-            status = hr.get("status", "unknown")
-            if status == "success" and failed == 0:
-                st.success("All grid points completed successfully.")
-            elif successful > 0:
-                st.warning(
-                    "The calculation completed with some failed grid points."
+    
+                st.download_button(
+                    "Download trajectory CSV",
+                    data=csv_data,
+                    file_name=trajectory_filename,
+                    mime="text/csv",
+                    width="stretch",
                 )
             else:
-                st.error("No grid points completed successfully.")
-
-            diagnostic_columns = st.columns(3)
-            diagnostic_columns[0].metric("Total grid points", total)
-            diagnostic_columns[1].metric("Successful points", successful)
-            diagnostic_columns[2].metric("Failed points", failed)
-
-            if not hdf.empty:
-                st.markdown("**Grid-resolved data**")
-                st.dataframe(
-                    hdf,
-                    use_container_width=True,
-                    hide_index=True,
+                st.warning("The simulation returned no trajectory data.")
+    
+            st.caption(
+                "Scientific interpretation: kr controls the degree of classical "
+                "chaos; ktheta changes phase-space geometry, not the degree of chaos."
+            )
+    
+    
+    with st.expander("θ–φ phase grid results", expanded=False):
+        if st.session_state.get("grid_simulation_error"):
+            st.error(
+                "Phase-space grid simulation failed: "
+                + st.session_state["grid_simulation_error"]
+            )
+    
+        if "grid_simulation_result" in st.session_state:
+            grid_result = st.session_state["grid_simulation_result"]
+            grid_parameters = grid_result["parameters"]
+            grid_data = pd.DataFrame(grid_result["orbit_points"])
+    
+            st.header("Final θ–φ phase-space portrait")
+            st.success("Phase-space grid simulation completed successfully.")
+    
+            grid_metrics = st.columns(3)
+            grid_metrics[0].metric(
+                "Grid resolution",
+                f'{grid_parameters["grid_size"]} × '
+                f'{grid_parameters["grid_size"]}',
+            )
+            grid_metrics[1].metric(
+                "Number of kicks", grid_parameters["nsteps"]
+            )
+            grid_metrics[2].metric(
+                "Maximum norm error",
+                f'{grid_result["max_norm_error"]:.3e}',
+            )
+    
+            with st.expander("Grid simulation parameters", expanded=False):
+                st.json(grid_parameters)
+    
+            if not grid_data.empty:
+                fig, ax = plt.subplots(figsize=(10, 6))
+    
+                ax.scatter(
+                    grid_data["phi"],
+                    grid_data["theta"],
+                    color="black",
+                    s=0.5,
+                    marker=".",
+                    alpha=1.0,
+                    linewidths=0,
+                    rasterized=True,
+                )
+    
+                ax.set_xlim(-3.141592653589793, 3.141592653589793)
+                ax.set_ylim(0.0, 3.141592653589793)
+                ax.set_xlabel(r"$\phi$", fontsize=13)
+                ax.set_ylabel(r"$\theta$", fontsize=13)
+                ax.set_title(r"Final $\theta$–$\phi$ phase-space portrait")
+                ax.grid(False)
+                fig.tight_layout()
+    
+                st.pyplot(fig, width="stretch")
+                plt.close(fig)
+    
+                st.caption(
+                    "Each point represents the state of one initial condition "
+                    "at a given kick. Intermediate orbit points are included."
+                )
+    
+                grid_parameters = grid_result["parameters"]
+    
+                grid_metadata = {
+                    "Data type": "Full classical phase-space portrait",
+                    "kr": grid_parameters["kr"],
+                    "ktheta": grid_parameters["ktheta"],
+                    "k": grid_parameters["k"],
+                    "kprime": grid_parameters["kprime"],
+                    "p": grid_parameters["p"],
+                    "Total spin": "Not applicable (classical)",
+                    "Grid resolution": (
+                        f"{grid_parameters['grid_size']} x "
+                        f"{grid_parameters['grid_size']}"
+                    ),
+                    "Initial conditions": grid_parameters["initial_conditions"],
+                    "Number of kicks": grid_parameters["nsteps"],
+                    "Saved kicks": f"0 through {grid_parameters['nsteps']}",
+                    "Transient discarded": "None",
+                    "Total orbit points": len(grid_data),
+                }
+    
+                csv_data = csv_with_metadata(grid_data, grid_metadata)
+    
+                grid_filename = (
+                    f"dkt_phase_space"
+                    f"_kr_{filename_token(grid_parameters['kr'])}"
+                    f"_ktheta_{filename_token(grid_parameters['ktheta'])}"
+                    f"_grid_{grid_parameters['grid_size']}"
+                    f"_T_{grid_parameters['nsteps']}.csv"
+                )
+    
+                st.download_button(
+                    "Download phase-space CSV",
+                    data=csv_data,
+                    file_name=grid_filename,
+                    mime="text/csv",
+                    width="stretch",
                 )
             else:
-                st.info("The grid-resolved CSV data are unavailable.")
-
-            if hr.get("csv_path"):
-                st.caption(f"CSV output: {hr['csv_path']}")
-
-        if not hdf.empty:
-            heatmap_metadata = {
-                "Data type": "Long-time-averaged quantum entropy heatmap",
-                "Spin s": parameters["s"],
-                "N = 2s": parameters["N"],
-                "kr": parameters["kr"],
-                "ktheta": parameters["ktheta"],
-                "k": parameters["k"],
-                "kprime": parameters["kprime"],
-                "p": parameters["p"],
-                "Grid resolution": (
-                    f"{parameters['grid_size']} x {parameters['grid_size']}"
-                ),
-                "Number of kicks": parameters["nsteps"],
-                "Transient discarded": parameters["transient_discarded"],
-                "Averaging kick interval": parameters["averaging_kicks"],
-                "Post-transient samples per initial condition": (
-                    parameters["post_transient_samples"]
-                ),
-                "Subsystem dimension": parameters["rdm_dim"],
-                "Total grid points": hr["grid_points"],
-                "Successful grid points": hr["successful_points"],
-                "Failed grid points": hr["failed_points"],
+                st.warning("The grid simulation returned no orbit points.")
+    
+            st.caption(
+                "Scientific interpretation: kr controls the degree of classical "
+                "chaos; ktheta changes phase-space geometry, not the degree of chaos."
+            )
+    
+    
+    with st.expander("Entropy dynamics results", expanded=False):
+        if st.session_state.get("entanglement_dynamics_error"):
+            st.error(
+                "Entanglement dynamics failed: "
+                + st.session_state["entanglement_dynamics_error"]
+            )
+    
+        if "entanglement_dynamics_result" in st.session_state:
+            er = st.session_state["entanglement_dynamics_result"]
+            edf = pd.DataFrame(er.get("data", []))
+    
+            st.subheader("Quantum entanglement dynamics")
+            st.caption(
+                "Normalized von Neumann entropy of the evolving "
+                "spin-coherent state, including the initial product state."
+            )
+    
+            metrics = st.columns(3)
+            metrics[0].metric("Time samples", er.get("rows", len(edf)))
+            metrics[1].metric(
+                "Initial normalized entropy",
+                f'{er.get("initial_entropy", float("nan")):.5g}',
+            )
+            metrics[2].metric(
+                "Maximum norm error",
+                f'{er.get("max_norm_error", float("nan")):.3e}',
+            )
+    
+            if not edf.empty and {
+                "kick", "normalized_entropy"
+            }.issubset(edf.columns):
+                st.markdown("**Entropy evolution**")
+                st.line_chart(
+                    edf.set_index("kick")[["normalized_entropy"]],
+                    height=350,
+                )
+            else:
+                st.warning("Entropy time-series data are unavailable.")
+    
+            with st.expander("Calculation parameters", expanded=False):
+                parameters = er.get("parameters", {})
+                if parameters:
+                    parameter_table = pd.DataFrame(
+                        list(parameters.items()),
+                        columns=["Parameter", "Value"],
+                    )
+                    st.dataframe(
+                        parameter_table,
+                        width="stretch",
+                        hide_index=True,
+                    )
+    
+            with st.expander("Entropy time-series data", expanded=False):
+                st.dataframe(edf, width="stretch")
+    
+            if not edf.empty:
+                ed_parameters = er["parameters"]
+    
+                entropy_dynamics_metadata = {
+                    "Data type": "Quantum entanglement entropy dynamics",
+                    "Spin s": ed_parameters["s"],
+                    "N = 2s": ed_parameters["N"],
+                    "kr": ed_parameters["kr"],
+                    "ktheta": ed_parameters["ktheta"],
+                    "k": ed_parameters["k"],
+                    "kprime": ed_parameters["kprime"],
+                    "p": ed_parameters["p"],
+                    "Initial theta": ed_parameters["theta0"],
+                    "Initial phi": ed_parameters["phi0"],
+                    "Subsystem dimension": ed_parameters["rdm_dim"],
+                    "Number of kicks": ed_parameters["nsteps"],
+                    "Saved kicks": f"0 through {ed_parameters['nsteps']}",
+                    "Transient discarded": "None (complete time series)",
+                    "Number of data rows": len(edf),
+                }
+    
+                csv_data = csv_with_metadata(edf, entropy_dynamics_metadata)
+    
+                entropy_dynamics_filename = (
+                    f"dkt_entropy_dynamics"
+                    f"_kr_{filename_token(ed_parameters['kr'])}"
+                    f"_ktheta_{filename_token(ed_parameters['ktheta'])}"
+                    f"_theta_{filename_token(ed_parameters['theta0'])}"
+                    f"_phi_{filename_token(ed_parameters['phi0'])}"
+                    f"_s_{filename_token(ed_parameters['s'])}"
+                    f"_Q_{ed_parameters['rdm_dim']}.csv"
+                )
+    
+                st.download_button(
+                    "Download entropy dynamics CSV",
+                    data=csv_data,
+                    file_name=entropy_dynamics_filename,
+                    mime="text/csv",
+                    key="download_entropy_dynamics",
+                )
+    
+            st.caption(
+                "Entanglement entropy characterizes quantum-state entanglement; "
+                "it is not itself a measure of classical chaoticity."
+            )
+    
+    
+    with st.expander("Long-time-averaged entropy heatmap results", expanded=False):
+        if st.session_state.get("entanglement_heatmap_error"):
+            st.error(
+                "Entanglement heatmap failed: "
+                + st.session_state["entanglement_heatmap_error"]
+            )
+    
+        if "entanglement_heatmap_result" in st.session_state:
+            hr = st.session_state["entanglement_heatmap_result"]
+            parameters = hr.get("parameters", {})
+    
+            hdf = pd.DataFrame(hr.get("data", []))
+    
+            if hdf.empty and hr.get("csv_path"):
+                csv_path = Path(hr["csv_path"])
+                if csv_path.is_file():
+                    hdf = pd.read_csv(csv_path)
+    
+            st.subheader("Long-time-averaged quantum entanglement")
+            st.caption(
+                "Normalized von Neumann entropy averaged over the specified "
+                "post-transient kick interval for each initial coherent-state "
+                "orientation."
+            )
+    
+            successful = int(hr.get("successful_points", 0))
+            failed = int(hr.get("failed_points", 0))
+            total = int(hr.get("grid_points", successful + failed))
+    
+            good = pd.DataFrame()
+            if not hdf.empty and "status" in hdf.columns:
+                good = hdf[hdf["status"] == "success"].copy()
+    
+            metric_columns = st.columns(4)
+            metric_columns[0].metric("Grid points", total)
+            metric_columns[1].metric("Successful", successful)
+            metric_columns[2].metric("Failed", failed)
+            metric_columns[3].metric(
+                "Averaging kicks",
+                parameters.get("post_transient_samples", "—"),
+            )
+    
+            if not good.empty and "normalized_average_entropy" in good.columns:
+                entropy_values = pd.to_numeric(
+                    good["normalized_average_entropy"],
+                    errors="coerce",
+                ).dropna()
+    
+                if not entropy_values.empty:
+                    st.markdown("**Entropy statistics across successful grid points**")
+    
+                    stats = st.columns(3)
+                    stats[0].metric(
+                        "Mean entropy",
+                        f"{entropy_values.mean():.5f}",
+                    )
+                    stats[1].metric(
+                        "Minimum entropy",
+                        f"{entropy_values.min():.5f}",
+                    )
+                    stats[2].metric(
+                        "Maximum entropy",
+                        f"{entropy_values.max():.5f}",
+                    )
+    
+            required_columns = {
+                "theta", "phi", "normalized_average_entropy"
             }
-
-            csv_data = csv_with_metadata(hdf, heatmap_metadata)
-
-            heatmap_filename = (
-                f"dkt_entropy_heatmap"
-                f"_kr_{filename_token(parameters['kr'])}"
-                f"_ktheta_{filename_token(parameters['ktheta'])}"
-                f"_s_{filename_token(parameters['s'])}"
-                f"_Q_{parameters['rdm_dim']}"
-                f"_grid_{parameters['grid_size']}"
-                f"_T_{parameters['nsteps']}"
-                f"_transient_{parameters['transient_discarded']}.csv"
-            )
-
-            st.download_button(
-                "Download entropy heatmap CSV",
-                data=csv_data,
-                file_name=heatmap_filename,
-                mime="text/csv",
-                key="download_entropy_heatmap",
-            )
-
-        st.caption(
-            "Interpretation: this is a finite-time, post-transient "
-            "entropy average over initial conditions. It characterizes "
-            "quantum entanglement patterns and does not by itself establish "
-            "classical chaos, ergodicity, or mixing. The asymmetry parameter "
-            "changes phase-space geometry, not the degree of classical chaos."
-        )
-
-
-render_mixing_hierarchy_dashboard()
-
-
-for item in st.session_state.chat_history:
-    with st.chat_message(item["role"]):
-        st.markdown(item["content"])
-
-        if item.get("tools"):
-            with st.expander("Tool activity", expanded=False):
-                for tool in item["tools"]:
-                    st.markdown(f"**{tool['name']}**")
-                    if tool.get("args"):
-                        st.code(
-                            json.dumps(
-                                tool["args"],
-                                indent=2,
-                                ensure_ascii=False,
-                                default=str,
-                            ),
-                            language="json",
-                        )
-                    if tool.get("result"):
-                        render_tool_result(tool)
-
-
-prompt = st.chat_input(
-    "Ask about DKT dynamics, simulations, diagnostics, or research data…"
-)
-
-
-if prompt:
-    st.session_state.chat_history.append(
-        {"role": "user", "content": prompt}
-    )
-
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    with st.chat_message("assistant"):
-        try:
-            with st.spinner("Analyzing your request…"):
-                agent = get_agent()
-                response = agent.invoke({
-                    "messages": (
-                        st.session_state.agent_messages
-                        + [HumanMessage(content=prompt)]
-                    )
-                })
-
-            all_messages = response.get("messages", [])
-            new_messages = all_messages[
-                len(st.session_state.agent_messages) + 1:
-            ]
-
-            tool_calls = []
-
-            for message in new_messages:
-                if isinstance(message, AIMessage):
-                    for call in (getattr(message, "tool_calls", None) or []):
-                        tool_calls.append({
-                            "name": call.get("name", "Tool"),
-                            "args": call.get("args", {}),
-                            "result": "",
-                        })
-
-                elif isinstance(message, ToolMessage):
-                    name = getattr(message, "name", "Tool") or "Tool"
-                    match = next(
-                        (
-                            item for item in reversed(tool_calls)
-                            if item["name"] == name and not item["result"]
-                        ),
-                        None,
-                    )
-                    if match:
-                        match["result"] = message.content
-                    else:
-                        tool_calls.append({
-                            "name": name,
-                            "args": {},
-                            "result": message.content,
-                        })
-
-            final_answer = ""
-
-            for message in reversed(all_messages):
-                if (
-                    isinstance(message, AIMessage)
-                    and not (getattr(message, "tool_calls", None) or [])
-                ):
-                    final_answer = content_to_text(
-                        message.content
-                    ).strip()
-                    if final_answer:
-                        break
-
-            if not final_answer:
-                final_answer = (
-                    "The agent completed the request but did not "
-                    "return a text response."
+    
+            if not good.empty and required_columns.issubset(good.columns):
+                pivot = good.pivot(
+                    index="theta",
+                    columns="phi",
+                    values="normalized_average_entropy",
+                ).sort_index().sort_index(axis=1)
+    
+                fig, ax = plt.subplots(figsize=(10, 6))
+    
+                mesh = ax.pcolormesh(
+                    pivot.columns.to_numpy(),
+                    pivot.index.to_numpy(),
+                    pivot.to_numpy(),
+                    shading="auto",
+                    cmap="jet",
+                    vmin=0,
+                    vmax=1,
                 )
+    
+                colorbar = fig.colorbar(mesh, ax=ax, pad=0.02)
+                colorbar.set_label("Normalized average entropy")
+    
+                ax.set_xlabel(r"Initial azimuth $\phi_0$")
+                ax.set_ylabel(r"Initial polar angle $\theta_0$")
+                ax.set_title(
+                    "Long-time-averaged normalized entanglement entropy"
+                )
+                fig.tight_layout()
+    
+                st.pyplot(fig, width="stretch")
+                plt.close(fig)
+    
+            else:
+                st.warning(
+                    "No valid heatmap data are available. "
+                    "Failed grid points have not been replaced by zero."
+                )
+    
+            with st.expander("Heatmap calculation parameters", expanded=False):
+                if parameters:
+                    parameter_labels = {
+                        "s": "Spin",
+                        "N": "Twice the spin",
+                        "kr": "Average kicking strength",
+                        "ktheta": "Asymmetry parameter",
+                        "k": "First kicking strength",
+                        "kprime": "Second kicking strength",
+                        "p": "Rotation angle",
+                        "nsteps": "Final kick",
+                        "transient_discarded": "Discarded transient kicks",
+                        "averaging_kicks": "Averaging kick interval",
+                        "post_transient_samples": "Samples per grid point",
+                        "rdm_dim": "Subsystem dimension",
+                        "grid_size": "Grid resolution",
+                    }
+    
+                    parameter_table = pd.DataFrame([
+                        {
+                            "Parameter": parameter_labels.get(key, key),
+                            "Value": value,
+                        }
+                        for key, value in parameters.items()
+                    ])
+    
+                    st.dataframe(
+                        parameter_table,
+                        width="stretch",
+                        hide_index=True,
+                    )
+    
+            with st.expander("Heatmap data and diagnostics", expanded=False):
+                st.markdown("**Calculation status**")
+    
+                status = hr.get("status", "unknown")
+                if status == "success" and failed == 0:
+                    st.success("All grid points completed successfully.")
+                elif successful > 0:
+                    st.warning(
+                        "The calculation completed with some failed grid points."
+                    )
+                else:
+                    st.error("No grid points completed successfully.")
+    
+                diagnostic_columns = st.columns(3)
+                diagnostic_columns[0].metric("Total grid points", total)
+                diagnostic_columns[1].metric("Successful points", successful)
+                diagnostic_columns[2].metric("Failed points", failed)
+    
+                if not hdf.empty:
+                    st.markdown("**Grid-resolved data**")
+                    st.dataframe(
+                        hdf,
+                        width="stretch",
+                        hide_index=True,
+                    )
+                else:
+                    st.info("The grid-resolved CSV data are unavailable.")
+    
+                if hr.get("csv_path"):
+                    st.caption(f"CSV output: {hr['csv_path']}")
+    
+            if not hdf.empty:
+                heatmap_metadata = {
+                    "Data type": "Long-time-averaged quantum entropy heatmap",
+                    "Spin s": parameters["s"],
+                    "N = 2s": parameters["N"],
+                    "kr": parameters["kr"],
+                    "ktheta": parameters["ktheta"],
+                    "k": parameters["k"],
+                    "kprime": parameters["kprime"],
+                    "p": parameters["p"],
+                    "Grid resolution": (
+                        f"{parameters['grid_size']} x {parameters['grid_size']}"
+                    ),
+                    "Number of kicks": parameters["nsteps"],
+                    "Transient discarded": parameters["transient_discarded"],
+                    "Averaging kick interval": parameters["averaging_kicks"],
+                    "Post-transient samples per initial condition": (
+                        parameters["post_transient_samples"]
+                    ),
+                    "Subsystem dimension": parameters["rdm_dim"],
+                    "Total grid points": hr["grid_points"],
+                    "Successful grid points": hr["successful_points"],
+                    "Failed grid points": hr["failed_points"],
+                }
+    
+                csv_data = csv_with_metadata(hdf, heatmap_metadata)
+    
+                heatmap_filename = (
+                    f"dkt_entropy_heatmap"
+                    f"_kr_{filename_token(parameters['kr'])}"
+                    f"_ktheta_{filename_token(parameters['ktheta'])}"
+                    f"_s_{filename_token(parameters['s'])}"
+                    f"_Q_{parameters['rdm_dim']}"
+                    f"_grid_{parameters['grid_size']}"
+                    f"_T_{parameters['nsteps']}"
+                    f"_transient_{parameters['transient_discarded']}.csv"
+                )
+    
+                st.download_button(
+                    "Download entropy heatmap CSV",
+                    data=csv_data,
+                    file_name=heatmap_filename,
+                    mime="text/csv",
+                    key="download_entropy_heatmap",
+                )
+    
+            st.caption(
+                "Interpretation: this is a finite-time, post-transient "
+                "entropy average over initial conditions. It characterizes "
+                "quantum entanglement patterns and does not by itself establish "
+                "classical chaos, ergodicity, or mixing. The asymmetry parameter "
+                "changes phase-space geometry, not the degree of classical chaos."
+            )
 
-            st.session_state.agent_messages = all_messages
-            st.markdown(final_answer)
 
-            if tool_calls:
+with explain_tab:
+    for item in st.session_state.chat_history:
+        with st.chat_message(item["role"]):
+            st.markdown(item["content"])
+    
+            if item.get("tools"):
                 with st.expander("Tool activity", expanded=False):
-                    for tool in tool_calls:
+                    for tool in item["tools"]:
                         st.markdown(f"**{tool['name']}**")
-                        if tool["args"]:
+                        if tool.get("args"):
                             st.code(
                                 json.dumps(
                                     tool["args"],
@@ -2689,24 +2663,122 @@ if prompt:
                                 ),
                                 language="json",
                             )
-                        if tool["result"]:
+                        if tool.get("result"):
                             render_tool_result(tool)
-
-            st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": final_answer,
-                "tools": tool_calls,
-            })
-
-        except Exception as exc:
-            error_text = (
-                "I couldn't complete that request.\n\n"
-                f"`{type(exc).__name__}: {exc}`\n\n"
-                "Check your Gemini API key, dependencies, "
-                "network connection, and API quota."
-            )
-            st.error(error_text)
-            st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": error_text,
-            })
+    
+    
+    prompt = st.chat_input(
+        "Ask about DKT dynamics, simulations, diagnostics, or research data…"
+    )
+    
+    
+    if prompt:
+        st.session_state.chat_history.append(
+            {"role": "user", "content": prompt}
+        )
+    
+        with st.chat_message("user"):
+            st.markdown(prompt)
+    
+        with st.chat_message("assistant"):
+            try:
+                with st.spinner("Analyzing your request…"):
+                    agent = get_agent()
+                    response = agent.invoke({
+                        "messages": (
+                            st.session_state.agent_messages
+                            + [HumanMessage(content=prompt)]
+                        )
+                    })
+    
+                all_messages = response.get("messages", [])
+                new_messages = all_messages[
+                    len(st.session_state.agent_messages) + 1:
+                ]
+    
+                tool_calls = []
+    
+                for message in new_messages:
+                    if isinstance(message, AIMessage):
+                        for call in (getattr(message, "tool_calls", None) or []):
+                            tool_calls.append({
+                                "name": call.get("name", "Tool"),
+                                "args": call.get("args", {}),
+                                "result": "",
+                            })
+    
+                    elif isinstance(message, ToolMessage):
+                        name = getattr(message, "name", "Tool") or "Tool"
+                        match = next(
+                            (
+                                item for item in reversed(tool_calls)
+                                if item["name"] == name and not item["result"]
+                            ),
+                            None,
+                        )
+                        if match:
+                            match["result"] = message.content
+                        else:
+                            tool_calls.append({
+                                "name": name,
+                                "args": {},
+                                "result": message.content,
+                            })
+    
+                final_answer = ""
+    
+                for message in reversed(all_messages):
+                    if (
+                        isinstance(message, AIMessage)
+                        and not (getattr(message, "tool_calls", None) or [])
+                    ):
+                        final_answer = content_to_text(
+                            message.content
+                        ).strip()
+                        if final_answer:
+                            break
+    
+                if not final_answer:
+                    final_answer = (
+                        "The agent completed the request but did not "
+                        "return a text response."
+                    )
+    
+                st.session_state.agent_messages = all_messages
+                st.markdown(final_answer)
+    
+                if tool_calls:
+                    with st.expander("Tool activity", expanded=False):
+                        for tool in tool_calls:
+                            st.markdown(f"**{tool['name']}**")
+                            if tool["args"]:
+                                st.code(
+                                    json.dumps(
+                                        tool["args"],
+                                        indent=2,
+                                        ensure_ascii=False,
+                                        default=str,
+                                    ),
+                                    language="json",
+                                )
+                            if tool["result"]:
+                                render_tool_result(tool)
+    
+                st.session_state.chat_history.append({
+                    "role": "assistant",
+                    "content": final_answer,
+                    "tools": tool_calls,
+                })
+    
+            except Exception as exc:
+                error_text = (
+                    "I couldn't complete that request.\n\n"
+                    f"`{type(exc).__name__}: {exc}`\n\n"
+                    "Check your Gemini API key, dependencies, "
+                    "network connection, and API quota."
+                )
+                st.error(error_text)
+                st.session_state.chat_history.append({
+                    "role": "assistant",
+                    "content": error_text,
+                })

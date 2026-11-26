@@ -45,13 +45,14 @@ def _ensemble_zip_bytes(ensemble: dict) -> bytes:
 def render_mixing_hierarchy_dashboard() -> None:
     """Render an ensemble-first workspace for finite-data hierarchy diagnostics."""
     st.divider()
-    st.header("Ergodic Hierarchy — Visual Dashboard")
+    st.header("Ensemble-based ergodic-hierarchy diagnostics")
     st.caption(
-        "Generate, save, and analyse a reproducible DKT ensemble in one step; "
-        "the application handles the trajectory files and metadata automatically."
+        "Generate or select a reproducible ensemble, then inspect complementary "
+        "finite-data diagnostics for Birkhoff averages, correlation decay, "
+        "and finite-partition dependence."
     )
 
-    with st.expander("Generate and save a DKT trajectory ensemble", expanded=True):
+    with st.expander("Generate a new trajectory ensemble", expanded=False):
         st.write(
             "The application generates a grid of distinct initial conditions using "
             "one common DKT map. Every orbit is saved as a separate parameter-labelled "
@@ -80,7 +81,7 @@ def render_mixing_hierarchy_dashboard() -> None:
                     "Angular grid size per direction",
                     options=[5, 6, 7, 8],
                     index=0,
-                    help="Generates grid_size² distinct initial conditions (25–64 trajectories).",
+                    help="Generates grid_size² distinct initial conditions (25-64 trajectories).",
                     key="mix_gen_grid_size",
                 )
             with g5:
@@ -112,7 +113,7 @@ def render_mixing_hierarchy_dashboard() -> None:
             generate_submitted = st.form_submit_button(
                 "Generate, save & run diagnostics",
                 type="primary",
-                use_container_width=True,
+                width="stretch",
             )
 
     if generate_submitted:
@@ -194,10 +195,10 @@ def render_mixing_hierarchy_dashboard() -> None:
             manifest = selected_ensemble["manifest"]
             map_parameters = manifest["parameters"]
             st.caption(
-                f"{map_parameters['n_trajectories']} distinct initial conditions · "
-                f"{map_parameters['nsteps']} kicks each · "
-                f"kᵣ={map_parameters['kr']:g} · "
-                f"kθ={map_parameters['ktheta']:g} · "
+                f"{map_parameters['n_trajectories']} distinct initial conditions "
+                f"{map_parameters['nsteps']} kicks each, "
+                f"kᵣ={map_parameters['kr']:g}, "
+                rf"$k_\theta$={map_parameters['ktheta']:g}, "
                 f"p={map_parameters['p']:g}"
             )
             q1, q2, q3 = st.columns(3)
@@ -224,7 +225,7 @@ def render_mixing_hierarchy_dashboard() -> None:
             submitted = st.form_submit_button(
                 "Run ergodic-hierarchy diagnostics",
                 type="primary",
-                use_container_width=True,
+                width="stretch",
             )
 
         st.download_button(
@@ -304,18 +305,23 @@ def render_mixing_hierarchy_dashboard() -> None:
     from dkt_agent.mean_ergodic_dashboard import render_mean_ergodic_panel
 
     tab_mean, tab_ergodic, tab_weak, tab_strong, tab_summary = st.tabs([
-        "Mean ergodicity",
-        "Birkhoff averages",
+        "L² mean ergodicity",
+        "Birkhoff variance",
         "Weak-mixing indicators",
-        "Finite-partition alpha",
-        "Numerical tables & files",
+        "Finite-partition α",
+        "Tables & downloads",
     ])
 
     with tab_mean:
+        st.caption(
+            "Independent sampled-initial-condition test of the von Neumann "
+            "L² mean-ergodicity criterion. It is distinct from the ensemble "
+            "Birkhoff-variance analysis in the next tab."
+        )
         render_mean_ergodic_panel(in_tab=True)
 
     with tab_ergodic:
-        st.subheader("Selected-observable Birkhoff-average variance")
+        st.subheader("Ensemble variance of finite-time Birkhoff averages")
         rows = ergodic.get("rows", [])
         if rows:
             frame = pd.DataFrame(rows)
@@ -323,7 +329,7 @@ def render_mixing_hierarchy_dashboard() -> None:
             st.line_chart(pivot, height=360)
             observable = st.selectbox("Inspect observable", options=list(frame["observable"].unique()), key="mix_dash_erg_obs")
             chosen = frame[frame["observable"] == observable]
-            st.dataframe(chosen, use_container_width=True, hide_index=True)
+            st.dataframe(chosen, width="stretch", hide_index=True)
         if not rows:
             st.caption("No Birkhoff-average data yet. Run the diagnostics with a saved ensemble.")
         st.info(
@@ -361,7 +367,7 @@ def render_mixing_hierarchy_dashboard() -> None:
                 "lag": range(len(rho)),
                 "normalized_autocorrelation": rho,
                 "cesaro_mean_squared_autocorrelation": [None] + list(cesaro),
-            }), use_container_width=True, hide_index=True)
+            }), width="stretch", hide_index=True)
         else:
             st.caption("No autocorrelation or Cesàro data yet. Run the diagnostics with a saved ensemble to populate these plots.")
         st.info(
@@ -376,7 +382,7 @@ def render_mixing_hierarchy_dashboard() -> None:
         if alpha_rows:
             alpha_frame = pd.DataFrame(alpha_rows)
             st.line_chart(alpha_frame.set_index("lag")[["finite_partition_alpha"]], height=320)
-            st.dataframe(alpha_frame, use_container_width=True, hide_index=True)
+            st.dataframe(alpha_frame, width="stretch", hide_index=True)
             st.caption(
                 f"Partition: {strong.get('partition', {}).get('type', '—')} · "
                 f"{strong.get('partition', {}).get('n_cells', '—')} cells"
@@ -390,8 +396,8 @@ def render_mixing_hierarchy_dashboard() -> None:
         )
 
     with tab_summary:
-        st.subheader("Input and diagnostic summary")
-        st.dataframe(pd.DataFrame([
+        st.subheader("Run provenance and diagnostic summary")
+        summary_frame = pd.DataFrame([
             {"Item": "Trajectory files", "Value": len(result.get("input_trajectory_csvs", []))},
             {"Item": "Transient discarded", "Value": result.get("parameters", {}).get("transient_discarded")},
             {"Item": "Maximum lag requested", "Value": result.get("parameters", {}).get("max_lag")},
@@ -399,7 +405,11 @@ def render_mixing_hierarchy_dashboard() -> None:
             {"Item": "azimuth partition bins", "Value": result.get("parameters", {}).get("n_phi")},
             {"Item": "Diagnostic status", "Value": result.get("status")},
             {"Item": "Hierarchy verdict", "Value": "Not assigned (finite-data diagnostics only)"},
-        ]), use_container_width=True, hide_index=True)
+        ])
+        summary_frame["Value"] = summary_frame["Value"].map(
+            lambda value: "—" if pd.isna(value) else str(value)
+        )
+        st.dataframe(summary_frame, width="stretch", hide_index=True)
         st.markdown("**Scientific limitations**")
         st.write(result.get("scientific_limit", ""))
         st.write(ergodic.get("interpretation", ""))
