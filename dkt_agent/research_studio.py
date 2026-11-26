@@ -302,7 +302,9 @@ def render_research_studio() -> None:
             st.caption("No saved campaigns yet.")
         else:
             labels = {
-                f"{item['campaign_id']} · {item['status']} · {item['research_question'][:90]}": item["campaign_id"]
+                f"{item['campaign_id']} · {item['status']} · "
+                f"{'authorized' if item.get('execution_authorization') == 'authorized_by_user' else 'not authorized'} · "
+                f"{item['research_question'][:90]}": item["campaign_id"]
                 for item in saved
             }
             selected = st.selectbox("Saved campaigns", list(labels), key="research_campaign_resume")
@@ -415,6 +417,12 @@ def render_research_studio() -> None:
 
     with execution:
         st.markdown(f"**Campaign:** `{campaign['campaign_id']}`")
+        if _campaign_is_authorized(campaign):
+            st.success("Numerical execution authorization is recorded for this campaign.")
+        else:
+            st.warning(
+                "Numerical execution is not authorized. Read-only evidence discovery is still permitted."
+            )
         _render_execution(campaign)
 
     with record:
