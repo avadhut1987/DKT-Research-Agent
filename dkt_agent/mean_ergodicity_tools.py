@@ -60,8 +60,9 @@ def save_mean_ergodic_artifacts(
     results: dict,
     summary: dict,
     results_root: Optional[str] = None,
+    save: bool = True,
 ) -> dict:
-    """Build a serialisable summary and save artifacts from already-computed results.
+    """Build a serialisable summary and optionally save already-computed results.
 
     This lets the Streamlit panel save its in-memory calculation without
     running the comparatively expensive trajectory ensemble a second time.
@@ -87,6 +88,8 @@ def save_mean_ergodic_artifacts(
         created=datetime.now().isoformat(timespec="seconds"),
         artifacts={},
     )
+    if not save:
+        return out
     d = Path(results_root or RESULTS_ROOT) / _label(
         k_r, k_theta, p, n_kicks, n_initial_conditions, seed
     )
@@ -130,17 +133,9 @@ def run_mean_ergodic_diagnostic(
         kr=k_r, ktheta=k_theta, observables=observables,
         N=n_kicks, M=n_initial_conditions, seed=seed, p=p,
     )
-    if not save:
-        # Use the same summary schema without creating output files.
-        out = save_mean_ergodic_artifacts(
-            k_r, k_theta, observables, n_kicks, n_initial_conditions, p, seed,
-            results, summary, results_root=results_root,
-        )
-        out["artifacts"] = {}
-        return out
     return save_mean_ergodic_artifacts(
         k_r, k_theta, observables, n_kicks, n_initial_conditions, p, seed,
-        results, summary, results_root=results_root,
+        results, summary, results_root=results_root, save=save,
     )
 
 def format_for_agent(result: dict) -> str:
