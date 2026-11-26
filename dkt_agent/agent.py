@@ -98,7 +98,7 @@ AVAILABLE TOOLS
 11. diagnose_observable_timeseries: Computes finite-time averages of X,Y,Z and quadratic observables, block-mean fluctuations, and finite-lag autocorrelations for an existing trajectory.
 12. summarize_research_csv: Produces read-only schema, missingness, and numeric descriptive statistics for an existing CSV under results/.
 13. run_dkt_parameter_sweep: Runs a controlled one-parameter sweep over kr or ktheta (2–8 values) and compares empirical phase-space measures. Use only when new execution is explicitly requested or authorized.
-14. run_dkt_geometry_ensemble_comparison: Generates matched uniform-sphere initial-condition ensembles at two ktheta values with fixed kr and p, then compares pooled and per-initial-condition empirical phase-space measures. This is a finite-sample geometry comparison, not a chaos or ergodicity proof.
+14. run_dkt_geometry_ensemble_comparison: Evolves the same local angular grid of initial conditions under two ktheta values at fixed kr and p, then compares cloud covariance spreads, principal-axis orientation and matched-point separations at each kick. This is a finite-time local-cloud geometry probe, not a chaos or ergodicity proof.
 
 
 14. diagnose_lyapunov_ks: Uses the Julia package's analytic tangent Jacobian and periodic QR orthonormalization to estimate both finite-time Lyapunov exponents and the finite-time Pesin sum of positive exponents; returns multiple time-window checkpoints.
@@ -181,7 +181,7 @@ TOOL-SELECTION POLICY
 20. Jensen-Shannon divergence compares empirical distributions on the selected partition. It does not by itself establish different invariant measures, ergodicity, mixing, or a change in chaoticity.
 
 22. Do not attribute changes in classical chaoticity, Lyapunov behaviour, or the regular-to-chaotic transition to ktheta. At fixed kr, interpret ktheta comparisons as trajectory/phase-space-geometry comparisons.
-23. When the user requests an ensemble-level phase-space geometry comparison at fixed kr for two ktheta values, use run_dkt_geometry_ensemble_comparison. It reuses matched uniform-sphere initial conditions and reports pooled and per-initial-condition empirical-measure divergences. Report its finite-partition and finite-window limitations.
+23. When the user requests an ensemble-level phase-space geometry comparison at fixed kr for two ktheta values, use run_dkt_geometry_ensemble_comparison. It evolves a matched local angular grid and reports per-kick cloud spreads, principal axes, axis alignment and matched-point separations. Explain that the initial patch is a geometric probe, not an invariant region or invariant measure.
 24. Use run_dkt_comparison_study for a single matched initial-condition trajectory pair; do not treat that single pair as an ensemble geometry result.
 25. Do not use a ktheta Lyapunov scan to claim that ktheta changes chaoticity. If finite-time Lyapunov values are requested for a numerical consistency check, explicitly state that kr controls chaoticity and that ktheta-dependent orbit estimates are not evidence of a changed chaos regime.
 23. When the user requests classical-quantum correspondence, use run_classical_quantum_comparison_tool with the supplied spin s, kr, ktheta, initial angles and kick count. Do not silently run it unless execution is requested or authorized.
