@@ -15,6 +15,9 @@ from dkt_agent.research_execution import (
     load_campaign,
     record_evidence_review,
     record_execution_authorization,
+    inspect_stage_liveness,
+    recover_interrupted_stage,
+    is_stage_terminal,
 )
 
 
@@ -106,10 +109,14 @@ def _run_stage(campaign: dict, index: int, arguments: dict, authorized: bool = F
         updated = execute_campaign_stage(
             campaign, index, arguments, execution_authorized=authorized
         )
-        st.session_state["research_studio_campaign"] = updated
-        st.success(f"Completed: {_render_scientific_text(updated['stages'][index]['label'])}")
+        refreshed = load_campaign(updated["campaign_id"])
+        st.session_state["research_studio_campaign"] = refreshed
+        st.success(f"Completed: {_render_scientific_text(refreshed['stages'][index]['label'])}")
     except Exception as exc:
-        st.session_state["research_studio_campaign"] = campaign
+        try:
+            st.session_state["research_studio_campaign"] = load_campaign(campaign["campaign_id"])
+        except (OSError, ValueError, KeyError):
+            st.session_state["research_studio_campaign"] = campaign
         st.error(f"Stage could not be completed: {exc}")
 
 
@@ -149,14 +156,50 @@ def _render_execution(campaign: dict) -> None:
                 st.caption(f"{stage['tool']} · {stage['execution_mode'].replace('_', ' ')}")
             with right:
                 st.caption(status)
+            st.caption(f"Attempts: {stage.get('attempts', 0)}")
+            if stage.get("started_at"):
+                st.caption(f"Last started: {stage['started_at']}")
+            if stage.get("completed_at"):
+                st.caption(f"Last finished: {stage['completed_at']}")
             _render_stage_result(stage)
+            history = stage.get("attempt_history", [])
+            if history:
+                with st.expander(f"Attempt history · stage {stage['index'] + 1}", expanded=False):
+                    for attempt in history:
+                        st.markdown(
+                            f"**Attempt {attempt.get('attempt_number', '?')} · "
+                            f"{str(attempt.get('status', 'unknown')).replace('_', ' ').title()}**"
+                        )
+                        st.caption(
+                            f"Started: {attempt.get('started_at', 'unknown')} · "
+                            f"Finished: {attempt.get('completed_at') or 'not recorded'}"
+                        )
+                        if attempt.get("error"):
+                            st.error(attempt["error"])
+            if stage.get("status") == "running":
+                liveness = inspect_stage_liveness(stage)
+                if liveness.get("stale"):
+                    st.warning(
+                        "This stage appears interrupted: its recorded execution thread/process "
+                        "is no longer active. Recovery records the interruption; it does not rerun the tool."
+                    )
+                    if st.button(
+                        "Recover interrupted stage",
+                        key=f"recover_stage_{campaign['campaign_id']}_{stage['index']}",
+                    ):
+                        latest = load_campaign(campaign["campaign_id"])
+                        recovered = recover_interrupted_stage(latest, stage["index"])
+                        st.session_state["research_studio_campaign"] = recovered
+                        st.rerun()
+                else:
+                    st.info("Execution is still active or has not yet reached the safe-recovery timeout.")
 
     evidence_complete = any(
         s["tool"] == "search_research_evidence" and s["status"] == "completed"
         for s in stages
     )
     numerical_pending = any(
-        s["execution_mode"] == "new_numerical_data" and s["status"] in {"pending", "failed"}
+        s["execution_mode"] == "new_numerical_data" and s["status"] in {"pending", "failed", "interrupted"}
         for s in stages
     )
     if evidence_complete and numerical_pending and not campaign.get("evidence_review"):
@@ -211,12 +254,12 @@ def _render_execution(campaign: dict) -> None:
         st.success("The campaign stopped after evidence review. No new numerical data were generated.")
         return
 
-    next_stage = next((s for s in stages if s["status"] in {"pending", "failed"}), None)
+    next_stage = next((s for s in stages if s["status"] in {"pending", "failed", "interrupted"}), None)
     if next_stage is None:
         st.success("All planned workflow stages have completed. Review the evidence and limitations before drawing conclusions.")
         return
     index, tool_name = next_stage["index"], next_stage["tool"]
-    if any(s["status"] != "completed" for s in stages[:index]):
+    if any(not is_stage_terminal(s["status"]) for s in stages[:index]):
         st.info("Complete the earlier stage before proceeding.")
         return
 
@@ -232,6 +275,16 @@ def _render_execution(campaign: dict) -> None:
     st.markdown("**Review numerical inputs**")
     st.caption("These values are shown before execution and are saved with the campaign record.")
     authorized = _campaign_is_authorized(campaign)
+    retry_confirmed = True
+    if next_stage.get("status") == "interrupted" and next_stage.get("execution_mode") == "new_numerical_data":
+        st.warning(
+            "The previous numerical attempt was interrupted. It may have produced partial files or "
+            "artifacts before stopping. Retrying can therefore repeat work; inspect the attempt record first."
+        )
+        retry_confirmed = st.checkbox(
+            "I reviewed the interrupted attempt and explicitly approve retrying this numerical stage",
+            key=f"confirm_interrupted_retry_{campaign['campaign_id']}_{index}",
+        )
     if authorized:
         if st.button(
             "Revoke numerical-execution authorization",
@@ -262,7 +315,8 @@ def _render_execution(campaign: dict) -> None:
             nsteps = st.number_input("Number of kicks", min_value=1, max_value=500000,
                                      value=int(defaults["nsteps"]), step=100)
             submitted = st.form_submit_button(
-                "Execute controlled comparison", type="primary", disabled=not authorized,
+                "Retry interrupted comparison" if next_stage.get("status") == "interrupted" else "Execute controlled comparison",
+                type="primary", disabled=(not authorized or not retry_confirmed),
                 use_container_width=True,
             )
         if submitted:
@@ -291,8 +345,8 @@ def _render_execution(campaign: dict) -> None:
             nsteps = st.number_input("Kicks per trajectory", min_value=1, max_value=50000, value=2000, step=500)
             st.caption("Both maps receive the same local angular grid of initial conditions. The cloud is a geometric probe, not an invariant phase-space region.")
             submitted = st.form_submit_button(
-                "Execute matched-cloud geometry comparison",
-                type="primary", disabled=not authorized, use_container_width=True,
+                "Retry interrupted geometry comparison" if next_stage.get("status") == "interrupted" else "Execute matched-cloud geometry comparison",
+                type="primary", disabled=(not authorized or not retry_confirmed), use_container_width=True,
             )
         if submitted:
             _record_authorization_if_requested(campaign, authorized)
@@ -322,8 +376,8 @@ def _render_execution(campaign: dict) -> None:
                 default=["x", "y", "z", "x2", "y2", "z2", "xy", "yz", "xz"],
             )
             submitted = st.form_submit_button(
-                "Execute observable-resolved mean-ergodicity test",
-                type="primary", disabled=(not authorized or not observables),
+                "Retry interrupted mean-ergodicity test" if next_stage.get("status") == "interrupted" else "Execute observable-resolved mean-ergodicity test",
+                type="primary", disabled=(not authorized or not retry_confirmed or not observables),
                 use_container_width=True,
             )
         if submitted:
@@ -349,8 +403,8 @@ def _render_execution(campaign: dict) -> None:
             transient = st.number_input("Discarded transient", min_value=0, max_value=int(nsteps)-2,
                                         value=min(1000, int(nsteps)-2), step=100)
             submitted = st.form_submit_button(
-                "Execute observable-resolved Birkhoff-variance study",
-                type="primary", disabled=not authorized, use_container_width=True,
+                "Retry interrupted Birkhoff-variance study" if next_stage.get("status") == "interrupted" else "Execute observable-resolved Birkhoff-variance study",
+                type="primary", disabled=(not authorized or not retry_confirmed), use_container_width=True,
             )
         if submitted:
             _record_authorization_if_requested(campaign, authorized)
