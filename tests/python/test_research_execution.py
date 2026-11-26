@@ -272,7 +272,7 @@ class TestResearchExecution(unittest.TestCase):
                         2: {"action": "execute", "note": ""},
                     },
                 )
-                with self.assertRaises(ValueError):
+                with self.assertRaises(PermissionError):
                     execution.execute_campaign_stage(
                         campaign, 1, {"kr": 1.0}, execution_authorized=True
                     )
