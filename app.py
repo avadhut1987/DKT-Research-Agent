@@ -30,6 +30,7 @@ from dkt_agent.research_tools import (
 )
 from dkt_agent.tools import (simulate_dkt, simulate_dkt_grid, run_entanglement_dynamics, run_entanglement_heatmap)
 from dkt_agent.streamlit_mixing_dashboard import render_mixing_hierarchy_dashboard
+from dkt_agent.mean_ergodic_dashboard import render_mean_ergodic_panel
 import matplotlib.pyplot as plt
 
 def filename_token(value: float | int) -> str:
@@ -2566,6 +2567,7 @@ with st.expander("Long-time-averaged entropy heatmap results", expanded=False):
 
 
 render_mixing_hierarchy_dashboard()
+render_mean_ergodic_panel()
 
 
 for item in st.session_state.chat_history:
