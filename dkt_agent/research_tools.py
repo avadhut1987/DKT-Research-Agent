@@ -790,3 +790,137 @@ def run_lyapunov_parameter_scan(
     }
     (out / "lyapunov_parameter_scan_summary.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     return json.dumps(result, indent=2)
+
+
+@tool
+def run_dkt_geometry_ensemble_comparison(
+    kr: float,
+    ktheta_values: list[float],
+    n_trajectories: int = 8,
+    nsteps: int = 2000,
+    p: float = 1.5707963267948966,
+    seed: int = 20261126,
+    n_z: int = 30,
+    n_phi: int = 60,
+) -> str:
+    """Compare matched ensembles at two ktheta values while holding kr and p fixed.
+
+    The same reproducible uniform-sphere initial conditions are used for both
+    parameter values. It reports pooled empirical phase-space measure
+    Jensen-Shannon divergence and per-initial-condition divergences. This is a
+    finite-sample geometry/distribution comparison, not a chaos or ergodicity
+    test and not a proof that invariant measures differ.
+    """
+    import csv
+    import json
+    import math
+    import numpy as np
+
+    if not math.isfinite(float(kr)) or not math.isfinite(float(p)):
+        raise ValueError("kr and p must be finite.")
+    if not isinstance(ktheta_values, list) or len(ktheta_values) != 2:
+        raise ValueError("ktheta_values must contain exactly two values.")
+    values = [float(value) for value in ktheta_values]
+    if not all(math.isfinite(value) for value in values) or values[0] == values[1]:
+        raise ValueError("ktheta_values must be distinct finite values.")
+    if isinstance(n_trajectories, bool) or not isinstance(n_trajectories, int) or not 2 <= n_trajectories <= 24:
+        raise ValueError("n_trajectories must be between 2 and 24.")
+    if isinstance(nsteps, bool) or not isinstance(nsteps, int) or not 100 <= nsteps <= 50000:
+        raise ValueError("nsteps must be between 100 and 50000.")
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError("seed must be a non-negative integer.")
+    if isinstance(n_z, bool) or not isinstance(n_z, int) or not 2 <= n_z <= 100:
+        raise ValueError("n_z must be between 2 and 100.")
+    if isinstance(n_phi, bool) or not isinstance(n_phi, int) or not 2 <= n_phi <= 200:
+        raise ValueError("n_phi must be between 2 and 200.")
+
+    rng = np.random.default_rng(seed)
+    labels = [f"ktheta={values[0]:g}", f"ktheta={values[1]:g}"]
+    pooled = {label: [] for label in labels}
+    initial_conditions = []
+    runs = []
+    matched_divergences = []
+
+    for index in range(n_trajectories):
+        z0 = float(rng.uniform(-1.0, 1.0))
+        phi0 = float(rng.uniform(-np.pi, np.pi))
+        theta0 = float(np.arccos(z0))
+        initial_conditions.append({
+            "ensemble_index": index + 1, "theta0": theta0, "phi0": phi0,
+        })
+        pair_points = {}
+        for value_index, value in enumerate(values):
+            sim = _simulate_dkt(
+                kr=float(kr), ktheta=value, theta0=theta0, phi0=phi0,
+                nsteps=nsteps, p=float(p), include_trajectory=False,
+            )
+            points = load_trajectory(sim["trajectory_csv"])
+            pooled[labels[value_index]].append(points)
+            pair_points[labels[value_index]] = points
+            runs.append({
+                "ensemble_index": index + 1,
+                "ktheta": value,
+                "parameters": sim["parameters"],
+                "trajectory_rows": sim["trajectory_rows"],
+                "max_norm_error": sim["max_norm_error"],
+                "trajectory_csv": sim["trajectory_csv"],
+            })
+        pair_result = empirical_measure_comparison(
+            pair_points, n_z=n_z, n_phi=n_phi
+        )
+        matched_divergences.append({
+            "ensemble_index": index + 1,
+            "theta0": theta0,
+            "phi0": phi0,
+            "js_divergence_base2": float(pair_result["js_divergence"][0, 1]),
+        })
+
+    pooled_points = {
+        label: np.concatenate(arrays, axis=0)
+        for label, arrays in pooled.items()
+    }
+    pooled_result = empirical_measure_comparison(
+        pooled_points, n_z=n_z, n_phi=n_phi
+    )
+    out = _new_output_dir("geometry_ensemble_comparison_")
+    matched_csv = out / "matched_initial_condition_js.csv"
+    with matched_csv.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(
+            handle, fieldnames=["ensemble_index", "theta0", "phi0", "js_divergence_base2"]
+        )
+        writer.writeheader()
+        writer.writerows(matched_divergences)
+
+    result = {
+        "status": "success",
+        "parameters": {
+            "kr": float(kr), "ktheta_values": values, "p": float(p),
+            "n_trajectories": n_trajectories, "nsteps": nsteps,
+            "seed": seed, "n_z": n_z, "n_phi": n_phi,
+            "initial_condition_sampling": "matched independent uniform-sphere samples: z uniform on [-1,1], phi uniform on [-pi,pi]",
+            "samples_per_parameter": int(n_trajectories * (nsteps + 1)),
+        },
+        "initial_conditions": initial_conditions,
+        "simulation_runs": runs,
+        "pooled_empirical_measure_comparison": {
+            "labels": labels,
+            "jensen_shannon_divergence_base2": pooled_result["js_divergence"].tolist(),
+            "partition": {"n_z": n_z, "n_phi": n_phi},
+        },
+        "matched_initial_condition_divergences": matched_divergences,
+        "artifacts": {
+            "directory": str(out),
+            "matched_divergence_csv": str(matched_csv),
+        },
+        "interpretation_limits": [
+            "The same initial conditions, kick count, kr and p are used for both ktheta values.",
+            "The pooled and per-initial-condition Jensen-Shannon divergences compare finite empirical distributions on the selected equal-area partition.",
+            "Results depend on ensemble size, observation window, seed and partition resolution.",
+            "A nonzero divergence is evidence of different sampled trajectory distributions, not proof of distinct invariant measures.",
+            "At fixed kr, differences are interpreted as phase-space geometry/distribution changes; they must not be attributed to changes in classical chaoticity, Lyapunov behaviour or KS entropy.",
+            "Uniform full-sphere initial-condition sampling is used; this tool does not establish properties restricted to a local phase-space region.",
+        ],
+    }
+    with (out / "geometry_ensemble_summary.json").open("w", encoding="utf-8") as handle:
+        json.dump(result, handle, indent=2)
+    return json.dumps(result, indent=2)
