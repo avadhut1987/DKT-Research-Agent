@@ -2,42 +2,143 @@
 
 An AI-assisted computational research platform for the **Double Kicked Top (DKT)** model, developed using Python, LangGraph, Julia, and Streamlit.
 
-The project integrates classical nonlinear dynamics, quantum entanglement calculations, classical–quantum correspondence, numerical diagnostics, scientific visualization, and AI-assisted research workflows.
+The project integrates classical nonlinear dynamics, quantum entanglement calculations, classical–quantum correspondence, ergodicity and mixing-related diagnostics, scientific visualization, reproducible numerical workflows, and AI-assisted research tools.
+
+The platform is designed to support computational investigations of the DKT model, from generating classical trajectories and studying phase-space structures to examining the ergodic hierarchy and comparing classical and quantum dynamics.
 
 ## Features
 
 ### 1. Classical DKT Dynamics
 
-- Simulate classical DKT trajectories.
-- Compare trajectories under different kicking parameters.
-- Investigate phase-space structures and their dependence on the asymmetry parameter.
-- Generate phase-space portraits and trajectory visualizations.
-- Analyze fixed points and their stability.
-- Perform parameter sweeps and compare trajectory measures.
+The classical simulation tools provide:
+
+- Simulation of classical DKT trajectories.
+- Comparison of trajectories under different kicking parameters.
+- Investigation of phase-space structures and their dependence on the asymmetry parameter.
+- Generation of phase-space portraits and trajectory visualizations.
+- Fixed-point analysis and stability investigations.
+- Parameter sweeps and comparisons of trajectory measures.
+- Export of trajectory data and associated metadata.
 
 ### 2. Ergodicity and Mixing-Related Diagnostics
 
-The research tools provide numerical investigations of the ergodic hierarchy, including:
+The project provides numerical tools for investigating different levels of the ergodic hierarchy.
 
-- **Mean ergodicity:** trajectory time averages, observable fluctuations, and variance-based studies across initial conditions.
-- **Correlation analysis:** observable autocorrelation functions and finite-time correlation diagnostics.
-- **Weak-mixing-related diagnostics:** finite-window Cesàro averages of squared autocorrelations for nine Cartesian observables across multiple trajectories.
-- **Strong-mixing-related diagnostics:** finite-partition alpha-coefficient estimates from pooled trajectory ensembles and sampled time origins.
-- **Combined hierarchy workflow:** a single agent tool that reports the three finite-data diagnostic levels separately for matched DKT map parameters and multiple initial conditions.
-- **Lyapunov analysis:** finite-time and long-time numerical estimates of maximal Lyapunov exponents.
-- **Kolmogorov–Sinai (KS) entropy:** numerical estimates associated with the Lyapunov spectrum under applicable assumptions.
-- **Parameter scans:** investigate how selected diagnostics vary with the average kicking parameter.
+**Mean ergodicity**
 
-These calculations provide finite-time numerical evidence, not mathematical proofs of ergodicity, weak mixing, or strong mixing. The ergodicity-related study tests selected observables against uniform-sphere moments; it is not a general test of von Neumann mean ergodicity. The weak-mixing-related study examines only a finite set of observables and lags. The strong-mixing-related study estimates the alpha coefficient only for a specified finite spherical partition; it does not take the supremum over all measurable sets. The pooled trajectory/time-origin sample should be checked for approximate stationarity. Correlation decay alone is not sufficient to establish strong mixing.
+- Finite-data evaluation of the von Neumann mean-ergodicity distance, $D_N$.
+- Investigation of the mean-square distance between finite-time averages and the phase-space average.
+- Evaluation over uniformly sampled initial conditions.
+- Comparison across observables and DKT parameter configurations.
 
-### 3. Quantum Entanglement Dynamics
+The diagnostic is designed to investigate whether finite-time averages approach the corresponding phase-space average in the sampled ensemble. A vanishing distance is consistent with mean ergodicity for the tested observable and sampling procedure; a nonzero plateau may indicate a nonconstant limiting contribution. Finite numerical data cannot establish the asymptotic property.
+
+**Birkhoff-average and variance diagnostics**
+
+- Calculation of finite-time trajectory averages.
+- Variance of time averages across distinct initial conditions.
+- Investigation of variance scaling with observation time.
+- Comparison of selected Cartesian observables.
+
+These diagnostics examine the behaviour of time averages along individual trajectories and across an ensemble of initial conditions.
+
+**Correlation and weak-mixing-related diagnostics**
+
+- Calculation of observable autocorrelation functions.
+- Finite-time and finite-lag correlation analysis.
+- Finite-window Cesàro averages of squared autocorrelations.
+- Analysis of nine Cartesian observables and their correlations.
+- Comparison across multiple trajectories and parameter configurations.
+
+**Strong-mixing-related diagnostics**
+
+- Numerical estimates of finite-partition alpha coefficients.
+- Analysis of correlations between events separated by selected time lags.
+- Use of pooled trajectory ensembles and sampled time origins.
+- Investigation of the dependence on spherical partition resolution and lag range.
+
+The alpha-coefficient calculation is performed for a specified finite spherical partition. It does not calculate the supremum over all measurable sets required by the mathematical definition of strong mixing.
+
+**Combined ergodic-hierarchy workflow**
+
+The project also provides an integrated diagnostic workflow that reports the following separately:
+
+1. Mean-ergodicity-related diagnostics.
+2. Birkhoff-average and variance behaviour.
+3. Weak-mixing-related Cesàro correlation indicators.
+4. Strong-mixing-related finite-partition alpha-coefficient estimates.
+
+The diagnostics are intended to be interpreted together with their sampling assumptions and numerical limitations, not as automatic classifications of the underlying dynamics.
+
+**Additional dynamical diagnostics**
+
+- Maximal Lyapunov exponent estimates.
+- Kolmogorov–Sinai (KS) entropy estimates under applicable assumptions.
+- Parameter scans and comparisons of selected numerical diagnostics.
+
+### 3. Reproducible Ergodic-Hierarchy Visual Dashboard
+
+The Streamlit application includes a dedicated visual dashboard for generating, saving, selecting, and analysing DKT trajectory ensembles.
+
+The workflow is designed to avoid manual trajectory-file preparation and repeated metadata entry.
+
+**Generate and save a DKT trajectory ensemble**
+
+Users can specify:
+
+- Average kicking parameter, $k_r$.
+- Asymmetry parameter, $k_\theta$.
+- Rotation parameter, $p$.
+- Angular-grid size.
+- Number of kicks.
+- Transient-discard interval.
+- Maximum correlation lag.
+- Spherical partition resolution.
+
+The application generates an ensemble of distinct initial conditions under the selected DKT map, saves the trajectories and metadata, and proceeds to the numerical diagnostics.
+
+The angular-grid size can be selected within the supported range of 5–50 points per direction. For example, a grid size of 5–8 produces 25–64 initial conditions.
+
+**Automatic data management**
+
+- Trajectory CSV files are generated automatically.
+- Parameter-labelled filenames preserve the identity of each trajectory.
+- An `ensemble_manifest.json` records the ensemble configuration and provenance.
+- Generated ensembles are stored in separate run directories.
+- Previously generated metadata-backed ensembles can be selected and analysed again.
+- Individual ensembles can be downloaded as ZIP archives.
+- Numerical results and diagnostic artifacts are stored separately from the original trajectory data.
+
+**Dashboard visualizations and outputs**
+
+The dashboard provides:
+
+- Mean-ergodicity diagnostic results.
+- Birkhoff-average variance versus analysed trajectory length.
+- Normalized autocorrelation plots.
+- Cesàro means of squared autocorrelations, selectable by observable.
+- Finite-partition alpha-coefficient estimates versus lag.
+- Numerical tables and downloadable JSON and CSV results.
+
+The dashboard separates the generation of trajectory data from its subsequent analysis, allowing saved ensembles to be reused for further investigations.
+
+**Individual trajectory compatibility**
+
+Individual simulations generated through the `simulate_dkt` workflow are saved in nested run directories. Their trajectory CSV files use parameter-labelled filenames and are accompanied by a `trajectory_metadata.json` file.
+
+The dashboard searches these directories recursively. It groups trajectories only when their map parameters match and their initial conditions are distinct.
+
+Older trajectory files without metadata cannot always be assigned reliably to a specific DKT map configuration. The application therefore avoids guessing their parameters.
+
+### 4. Quantum Entanglement Dynamics
 
 The Julia-backed quantum tools provide:
 
 - Entanglement entropy as a function of kick number.
 - Long-time-averaged entanglement entropy heatmaps over grids of spin-coherent initial states.
 - Transient-discarded averaging.
-- State-norm diagnostics and heatmap failure reporting.
+- State-norm diagnostics.
+- Heatmap failure reporting.
 - CSV outputs and visualizations.
 
 The normalized subsystem entropy is
@@ -52,15 +153,14 @@ The evolving-state entanglement calculations are distinct from Floquet-eigenstat
 
 For heatmaps, the transient convention is to discard kicks $0:T_0$ and average kicks $T_0+1:T$. Failed calculations remain missing values rather than being interpreted as zero.
 
-### 4. Classical–Quantum Correspondence
+### 5. Classical–Quantum Correspondence
 
 The project includes a Julia-backed comparison of classical DKT trajectories and quantum spin-coherent-state evolution.
 
 The comparison provides:
 
 - Kick-resolved classical coordinates $X,Y,Z$.
-- Normalized quantum spin expectations
-  $\langle J_x\rangle/s$, $\langle J_y\rangle/s$, and $\langle J_z\rangle/s$.
+- Normalized quantum spin expectations $\langle J_x\rangle/s$, $\langle J_y\rangle/s$, and $\langle J_z\rangle/s$.
 - Component-wise mean absolute error (MAE).
 - Root mean square error (RMSE).
 - Maximum component-wise error.
@@ -71,7 +171,7 @@ The initial quantum normalized-spin vector is checked against the specified clas
 
 Finite-time differences between a single classical trajectory and quantum expectation values are not, by themselves, a diagnostic of classical chaos. Entanglement entropy is treated as a separate observable.
 
-### 5. AI-Assisted Research Interface
+### 6. AI-Assisted Research Interface
 
 The LangGraph research agent provides access to simulation and analysis tools through natural-language interaction.
 
@@ -79,41 +179,41 @@ Capabilities include:
 
 - Running authorized DKT simulations.
 - Comparing parameter configurations.
-- Analyzing existing trajectory CSV files.
+- Analysing existing trajectory CSV files.
 - Running numerical research diagnostics.
 - Performing Lyapunov and KS-entropy studies.
-- Investigating correlation and ergodicity-related quantities.
+- Investigating mean-ergodicity-related quantities.
+- Analysing Birkhoff averages and correlation functions.
+- Running weak-mixing-related and strong-mixing-related numerical studies.
 - Running quantum entanglement calculations.
 - Comparing classical and quantum dynamics.
 - Searching existing research evidence.
 
 The Streamlit interface provides an interactive environment for simulations, research workflows, plots, and downloadable numerical results.
 
+The agent is intended to assist with computational research and evidence-based analysis. Its conclusions should remain within the scope of the available numerical results and their assumptions.
+
 ## Scientific Parameter Convention
 
 The DKT kicking parameters are defined as
 
 $
-k_r = \frac{k+k'}{2},
-\qquad
-k_\theta = \frac{k-k'}{2},
+k_r = \frac{k+k'}{2}, \qquad k_\theta = \frac{k-k'}{2},
 $
 
 so that
 
 $
-k=k_r+k_\theta,
-\qquad
-k'=k_r-k_\theta.
+k=k_r+k_\theta, \qquad k'=k_r-k_\theta.
 $
 
 The distinction between these parameters is central to the research:
 
-- $k_r$ controls the degree of classical chaos and the regular-to-chaotic transition.
+- $k_r$ controls the degree of classical chaos, including the regular-to-chaotic transition, Lyapunov behaviour, and KS entropy.
 - $k_\theta$ changes the geometry, orientation, and structure of phase-space features. It can also break time-reversal symmetry.
-- Increasing $k_\theta$ at fixed $k_r$ should not be interpreted as increasing the degree of classical chaos or changing the Lyapunov behavior.
+- Increasing $k_\theta$ at fixed $k_r$ should not be interpreted as increasing the degree of classical chaos or changing the Lyapunov behaviour.
 
-A useful comparison is to investigate $k_\theta=0$ and $k_\theta=10^4$ while keeping $k_r$, initial conditions, $p$, and the number of kicks fixed.
+A useful comparison is to investigate $k_\theta=0$ and $k_\theta=10^4$ while keeping $k_r$, initial conditions, $p$, and the number of kicks fixed. This isolates the effects associated with the asymmetry parameter from changes in the average kicking strength.
 
 ## Project Structure
 
@@ -132,7 +232,8 @@ DKT-Research-Agent/
 │   ├── evidence.py
 │   ├── research_tools.py
 │   ├── mixing_hierarchy.py
-│   └── mixing_tools.py
+│   ├── mixing_tools.py
+│   └── mean_ergodic_dashboard.py
 │
 ├── scripts/
 │   └── julia/
@@ -158,6 +259,8 @@ DKT-Research-Agent/
 └── QuantumKickedTop.jl/
     └── Julia simulation package (Git submodule)
 ```
+
+The structure above highlights the principal application, analysis, Julia, and test components. Additional modules and scripts may be present as the project develops.
 
 ## Requirements
 
@@ -221,7 +324,7 @@ streamlit run app.py
 
 Streamlit will display the local application URL in the terminal. Open that URL in your browser.
 
-The application provides an interactive interface for DKT simulations, parameter studies, numerical diagnostics, and quantum research workflows.
+The application provides an interactive environment for DKT simulations, parameter studies, the ergodic-hierarchy dashboard, numerical diagnostics, and quantum research workflows.
 
 ## Running the Research Agent
 
@@ -259,24 +362,54 @@ The tests cover agent-tool integration, classical analysis, classical–quantum 
 
 ## Suggested Research Workflows
 
-### Classical dynamics
+### Classical Dynamics
 
 1. Select $k_r$, $k_\theta$, and the initial conditions.
 2. Generate classical trajectories or phase-space portraits.
 3. Compare trajectory structures for selected parameter configurations.
 4. Examine Lyapunov and other numerical diagnostics where appropriate.
 
-### Ergodicity and mixing-related investigations
+### Mean Ergodicity and Birkhoff-Average Investigations
 
-1. Select observables and initial conditions.
-2. Calculate finite-time trajectory averages and fluctuations.
-3. Investigate observable autocorrelation functions.
-4. For a multi-trajectory hierarchy study, pass at least two existing trajectories from distinct initial conditions under the same DKT map to diagnose_mixing_hierarchy.
-5. Examine the selected-observable Birkhoff variance, finite-window Cesàro squared-autocorrelation envelopes, and finite-partition alpha coefficients separately.
-6. Check ensemble stationarity, partition resolution, lag range, and sensitivity to initial-condition sampling.
-7. Compare the behavior across parameter configurations and observation windows without converting finite diagnostics into asymptotic classifications.
+1. Select the DKT map parameters and observables.
+2. Evaluate the finite-data mean-ergodicity distance over sampled initial conditions.
+3. Examine finite-time trajectory averages.
+4. Investigate the variance of Birkhoff averages across distinct initial conditions.
+5. Compare the results across observables, parameter configurations, and observation windows.
+6. Interpret the numerical behaviour without treating finite-time results as proofs of asymptotic mean ergodicity or pointwise ergodicity.
 
-### Quantum entanglement
+### Weak-Mixing-Related Investigations
+
+1. Select multiple trajectories generated under the same DKT map.
+2. Calculate observable autocorrelation functions.
+3. Examine finite-window Cesàro averages of squared autocorrelations.
+4. Compare the results across observables and time windows.
+5. Investigate sensitivity to initial-condition sampling and the available lag range.
+
+### Strong-Mixing-Related Investigations
+
+1. Generate or select an ensemble of trajectories under a common DKT map.
+2. Specify the spherical partition resolution.
+3. Calculate finite-partition alpha-coefficient estimates over selected time lags.
+4. Examine sensitivity to partition resolution, lag range, and trajectory sampling.
+5. Check approximate stationarity of the pooled trajectory/time-origin sample.
+6. Interpret the results as finite-partition numerical indicators rather than a proof of strong mixing.
+
+### Reproducible Ergodic-Hierarchy Dashboard Workflow
+
+1. Open **Generate and save a DKT trajectory ensemble**.
+2. Set $k_r$, $k_\theta$, and $p$.
+3. Choose the angular-grid size and number of kicks.
+4. Specify the transient-discard interval, maximum lag, and spherical partition.
+5. Click **Generate, save & run diagnostics**.
+6. Allow the application to generate the trajectory files, save the metadata and manifest, and calculate the diagnostics.
+7. Examine the resulting plots and numerical tables.
+8. Select a previously generated metadata-backed ensemble to repeat or extend the analysis.
+9. Download the ensemble as a ZIP archive when required.
+
+The generated ensemble and its diagnostic outputs are stored separately, preserving the original trajectory data and its provenance.
+
+### Quantum Entanglement
 
 1. Choose the quantum spin and subsystem partition.
 2. Specify the initial spin-coherent state or grid of initial states.
@@ -284,7 +417,7 @@ The tests cover agent-tool integration, classical analysis, classical–quantum 
 4. Specify the transient-discard interval and averaging interval.
 5. Examine the resulting entropy curves, heatmaps, and numerical outputs.
 
-### Classical–quantum correspondence
+### Classical–Quantum Correspondence
 
 1. Specify matching classical and quantum initial conditions.
 2. Select the DKT parameters and number of kicks.
@@ -298,14 +431,17 @@ The project is intended as a computational research assistant. Numerical outputs
 
 In particular:
 
-- Finite-time trajectory statistics do not establish asymptotic ergodicity.
+- A finite-data mean-ergodicity distance is not a mathematical proof of von Neumann mean ergodicity.
+- Finite-time Birkhoff averages and their ensemble variance do not establish asymptotic pointwise ergodicity.
 - Finite-window Cesàro diagnostics are numerical indicators, not proofs of weak mixing.
 - Observed correlation decay over a finite interval does not prove strong mixing.
-- Lyapunov and KS-entropy estimates depend on numerical methods, integration or iteration length, and applicable theoretical assumptions.
+- The finite-partition alpha coefficient is not the supremum over all measurable sets required by the mathematical definition of strong mixing.
+- Pooled trajectory and time-origin samples used in alpha-coefficient estimates should be checked for approximate stationarity.
+- Lyapunov and KS-entropy estimates depend on numerical methods, iteration length, and applicable theoretical assumptions.
 - Quantum entanglement measures and classical trajectory diagnostics describe different aspects of the dynamics.
 - Classical–quantum correspondence should be assessed using clearly specified observables, initial-state alignment, and finite-time error measures.
 
-The AI agent is designed to analyze available evidence and numerical results. It should not replace independent verification of calculations or justify unsupported physical conclusions.
+The AI agent is designed to analyse available evidence and numerical results. It should not replace independent verification of calculations or justify unsupported physical conclusions.
 
 ## Troubleshooting
 
@@ -348,7 +484,9 @@ streamlit run app.py --server.port 8502
 
 ## Development Status
 
-The project is under active development. Its simulation, analysis, and research-agent capabilities are being extended and refined.
+The project is under active development. Its simulation, analysis, visualization, and research-agent capabilities are being extended and refined.
+
+The current platform brings together classical DKT dynamics, quantum entanglement, classical–quantum correspondence, and numerical investigations of the ergodic hierarchy within a reproducible computational workflow.
 
 Numerical results and research conclusions should be checked against the underlying Julia and Python implementations, relevant theoretical assumptions, and independent calculations.
 
@@ -361,25 +499,3 @@ Copyright (c) 2026 Avadhut V. Purohit.
 You are free to use, modify, distribute, and adapt this software in accordance with the terms of the MIT License.
 
 See the [LICENSE](LICENSE) file for the complete license text.
-
-## Ergodic-hierarchy visual dashboard
-
-The Streamlit dashboard generates, saves, and analyses a reproducible ensemble in one action. Users do not need to create CSV files manually, search through run folders, or confirm metadata by hand.
-
-1. Open **Generate and save a DKT trajectory ensemble**.
-2. Set the map parameters (k_r), (k_\theta), and (p), choose the angular-grid size (5–8 per direction), and choose the number of kicks.
-3. Set the transient, maximum lag, and spherical partition, then click **Generate, save & run diagnostics**. The application evolves 25–64 distinct initial conditions under that map, writes the files and manifest, and immediately calculates the diagnostics.
-4. Every trajectory CSV is named with its map parameters, initial condition, and kick count. The accompanying `ensemble_manifest.json` records exact provenance. The resulting numerical tables and plots appear automatically.
-5. Previously generated, metadata-backed ensembles can be selected later and analysed again; each ensemble can also be downloaded as a ZIP.
-
-Individual simulations created by `simulate_dkt` are saved in nested `dkt_run_.../` folders. Their trajectory CSVs now have parameter-labelled filenames and a `trajectory_metadata.json` file. The dashboard searches these nested folders recursively and groups runs only when their exact (k_r), (k_\theta), and (p) match and their initial conditions are distinct. Older runs created before metadata was added cannot be reliably grouped automatically because their CSV coordinates do not encode the map parameters; the dashboard does not guess.
-
-Generated ensembles are stored under `results/trajectories/ensemble_.../`; numerical diagnostic artifacts are stored separately under `results/diagnostics/mixing_hierarchy/`.
-
-The dashboard provides:
-- Birkhoff-average variance versus analyzed trajectory length for the selected Cartesian observables.
-- Normalized autocorrelation and Cesàro mean of squared autocorrelation plots, selectable by observable.
-- Finite-partition alpha-coefficient estimates versus lag.
-- Numerical tables and downloadable JSON/CSV artifacts.
-
-These are **finite-data indicators**, not proofs or asymptotic classifications of ergodicity, weak mixing, or strong mixing. In particular, the alpha coefficient is computed only for the selected finite partition and sampled lags.
