@@ -81,7 +81,7 @@ def render_mixing_hierarchy_dashboard() -> None:
                     "Angular grid size per direction",
                     options=[5, 6, 7, 8],
                     index=0,
-                    help="Generates grid_size² distinct initial conditions (25-64 trajectories).",
+                    help="Generates grid_size squared distinct initial conditions (25-64 trajectories).",
                     key="mix_gen_grid_size",
                 )
             with g5:
@@ -197,7 +197,7 @@ def render_mixing_hierarchy_dashboard() -> None:
             st.caption(
                 f"{map_parameters['n_trajectories']} distinct initial conditions "
                 f"{map_parameters['nsteps']} kicks each, "
-                f"kᵣ={map_parameters['kr']:g}, "
+                rf"$k_r$={map_parameters['kr']:g}, "
                 rf"$k_\theta$={map_parameters['ktheta']:g}, "
                 f"p={map_parameters['p']:g}"
             )
@@ -305,17 +305,17 @@ def render_mixing_hierarchy_dashboard() -> None:
     from dkt_agent.mean_ergodic_dashboard import render_mean_ergodic_panel
 
     tab_mean, tab_ergodic, tab_weak, tab_strong, tab_summary = st.tabs([
-        "L² mean ergodicity",
+        "Mean ergodicity",
         "Birkhoff variance",
         "Weak-mixing indicators",
-        "Finite-partition α",
+        "Finite-partition alpha coefficient",
         "Tables & downloads",
     ])
 
     with tab_mean:
         st.caption(
             "Independent sampled-initial-condition test of the von Neumann "
-            "L² mean-ergodicity criterion. It is distinct from the ensemble "
+            r"$L^2$ mean-ergodicity criterion. It is distinct from the ensemble "
             "Birkhoff-variance analysis in the next tab."
         )
         render_mean_ergodic_panel(in_tab=True)

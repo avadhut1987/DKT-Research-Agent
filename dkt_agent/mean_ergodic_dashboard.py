@@ -14,11 +14,11 @@ from dkt_agent.mean_ergodicity_tools import CAVEAT, save_mean_ergodic_artifacts
 
 
 def render_mean_ergodic_panel(
-    title: str = "Mean ergodicity (von Neumann L² diagnostic)",
+    title: str = "Mean ergodicity (von Neumann L2 diagnostic)",
     *,
     in_tab: bool = False,
 ) -> None:
-    """Render the independent L² mean-ergodicity sampling workflow."""
+    """Render the independent L2 mean-ergodicity sampling workflow."""
     panel = nullcontext() if in_tab else st.expander(title, expanded=False)
 
     with panel:
@@ -97,7 +97,7 @@ def render_mean_ergodic_panel(
             if not obs:
                 st.warning("Select at least one observable.")
             else:
-                with st.spinner("Iterating the map and estimating the L² diagnostic…"):
+                with st.spinner("Iterating the map and estimating the L2 diagnostic…"):
                     results, summary = mean_ergodic_battery(
                         kr=kr,
                         ktheta=kt,

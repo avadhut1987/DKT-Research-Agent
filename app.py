@@ -323,7 +323,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                     frame[axis], errors="coerce"
                 ).dropna()
                 row[f"Mean {axis}"] = values.mean()
-                row[f"Mean {axis}²"] = (values ** 2).mean()
+                row[f"Mean {axis} squared"] = (values ** 2).mean()
                 row[f"Std. {axis}"] = values.std(ddof=0)
             statistics_rows.append(row)
 
@@ -359,9 +359,9 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             )
 
         st.caption(
-            "Changing kθ changes the phase-space geometry and trajectory. "
-            "It does not change the degree of classical chaos. "
-            "Changing kr can change the degree of classical chaos."
+            r"Changing $k_\theta$ changes phase-space geometry and trajectory structure. "
+            r"It does not change the degree of classical chaos. "
+            r"Changing $k_r$ can change the degree of classical chaos."
         )
         return
 
@@ -655,8 +655,8 @@ def render_tool_result(tool: dict[str, Any]) -> None:
         )
         if len(exponents) >= 2:
             metric_row([
-                ("λ₁ (nats/kick)", number(exponents[0])),
-                ("λ₂ (nats/kick)", number(exponents[1])),
+                (r"$\lambda_1$ (nats/kick)", number(exponents[0])),
+                (r"$\lambda_2$ (nats/kick)", number(exponents[1])),
                 ("Sum of exponents", number(
                     payload.get("sum_of_exponents_nats_per_kick")
                 )),
@@ -838,7 +838,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
         if partition:
             st.caption(
                 f"Equal-area partition: n_z={partition.get('n_z', '—')}, "
-                f"n_φ={partition.get('n_phi', '—')}"
+                rf"$n_\phi$={partition.get('n_phi', '—')}"
             )
 
         if labels and matrix:
@@ -1194,7 +1194,7 @@ with st.sidebar:
             except Exception as exc:
                 st.session_state["simulation_error"] = str(exc)
 
-    with st.expander("θ–φ phase grid", expanded=False):
+    with st.expander("Spherical phase-space grid", expanded=False):
         st.caption(
             "Evolve a spherical grid of initial conditions and display "
             "all orbit points from kick 0 through the final kick."
@@ -1698,8 +1698,8 @@ with compare_tab:
     comparison_type = st.selectbox(
         "Comparison type",
         [
-            "Compare kθ values at fixed kr",
-            "Compare kr values at fixed kθ",
+            "Compare asymmetry values at fixed average kicking strength",
+            "Compare average kicking strengths at fixed asymmetry",
             "Compare two existing trajectories",
             "Compare empirical phase-space measures",
             "Classical–quantum correspondence",
@@ -1707,7 +1707,7 @@ with compare_tab:
         key="ws_comparison_type",
     )
 
-    if comparison_type == "Compare kθ values at fixed kr":
+    if comparison_type == "Compare asymmetry values at fixed average kicking strength":
         st.markdown(
             r"Compare trajectories at fixed $k_r$, varying $k_\theta$. "
             r"This examines phase-space geometry at a fixed degree of classical chaos."
@@ -1766,7 +1766,7 @@ with compare_tab:
                 "compare",
             )
 
-    elif comparison_type == "Compare kr values at fixed kθ":
+    elif comparison_type == "Compare average kicking strengths at fixed asymmetry":
         st.markdown(
             r"Compare trajectories at fixed $k_\theta$, varying $k_r$. "
             r"This allows comparisons across different classical dynamical regimes."
@@ -1969,8 +1969,8 @@ with data_tab:
             data_query = st.text_area(
                 "Evidence search query",
                 placeholder=(
-                    "For example: kr=1 ktheta=10000 phase-space "
-                    "geometry trajectory stretching"
+                    "Example: At average kicking strength 1, compare asymmetry "
+                    "values 0 and 10^4; examine phase-space geometry and stretching."
                 ),
                 height=100,
                 key="ws_data_query",
@@ -2059,9 +2059,9 @@ with explain_tab:
         explanation_question = st.text_area(
             "Your research question",
             placeholder=(
-                "For example: At fixed kr=1, how should I interpret "
-                "the phase-space stretching observed when ktheta "
-                "increases from 0 to 10000?"
+                "Example: At fixed average kicking strength 1, how should I "
+                "interpret phase-space stretching as the asymmetry parameter "
+                "increases from 0 to 10^4?"
             ),
             height=150,
             key="ws_explain_question",
@@ -2208,12 +2208,12 @@ with simulation_results_tab:
                 st.warning("The simulation returned no trajectory data.")
     
             st.caption(
-                "Scientific interpretation: kr controls the degree of classical "
-                "chaos; ktheta changes phase-space geometry, not the degree of chaos."
+                r"Scientific interpretation: $k_r$ controls the degree of classical "
+                r"chaos; $k_\theta$ changes phase-space geometry, not the degree of chaos."
             )
     
     
-    with st.expander("θ–φ phase grid results", expanded=False):
+    with st.expander("Spherical phase-space grid results", expanded=False):
         if st.session_state.get("grid_simulation_error"):
             st.error(
                 "Phase-space grid simulation failed: "
@@ -2225,7 +2225,7 @@ with simulation_results_tab:
             grid_parameters = grid_result["parameters"]
             grid_data = pd.DataFrame(grid_result["orbit_points"])
     
-            st.header("Final θ–φ phase-space portrait")
+            st.header(r"Final $\theta$–$\phi$ phase-space portrait")
             st.success("Phase-space grid simulation completed successfully.")
     
             grid_metrics = st.columns(3)
