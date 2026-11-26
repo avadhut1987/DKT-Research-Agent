@@ -81,7 +81,7 @@ def render_mixing_hierarchy_dashboard() -> None:
                     "Angular grid size per direction",
                     options=[5, 6, 7, 8],
                     index=0,
-                    help="Generates grid_size² distinct initial conditions (25-64 trajectories).",
+                    help="Generates grid_size squared distinct initial conditions (25-64 trajectories).",
                     key="mix_gen_grid_size",
                 )
             with g5:
