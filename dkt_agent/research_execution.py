@@ -85,6 +85,7 @@ def inspect_stage_liveness(
             process_alive = True
         if not process_alive:
             return {"running": True, "stale": True, "reason": "runner_process_missing", "age_seconds": age}
+        return {"running": True, "stale": False, "reason": "runner_process_still_alive", "age_seconds": age}
     stale = age is not None and age >= max(1, stale_after_seconds)
     return {
         "running": True, "stale": stale,
