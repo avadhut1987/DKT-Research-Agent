@@ -1969,8 +1969,8 @@ with data_tab:
             data_query = st.text_area(
                 "Evidence search query",
                 placeholder=(
-                    r"For example: $k_r=1$, $k_\theta=10^4$, phase-space "
-                    "geometry trajectory stretching"
+                    "Example: At average kicking strength 1, compare asymmetry "
+                    "values 0 and 10^4; examine phase-space geometry and stretching."
                 ),
                 height=100,
                 key="ws_data_query",
@@ -2059,9 +2059,9 @@ with explain_tab:
         explanation_question = st.text_area(
             "Your research question",
             placeholder=(
-                r"For example: At fixed $k_r=1$, how should I interpret "
-                r"the phase-space stretching observed when $k_\theta$ "
-                r"increases from 0 to $10^4$?"
+                "Example: At fixed average kicking strength 1, how should I "
+                "interpret phase-space stretching as the asymmetry parameter "
+                "increases from 0 to 10^4?"
             ),
             height=150,
             key="ws_explain_question",
