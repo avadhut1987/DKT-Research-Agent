@@ -197,7 +197,7 @@ def render_mixing_hierarchy_dashboard() -> None:
             st.caption(
                 f"{map_parameters['n_trajectories']} distinct initial conditions "
                 f"{map_parameters['nsteps']} kicks each, "
-                f"kᵣ={map_parameters['kr']:g}, "
+                rf"$k_r$={map_parameters['kr']:g}, "
                 rf"$k_\theta$={map_parameters['ktheta']:g}, "
                 f"p={map_parameters['p']:g}"
             )
