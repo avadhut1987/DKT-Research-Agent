@@ -19,7 +19,7 @@ def test_map_parameters_are_rendered_with_latex_notation():
         for relative_path in UI_FILES
     )
     assert r"$k_r$" in source
-    assert r"$k_\\theta$" in source
+    assert r"$k_\theta$" in source
 
 
 def test_streamlit_ui_avoids_unformatted_parameter_and_diagnostic_glyphs():
