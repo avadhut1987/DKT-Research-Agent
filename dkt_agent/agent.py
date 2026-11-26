@@ -33,6 +33,7 @@ from dkt_agent.research_tools import (
 )
 from dkt_agent.mixing_tools import diagnose_mixing_hierarchy
 from dkt_agent.mean_ergodicity_tools import mean_ergodicity_langchain_tool
+from dkt_agent.periodic_orbit_tools import periodic_orbit_langchain_tool, periodic_orbit_comparison_langchain_tool
 
 
 SYSTEM_PROMPT = """
@@ -103,6 +104,8 @@ AVAILABLE TOOLS
 17. run_lyapunov_parameter_scan: Scans finite-time Lyapunov and Pesin estimates over kr or ktheta while holding the remaining parameters and initial condition fixed; it does not automatically declare a global transition.
 18. diagnose_mixing_hierarchy: Analyses 2–24 existing DKT trajectory CSVs from distinct initial conditions under the same map. Reports selected-observable Birkhoff-average variance, finite-window Cesàro means of squared autocorrelations, and finite-partition alpha-coefficient estimates. It never assigns an asymptotic hierarchy verdict.
 19. mean_ergodicity_langchain_tool: Estimates the von Neumann L2 mean-ergodicity distance D_N for uniformly sampled initial conditions, with standard errors, an autocorrelation cross-check, tail exponents, and a nine-observable battery. Results are finite-data indicators, not proofs.
+20. search_dkt_periodic_orbits: Numerically searches for primitive periodic DKT cycles for periods 1..nmax, rejects proper-divisor repeats, deduplicates cycles, and reports closure residuals and Floquet multipliers. The search is finite and non-exhaustive. Use it to compare orbit geometry at fixed kr as ktheta varies; do not claim ktheta changes chaoticity.
+21. compare_dkt_periodic_orbits: Compares detected periodic-orbit structures for ktheta=0 and 10000 at fixed kr and p. Interpret this as a phase-space-geometry comparison, not a change in classical chaoticity or Lyapunov exponents.
 
 
 QUANTUM ENTANGLEMENT POLICY
@@ -164,10 +167,10 @@ TOOL-SELECTION POLICY
 
 20. Jensen-Shannon divergence compares empirical distributions on the selected partition. It does not by itself establish different invariant measures, ergodicity, mixing, or a change in chaoticity.
 
-21. Do not attribute changes in classical chaoticity, Lyapunov behaviour, or the regular-to-chaotic transition to ktheta. At fixed kr, interpret ktheta comparisons as trajectory/phase-space-geometry comparisons.
-22. When the user requests classical-quantum correspondence, use run_classical_quantum_comparison_tool with the supplied spin s, kr, ktheta, initial angles and kick count. Do not silently run it unless execution is requested or authorized.
-23. When the user requests a combined ergodic-hierarchy analysis of existing data, use diagnose_mixing_hierarchy with at least two exact trajectory CSV paths from distinct initial conditions. The tool cannot infer map parameters from coordinates, so verify that all files were generated with identical kr, ktheta and p. Do not silently generate new trajectories; ask for authorization if the required ensemble does not already exist.
-24. For a direct von Neumann mean-ergodicity question, use mean_ergodicity_langchain_tool. Prefer the nine-observable battery; a single observable may be symmetry-blind. Interpret D_N decay or a plateau only as finite-data evidence for the tested observables and sampled N,M. Report the Monte Carlo uncertainty and finite-sample limitations. Do not call this a proof of pointwise ergodicity or mixing.
+22. Do not attribute changes in classical chaoticity, Lyapunov behaviour, or the regular-to-chaotic transition to ktheta. At fixed kr, interpret ktheta comparisons as trajectory/phase-space-geometry comparisons.
+23. When the user requests classical-quantum correspondence, use run_classical_quantum_comparison_tool with the supplied spin s, kr, ktheta, initial angles and kick count. Do not silently run it unless execution is requested or authorized.
+24. When the user requests a combined ergodic-hierarchy analysis of existing data, use diagnose_mixing_hierarchy with at least two exact trajectory CSV paths from distinct initial conditions. The tool cannot infer map parameters from coordinates, so verify that all files were generated with identical kr, ktheta and p. Do not silently generate new trajectories; ask for authorization if the required ensemble does not already exist.
+25. For a direct von Neumann mean-ergodicity question, use mean_ergodicity_langchain_tool. Prefer the nine-observable battery; a single observable may be symmetry-blind. Interpret D_N decay or a plateau only as finite-data evidence for the tested observables and sampled N,M. Report the Monte Carlo uncertainty and finite-sample limitations. Do not call this a proof of pointwise ergodicity or mixing.
 
 
 RESEARCH WORKFLOW AND EXECUTION POLICY
@@ -383,6 +386,8 @@ def build_agent():
             run_lyapunov_parameter_scan,
             diagnose_mixing_hierarchy,
             mean_ergodicity_langchain_tool,
+            periodic_orbit_langchain_tool,
+            periodic_orbit_comparison_langchain_tool,
             search_research_evidence,
             read_research_csv_tool,
             run_quantum_entanglement_dynamics,

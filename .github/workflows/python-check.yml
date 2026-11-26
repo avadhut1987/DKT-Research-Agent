@@ -2,7 +2,7 @@ name: Python syntax checks
 
 on:
   push:
-    branches: [main, feature/entanglement-dynamics]
+    branches: [main, feature/entanglement-dynamics, feature/periodic-orbit-hierarchy]
   pull_request:
     branches: [main]
 

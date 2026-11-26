@@ -168,3 +168,6 @@ results/
 
 # Streamlit secrets
 .streamlit/secrets.toml
+
+# Julia periodic-orbit environment lockfile is generated locally
+scripts/julia/periodic_orbit_env/Manifest.toml
