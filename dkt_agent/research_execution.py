@@ -24,6 +24,7 @@ TOOL_MODES = {
     "read_research_csv_tool": "read_only",
     "summarize_research_csv": "read_only",
     "run_dkt_comparison_study": "new_numerical_data",
+    "run_dkt_geometry_ensemble_comparison": "new_numerical_data",
     "mean_ergodicity_langchain_tool": "new_numerical_data",
     "run_ergodicity_variance_study": "new_numerical_data",
 }
@@ -129,7 +130,8 @@ def _resolve_tool(tool_name: str):
                      "run_dkt_comparison_study"}:
         from dkt_agent import langchain_tools
         return getattr(langchain_tools, tool_name)
-    if tool_name in {"summarize_research_csv", "run_ergodicity_variance_study"}:
+    if tool_name in {"summarize_research_csv", "run_ergodicity_variance_study",
+                     "run_dkt_geometry_ensemble_comparison"}:
         from dkt_agent import research_tools
         return getattr(research_tools, tool_name)
     if tool_name == "mean_ergodicity_langchain_tool":
