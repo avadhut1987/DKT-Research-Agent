@@ -15,7 +15,12 @@ on:
     branches: [main]
     paths:
       - "dkt_agent/research_orchestrator.py"
+      - "dkt_agent/research_execution.py"
+      - "dkt_agent/research_tools.py"
+      - "dkt_agent/research_studio.py"
+      - "dkt_agent/agent.py"
       - "tests/python/test_research_orchestrator.py"
+      - "tests/python/test_research_execution.py"
       - ".github/workflows/research-orchestrator.yml"
 
 jobs:
