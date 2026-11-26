@@ -177,6 +177,13 @@ The application also includes a **Research Studio** for plan-first investigation
 
 The research planner is designed to preserve the model-specific scientific constraints, including the distinction between the roles of $k_r$ and $k_\theta$, and the limitations of finite-data ergodic-hierarchy diagnostics. See [Phase 3 product and interface principles](docs/PHASE3_PRODUCT_DESIGN.md).
 
+Research Studio now also supports persistent research campaigns. Each campaign records the plan, ordered stages, exact execution inputs, timestamps, results, errors and provenance, and can be resumed from the interface. Existing-evidence discovery is read-only; new numerical stages require explicit authorization and a separate execution action.
+
+For fixed-$k_r$ geometry studies, the workflow includes both a matched two-trajectory comparison and a matched-ensemble comparison. The ensemble comparison reuses the same uniformly sampled initial conditions for both $k_\\theta$ values and reports pooled and per-initial-condition Jensen–Shannon divergences on a common equal-area spherical partition. These are finite-sample distributional comparisons, not evidence of changed chaoticity or proof of distinct invariant measures.
+
+For direction-dependent ergodicity questions, the planner can propose observable-resolved mean-ergodicity and Birkhoff-variance diagnostics for $X,Y,Z$ and selected quadratic/cross observables. The outputs must remain observable-specific. The current samplers use the full uniform sphere; region-conditioned local ergodicity is not yet implemented, and full-sphere results must not be presented as local-region conclusions.
+
+
 The LangGraph research agent provides access to simulation and analysis tools through natural-language interaction.
 
 Capabilities include:
