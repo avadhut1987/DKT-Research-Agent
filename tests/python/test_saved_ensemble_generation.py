@@ -112,11 +112,11 @@ class TestSavedDktEnsembleGeneration(unittest.TestCase):
     def test_loads_legacy_five_column_csv_with_metadata_preamble(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "legacy.csv"
-            preamble = "".join(f"legacy metadata line {i}\\n" for i in range(16))
+            preamble = "".join(f"legacy metadata line {i}\n" for i in range(16))
             path.write_text(
                 preamble
-                + "0,0,0,1,1\\n"
-                + "1,0.1,0.1,0.9899494937,1\\n",
+                + "0,0,0,1,1\n"
+                + "1,0.1,0.1,0.9899494937,1\n",
                 encoding="utf-8",
             )
             points = mixing_tools._load_finite_hierarchy_trajectory(path)
