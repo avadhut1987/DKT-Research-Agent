@@ -161,20 +161,50 @@ def _render_execution(campaign: dict) -> None:
     )
     if evidence_complete and numerical_pending and not campaign.get("evidence_review"):
         with st.container(border=True):
-            st.markdown("**Evidence sufficiency checkpoint**")
+            st.markdown("**Evidence sufficiency checkpoint · review each stage**")
             st.write(
-                "Review the read-only search results above. Decide whether they already answer "
-                "the question, or whether the planned numerical work is still necessary."
+                "Reuse existing evidence for a stage or approve a new calculation. "
+                "A source, file path, run ID or result reference is required when reusing evidence."
             )
-            left, right = st.columns(2)
-            with left:
-                if st.button("Evidence is sufficient · stop here", key=f"evidence_stop_{campaign['campaign_id']}"):
-                    record_evidence_review(campaign, proceed_with_new_calculations=False)
-                    st.rerun()
-            with right:
-                if st.button("Evidence is insufficient · proceed to numerical work", type="primary",
-                             key=f"evidence_proceed_{campaign['campaign_id']}"):
-                    record_evidence_review(campaign, proceed_with_new_calculations=True)
+            stage_decisions: dict[int, dict[str, str]] = {}
+            with st.form(f"stage_evidence_review_{campaign['campaign_id']}"):
+                for item in stages:
+                    if item["execution_mode"] != "new_numerical_data":
+                        continue
+                    st.markdown(f"**{item['index'] + 1}. {_render_scientific_text(item['label'])}**")
+                    action = st.radio(
+                        "Decision",
+                        ["Run new calculation", "Covered by existing evidence"],
+                        index=0, horizontal=True,
+                        key=f"evidence_action_{campaign['campaign_id']}_{item['index']}",
+                    )
+                    note = st.text_input(
+                        "Existing evidence reference / reason for reuse",
+                        key=f"evidence_note_{campaign['campaign_id']}_{item['index']}",
+                        placeholder="e.g. results/trajectory_comparison.csv · prior run ID · manuscript figure",
+                        disabled=action == "Run new calculation",
+                    )
+                    stage_decisions[item["index"]] = {
+                        "action": "execute" if action == "Run new calculation" else "reuse",
+                        "note": note,
+                    }
+                submitted_review = st.form_submit_button(
+                    "Save stage-by-stage evidence review", type="primary", use_container_width=True
+                )
+            if submitted_review:
+                missing = [
+                    item["index"] + 1 for item in stages
+                    if item["execution_mode"] == "new_numerical_data"
+                    and stage_decisions[item["index"]]["action"] == "reuse"
+                    and not stage_decisions[item["index"]]["note"].strip()
+                ]
+                if missing:
+                    st.error(
+                        "Add an evidence reference for every reused stage "
+                        f"(stage(s): {', '.join(map(str, missing))})."
+                    )
+                else:
+                    record_evidence_review(campaign, stage_decisions=stage_decisions)
                     st.rerun()
         return
     if campaign.get("evidence_review", {}).get("decision") == "stop_existing_evidence_sufficient":
