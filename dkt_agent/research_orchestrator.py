@@ -46,15 +46,16 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
         scope = ["Hold k_r, p, initial-condition protocol and numerical settings fixed.",
                  "Vary k_theta only; interpret differences as phase-space/trajectory geometry, not changed chaoticity.",
                  "Do not attribute changes in Lyapunov exponents, KS entropy or the regular-to-chaotic transition to k_theta."]
-        steps.append(_step("2 · Controlled comparison", "run_dkt_comparison_study",
-            "A matched comparison isolates the change in k_theta at fixed k_r.",
-            ["k_r", "two k_theta values", "theta_0 and phi_0", "number of kicks", "p (default pi/2)"],
-            "Trajectory separation alone does not establish changed chaos, Lyapunov behaviour or ergodicity."))
         if _has(t, r"periodic", r"orbit"):
-            steps.append(_step("3 · Orbit-structure follow-up", "compare_dkt_periodic_orbits",
-                "Compare detected cycle geometry under the same fixed-k_r protocol.",
+            steps.append(_step("2 · Orbit-structure comparison", "compare_dkt_periodic_orbits",
+                "Compare detected periodic-orbit geometry directly at fixed k_r.",
                 ["k_r", "p", "maximum searched period", "seed count and tolerance"],
                 "Finite multistart searches are non-exhaustive; non-detection is not non-existence."))
+        else:
+            steps.append(_step("2 · Controlled trajectory comparison", "run_dkt_comparison_study",
+                "A matched comparison isolates the change in k_theta at fixed k_r.",
+                ["k_r", "two k_theta values", "theta_0 and phi_0", "number of kicks", "p (default pi/2)"],
+                "Trajectory separation alone does not establish changed chaos, Lyapunov behaviour or ergodicity."))
     elif _has(t, r"mean.?ergod", r"von neumann", r"l²", r"l\^2", r"d_n"):
         intent = "mean_ergodicity"
         scope = ["Treat mean ergodicity separately from Birkhoff/pointwise ergodicity and mixing.",
