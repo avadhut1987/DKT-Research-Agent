@@ -7,6 +7,15 @@ from typing import Any
 PLANNER_VERSION = "0.1.0"
 CAPABILITIES = {
     "search_research_evidence": ("Search existing research evidence", "read_only"),
+    "read_research_csv_tool": ("Inspect an existing research CSV", "read_only"),
+    "summarize_research_csv": ("Summarize an existing research CSV", "read_only"),
+    "run_dkt_simulation": ("Run one classical DKT trajectory", "new_numerical_data"),
+    "find_dkt_fixed_points": ("Fixed-point and local-stability search", "new_numerical_data"),
+    "diagnose_classical_trajectory": ("Finite-trajectory geometric diagnostics", "existing_data_required"),
+    "diagnose_observable_timeseries": ("Finite-record observable time-series diagnostics", "existing_data_required"),
+    "run_dkt_parameter_sweep": ("Controlled DKT parameter sweep", "new_numerical_data"),
+    "search_dkt_periodic_orbits": ("Primitive periodic-orbit search", "new_numerical_data"),
+    "compare_dkt_simulations": ("Compare two existing trajectories kick by kick", "existing_data_required"),
     "run_dkt_comparison_study": ("Controlled two-trajectory comparison", "new_numerical_data"),
     "compare_dkt_periodic_orbits": ("Fixed-k_r periodic-orbit geometry comparison", "new_numerical_data"),
     "mean_ergodicity_langchain_tool": ("von Neumann L² mean-ergodicity diagnostic", "new_numerical_data"),
@@ -41,7 +50,7 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             "Locate existing records before repeating calculations or quoting numerical results.",
             ["Focused keywords: parameters, observables, diagnostic and run identifier."],
             "Search results locate evidence; they do not validate a method or prove an asymptotic property."))
-    if _has(t, r"k[_\s-]?theta", r"kθ", r"asymmetry", r"phase.?space geometry") and _has(t, r"fixed\s*k[_\s-]?r", r"same\s*k[_\s-]?r", r"vary", r"compare", r"geometry"):
+    if _has(t, r"k[_\s-]?theta", r"kθ", r"asymmetry", r"phase.?space geometry") and _has(t, r"fixed\s*k[_\s-]?r", r"same\s*k[_\s-]?r", r"k[_\s-]?r\s*=", r"vary", r"compare", r"geometry"):
         intent = "fixed_kr_ktheta_geometry"
         scope = ["Hold k_r, p, initial-condition protocol and numerical settings fixed.",
                  "Vary k_theta only; interpret differences as phase-space/trajectory geometry, not changed chaoticity.",
@@ -114,6 +123,52 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             "Compare classical X,Y,Z with normalized quantum spin expectations.",
             ["Spin s", "k_r, k_theta, p", "theta_0, phi_0", "number of kicks"],
             "Finite-time mismatch is not itself a measure of classical chaos; entanglement is separate."))
+    elif _has(t, r"fixed point", r"fixed-point", r"stability point"):
+        intent = "fixed_point_analysis"
+        scope = ["Interpret local stability only for the numerically detected points.",
+                 "A finite seed search does not establish completeness or global ergodic properties."]
+        steps.append(_step("2 · Fixed-point search", "find_dkt_fixed_points",
+            "Use the tangent-space numerical search to locate candidate fixed points and assess local multipliers.",
+            ["k_r, k_theta, p", "seed count", "tolerance", "iteration limit"],
+            "A finite multistart search may miss roots; local stability is not a global classification."))
+    elif _has(t, r"periodic orbit", r"periodic-orbit", r"primitive period"):
+        intent = "periodic_orbit_search"
+        steps.append(_step("2 · Periodic-orbit search", "search_dkt_periodic_orbits",
+            "Search numerically for primitive cycles over the requested period range.",
+            ["k_r, k_theta, p", "maximum period", "seed count", "tolerance", "random seed"],
+            "The finite multistart search is non-exhaustive; failure to detect an orbit does not show it does not exist."))
+    elif _has(t, r"correlation dimension", r"box.?count", r"trajectory geometry", r"fractal dimension"):
+        intent = "trajectory_geometry"
+        steps.append(_step("2 · Trajectory geometry", "diagnose_classical_trajectory",
+            "Estimate finite-trajectory geometric scaling from an existing orbit.",
+            ["Exact trajectory CSV path", "Theiler window", "pair count", "random seed"],
+            "Scaling fits depend on the selected range and finite record; neither estimate proves ergodicity or mixing."))
+    elif _has(t, r"time series", r"timeseries", r"birkhoff average", r"observable average", r"block variance"):
+        intent = "observable_timeseries"
+        steps.append(_step("2 · Observable time-series analysis", "diagnose_observable_timeseries",
+            "Calculate finite-record averages, block fluctuations and selected autocorrelations.",
+            ["Exact trajectory CSV path", "transient", "maximum lag", "optional block sizes"],
+            "Finite-record averages and correlations are not infinite-time Birkhoff limits or proofs of mixing."))
+    elif _has(t, r"empirical measure", r"jensen.?shannon", r"phase.?space distribution"):
+        intent = "empirical_measure_comparison"
+        steps.append(_step("2 · Empirical measure comparison", "compare_trajectory_measures",
+            "Compare finite sampled distributions on a common equal-area spherical partition.",
+            ["2–10 exact trajectory CSV paths", "matched observation windows", "partition resolution"],
+            "A finite-partition divergence does not establish distinct invariant measures or changed chaoticity."))
+        gates.append("Confirm that the selected trajectory files use compatible parameters, transients and observation windows.")
+    elif _has(t, r"inspect.*csv", r"read.*csv", r"csv.*column", r"csv.*record"):
+        intent = "research_csv_inspection"
+        steps.append(_step("2 · Read-only CSV inspection", "read_research_csv_tool",
+            "Inspect original column names and records from the exact path found in the evidence search.",
+            ["Exact relative CSV path returned by evidence search", "maximum rows to inspect"],
+            "A partial CSV read must be identified as partial; retrieved records do not validate the underlying method."))
+        gates.append("Use the exact path returned by search_research_evidence; do not reconstruct filenames.")
+    elif _has(t, r"parameter sweep", r"sweep.*parameter", r"scan.*phase space"):
+        intent = "parameter_sweep"
+        steps.append(_step("2 · Controlled parameter sweep", "run_dkt_parameter_sweep",
+            "Compare finite empirical phase-space measures while varying one parameter at a time.",
+            ["Sweep k_r or k_theta", "2–8 parameter values", "fixed remaining parameters", "initial-condition protocol", "kick count"],
+            "A finite sweep compares sampled measures; it does not prove invariant-measure or hierarchy claims."))
     else:
         scope = ["Start with the narrowest relevant existing evidence.",
                  "Choose diagnostics only after the target claim, observable and parameter regime are clear."]
