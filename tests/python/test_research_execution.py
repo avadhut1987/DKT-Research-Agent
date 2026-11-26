@@ -34,6 +34,50 @@ class TestResearchExecution(unittest.TestCase):
                     )
                 self.assertEqual(campaign["stages"][0]["status"], "pending")
 
+
+    def test_late_authorization_is_persisted_and_audited(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan(
+                    "Compare ktheta=0 and 10000 at fixed kr=1 for trajectory geometry."
+                )
+                campaign = execution.create_campaign(plan)
+                self.assertEqual(campaign["execution_authorization"], "not_authorized")
+
+                execution.record_execution_authorization(campaign, authorized=True)
+                loaded = execution.load_campaign(campaign["campaign_id"])
+
+                self.assertEqual(loaded["execution_authorization"], "authorized_by_user")
+                self.assertIsNotNone(loaded["execution_authorized_at"])
+                self.assertTrue(any(
+                    event["event"] == "execution_authorization_recorded"
+                    and event["decision"] == "authorized_by_user"
+                    for event in loaded["events"]
+                ))
+
+                class FakeTool:
+                    def invoke(self, arguments):
+                        return '{"status":"success"}'
+
+                with patch.object(execution, "_resolve_tool", return_value=FakeTool()):
+                    updated = execution.execute_campaign_stage(
+                        loaded, 0, {"kr": 1.0}, execution_authorized=True
+                    )
+                self.assertEqual(updated["stages"][0]["status"], "completed")
+
+    def test_boolean_flag_alone_cannot_bypass_campaign_authorization(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan(
+                    "Compare ktheta=0 and 10000 at fixed kr=1 for trajectory geometry."
+                )
+                campaign = execution.create_campaign(plan)
+                with self.assertRaises(PermissionError):
+                    execution.execute_campaign_stage(
+                        campaign, 0, {"kr": 1.0}, execution_authorized=True
+                    )
+                self.assertEqual(campaign["stages"][0]["status"], "pending")
+
     def test_unknown_tool_is_rejected_before_execution(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
@@ -92,6 +136,7 @@ class TestResearchExecution(unittest.TestCase):
                 execution.record_evidence_review(
                     campaign, proceed_with_new_calculations=True
                 )
+                execution.record_execution_authorization(campaign, authorized=True)
 
                 class FakeTool:
                     def invoke(self, arguments):
