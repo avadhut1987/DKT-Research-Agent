@@ -162,6 +162,14 @@ def execute_campaign_stage(
         raise ValueError("Complete earlier workflow stages before executing this stage.")
     tool_name = stage["tool"]
     mode = TOOL_MODES.get(tool_name)
+    evidence_was_searched = any(
+        item.get("tool") == "search_research_evidence" and item.get("status") == "completed"
+        for item in stages[:stage_index]
+    )
+    if mode == "new_numerical_data" and evidence_was_searched:
+        review = campaign.get("evidence_review", {}).get("decision")
+        if review != "proceed_with_new_calculations":
+            raise PermissionError("Review the read-only evidence and explicitly decide whether new calculations are still needed.")
     if mode is None or mode != stage["execution_mode"]:
         raise ValueError("The planned tool/mode is not enabled by the execution policy.")
     if mode == "new_numerical_data" and not execution_authorized:
@@ -209,6 +217,28 @@ def execute_campaign_stage(
         })
         _save(campaign)
         raise
+
+
+def record_evidence_review(campaign: dict[str, Any], *, proceed_with_new_calculations: bool) -> None:
+    """Persist a human review decision after read-only evidence discovery."""
+    if not isinstance(proceed_with_new_calculations, bool):
+        raise ValueError("Evidence-review decision must be boolean.")
+    evidence_stages = [
+        stage for stage in campaign.get("stages", [])
+        if stage.get("tool") == "search_research_evidence"
+    ]
+    if not evidence_stages or any(stage.get("status") != "completed" for stage in evidence_stages):
+        raise ValueError("Complete read-only evidence discovery before recording its review.")
+    decision = (
+        "proceed_with_new_calculations"
+        if proceed_with_new_calculations else "stop_existing_evidence_sufficient"
+    )
+    campaign["evidence_review"] = {"decision": decision, "reviewed_at": _now()}
+    campaign.setdefault("events", []).append({
+        "at": _now(), "event": "evidence_review_recorded", "decision": decision,
+    })
+    campaign["status"] = "paused" if proceed_with_new_calculations else "completed_existing_evidence"
+    _save(campaign)
 
 
 def save_campaign(campaign: dict[str, Any]) -> None:
