@@ -227,6 +227,8 @@ class TestResearchExecution(unittest.TestCase):
                     def invoke(self, arguments):
                         return '{"status":"success","geometry_only":true}'
 
+                execution.record_execution_authorization(loaded, authorized=True)
+                loaded = execution.load_campaign(campaign["campaign_id"])
                 with patch.object(execution, "_resolve_tool", return_value=FakeTool()):
                     updated = execution.execute_campaign_stage(
                         loaded, 2, {"kr": 1.0}, execution_authorized=True
@@ -272,7 +274,7 @@ class TestResearchExecution(unittest.TestCase):
                         2: {"action": "execute", "note": ""},
                     },
                 )
-                with self.assertRaises(PermissionError):
+                with self.assertRaises(ValueError):
                     execution.execute_campaign_stage(
                         campaign, 1, {"kr": 1.0}, execution_authorized=True
                     )
