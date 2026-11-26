@@ -330,7 +330,7 @@ class TestResearchExecution(unittest.TestCase):
     def test_failed_tool_payload_is_not_recorded_as_completed(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
-                plan = build_research_plan("Find DKT fixed points.")
+                plan = build_research_plan("Search existing evidence for DKT fixed points.")
                 campaign = execution.create_campaign(plan)
 
                 class FailedTool:
