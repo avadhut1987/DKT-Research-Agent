@@ -34,11 +34,11 @@ def _render_scientific_text(value: str) -> str:
 
     rendered = re.sub(r"\$[^$]+\$", protect_math, value)
     replacements = (
-        (r"\bk[_\s-]*theta\b", r"$k_\theta$"),
+        (r"\bk(?:[_\s-]*theta|θ)\b", r"$k_\theta$"),
         (r"\bk[_\s-]*r\b", r"$k_r$"),
-        (r"\btheta[_\s-]*0\b", r"$\theta_0$"),
-        (r"\bphi[_\s-]*0\b", r"$\phi_0$"),
-        (r"\bpi\s*/\s*2\b", r"$\pi/2$"),
+        (r"\b(?:theta|θ)[_\s-]*0\b", r"$\theta_0$"),
+        (r"\b(?:phi|φ)[_\s-]*0\b", r"$\phi_0$"),
+        (r"(?:\bpi|π)\s*/\s*2\b", r"$\pi/2$"),
         (r"\blambda[_\s-]*1\b", r"$\lambda_1$"),
         (r"\blambda[_\s-]*2\b", r"$\lambda_2$"),
         (r"\bL\s*\^?\s*2\b", r"$L^2$"),
