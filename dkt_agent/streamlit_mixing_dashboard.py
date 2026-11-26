@@ -308,7 +308,7 @@ def render_mixing_hierarchy_dashboard() -> None:
         "L² mean ergodicity",
         "Birkhoff variance",
         "Weak-mixing indicators",
-        "Finite-partition α",
+        "Finite-partition alpha coefficient",
         "Tables & downloads",
     ])
 
