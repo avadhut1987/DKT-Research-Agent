@@ -49,6 +49,65 @@ def _label(kr, kt, p, N, M, seed):
     return f"kr{kr:g}_kt{kt:g}_p{p:.4f}_N{N}_M{M}_seed{seed}"
 
 
+def save_mean_ergodic_artifacts(
+    k_r: float,
+    k_theta: float,
+    observables: Sequence[str],
+    n_kicks: int,
+    n_initial_conditions: int,
+    p: float,
+    seed: int,
+    results: dict,
+    summary: dict,
+    results_root: Optional[str] = None,
+) -> dict:
+    """Build a serialisable summary and save artifacts from already-computed results.
+
+    This lets the Streamlit panel save its in-memory calculation without
+    running the comparatively expensive trajectory ensemble a second time.
+    """
+    per_obs = {}
+    for o, r in results.items():
+        D, se = r.D_final
+        per_obs[o] = dict(
+            D_final=_f(D), D_standard_error=_f(se), D_over_variance=_f(summary["rel_D"][o]),
+            tail_exponent_alpha=_f(r.alpha), tail_exponent_error=_f(r.alpha_err),
+            verdict=r.verdict, observable_mean=_f(r.obs.mean), observable_variance=_f(r.obs.var),
+        )
+    out = dict(
+        diagnostic="von Neumann mean ergodicity (L2)",
+        parameters=dict(k_r=k_r, k_theta=k_theta, k=k_r + k_theta, k_prime=k_r - k_theta,
+                        p=p, n_kicks=n_kicks, n_initial_conditions=n_initial_conditions,
+                        seed=seed),
+        observables=per_obs,
+        worst_observable=summary["worst_observable"],
+        worst_D_over_variance=_f(summary["worst_rel_D"]),
+        all_observables_decay=bool(summary["all_decay"]),
+        caveat=CAVEAT,
+        created=datetime.now().isoformat(timespec="seconds"),
+        artifacts={},
+    )
+    d = Path(results_root or RESULTS_ROOT) / _label(
+        k_r, k_theta, p, n_kicks, n_initial_conditions, seed
+    )
+    d.mkdir(parents=True, exist_ok=True)
+    for o, r in results.items():
+        render(r, str(d / f"mean_ergodicity_{o}.png"))
+        with open(d / f"D_N_{o}.csv", "w", newline="") as fh:
+            w = csv.writer(fh)
+            w.writerow(["N", "D_direct", "D_standard_error", "D_from_autocorrelation"])
+            for row in zip(r.Ns, r.D, r.D_se, r.D_corr):
+                w.writerow([int(row[0])] + [f"{v:.10e}" for v in row[1:]])
+    if len(results) > 1:
+        render_battery({f"k_r={k_r:g}, k_θ={k_theta:g}": summary["rel_D"]},
+                       str(d / "battery_summary.png"))
+    names = {q.name for q in d.iterdir()} | {"mean_ergodicity_summary.json"}
+    out["artifacts"] = {"directory": str(d), "files": sorted(names)}
+    with open(d / "mean_ergodicity_summary.json", "w") as fh:
+        json.dump(out, fh, indent=2)
+    return out
+
+
 def run_mean_ergodic_diagnostic(
     k_r: float,
     k_theta: float = 0.0,
@@ -71,46 +130,18 @@ def run_mean_ergodic_diagnostic(
         kr=k_r, ktheta=k_theta, observables=observables,
         N=n_kicks, M=n_initial_conditions, seed=seed, p=p,
     )
-    per_obs = {}
-    for o, r in results.items():
-        D, se = r.D_final
-        per_obs[o] = dict(
-            D_final=_f(D), D_standard_error=_f(se), D_over_variance=_f(summary["rel_D"][o]),
-            tail_exponent_alpha=_f(r.alpha), tail_exponent_error=_f(r.alpha_err),
-            verdict=r.verdict, observable_mean=_f(r.obs.mean), observable_variance=_f(r.obs.var),
+    if not save:
+        # Use the same summary schema without creating output files.
+        out = save_mean_ergodic_artifacts(
+            k_r, k_theta, observables, n_kicks, n_initial_conditions, p, seed,
+            results, summary, results_root=results_root,
         )
-    out = dict(
-        diagnostic="von Neumann mean ergodicity (L2)",
-        parameters=dict(k_r=k_r, k_theta=k_theta, k=k_r + k_theta, k_prime=k_r - k_theta,
-                        p=p, n_kicks=n_kicks, n_initial_conditions=n_initial_conditions,
-                        seed=seed),
-        observables=per_obs,
-        worst_observable=summary["worst_observable"],
-        worst_D_over_variance=_f(summary["worst_rel_D"]),
-        all_observables_decay=bool(summary["all_decay"]),
-        caveat=CAVEAT,
-        created=datetime.now().isoformat(timespec="seconds"),
-        artifacts={},
+        out["artifacts"] = {}
+        return out
+    return save_mean_ergodic_artifacts(
+        k_r, k_theta, observables, n_kicks, n_initial_conditions, p, seed,
+        results, summary, results_root=results_root,
     )
-    if save:
-        d = Path(results_root or RESULTS_ROOT) / _label(k_r, k_theta, p, n_kicks, n_initial_conditions, seed)
-        d.mkdir(parents=True, exist_ok=True)
-        for o, r in results.items():
-            render(r, str(d / f"mean_ergodicity_{o}.png"))
-            with open(d / f"D_N_{o}.csv", "w", newline="") as fh:
-                w = csv.writer(fh)
-                w.writerow(["N", "D_direct", "D_standard_error", "D_from_autocorrelation"])
-                for row in zip(r.Ns, r.D, r.D_se, r.D_corr):
-                    w.writerow([int(row[0])] + [f"{v:.10e}" for v in row[1:]])
-        if len(results) > 1:
-            render_battery({f"k_r={k_r:g}, k_θ={k_theta:g}": summary["rel_D"]},
-                           str(d / "battery_summary.png"))
-        names = {q.name for q in d.iterdir()} | {"mean_ergodicity_summary.json"}
-        out["artifacts"] = {"directory": str(d), "files": sorted(names)}
-        with open(d / "mean_ergodicity_summary.json", "w") as fh:
-            json.dump(out, fh, indent=2)
-    return out
-
 
 def format_for_agent(result: dict) -> str:
     """Compact text for the LLM: numbers, verdicts, caveat."""
