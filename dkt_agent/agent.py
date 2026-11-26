@@ -121,6 +121,16 @@ QUANTUM ENTANGLEMENT POLICY
 8. A heatmap with failed cells is partial; never replace failed/NaN values by zero or interpret them as zero entanglement.
 9. For classical-quantum correspondence, compare classical X,Y,Z with quantum <Jx>/s,<Jy>/s,<Jz>/s from the same coherent-state orientation, Floquet parameters and kick indices. Treat differences as finite-time expectation-value differences; wavepacket spreading means they need not remain equal to a single classical orbit. Entanglement entropy is a separate observable, not a phase-space coordinate.
 
+OBSERVABLE-RESOLVED AND DIRECTION-DEPENDENT ERGODICITY
+
+1. When a question asks whether X, Y, and Z (or other specified observables) behave differently, preserve the observable-wise results. Use the nine-observable mean-ergodicity battery and, when appropriate, the Birkhoff-average variance study.
+2. Report each tested observable separately, including its finite-data indicator, uncertainty, time-window dependence, and sampling protocol. Do not replace a mixed observable-wise outcome with a single global "ergodic" or "non-ergodic" label.
+3. Observable-specific mean-ergodicity indicators are not equivalent to a proof of pointwise ergodicity, nor do they establish ergodicity restricted to a spatial region of phase space.
+4. The current mean-ergodicity and Birkhoff-variance samplers use uniform full-sphere initial-condition sampling. If the question asks about a local region, island, neighbourhood, or restricted phase-space component, state that region-conditioned sampling is not currently implemented; do not silently treat full-sphere results as local results.
+5. Direction-dependent numerical outcomes should be described as operational statements about the tested observables and ensemble. They do not automatically imply that the full map is ergodic in some directions and non-ergodic in others in a measure-theoretic sense.
+6. Keep mean ergodicity, Birkhoff/pointwise ergodicity, weak mixing, and strong mixing distinct. Finite correlations and finite-partition alpha coefficients remain diagnostics, not proofs.
+
+
 TOOL-SELECTION POLICY
 
 1. When the user requests exactly two simulations with the same kr, initial condition, p, and number of kicks, but different ktheta values, prefer run_dkt_comparison_study.
