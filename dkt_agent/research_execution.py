@@ -93,7 +93,18 @@ def create_campaign(plan: dict[str, Any]) -> dict[str, Any]:
             }
             for i, step in enumerate(plan.get("workflow", []))
         ],
-        "events": [{"at": _now(), "event": "campaign_created"}],
+        "events": [
+            {"at": _now(), "event": "campaign_created"},
+            *(
+                [{
+                    "at": _now(),
+                    "event": "execution_authorization_recorded",
+                    "decision": "authorized_by_user",
+                }]
+                if plan.get("execution_authorization") == "authorized_by_user"
+                else []
+            ),
+        ],
     }
     _save(campaign)
     return campaign
