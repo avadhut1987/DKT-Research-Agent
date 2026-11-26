@@ -1707,7 +1707,7 @@ with compare_tab:
         key="ws_comparison_type",
     )
 
-    if comparison_type == "Compare kθ values at fixed kr":
+    if comparison_type == "Compare asymmetry values at fixed average kicking strength":
         st.markdown(
             r"Compare trajectories at fixed $k_r$, varying $k_\theta$. "
             r"This examines phase-space geometry at a fixed degree of classical chaos."
@@ -1766,7 +1766,7 @@ with compare_tab:
                 "compare",
             )
 
-    elif comparison_type == "Compare kr values at fixed kθ":
+    elif comparison_type == "Compare average kicking strengths at fixed asymmetry":
         st.markdown(
             r"Compare trajectories at fixed $k_\theta$, varying $k_r$. "
             r"This allows comparisons across different classical dynamical regimes."
