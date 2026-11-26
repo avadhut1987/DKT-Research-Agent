@@ -73,9 +73,29 @@ st.set_page_config(
 st.markdown("""
 <style>
 .block-container {
-    max-width: 1100px;
-    padding-top: 2rem;
+    max-width: 1320px;
+    padding-top: 1.5rem;
     padding-bottom: 3rem;
+}
+[data-testid="stSidebar"] {
+    border-right: 1px solid rgba(128,128,128,.14);
+}
+.stTabs [data-baseweb="tab-list"] {
+    gap: .35rem;
+    border-bottom: 1px solid rgba(128,128,128,.18);
+}
+.stTabs [data-baseweb="tab"] {
+    padding: .65rem 1rem;
+    border-radius: 9px 9px 0 0;
+}
+div[data-testid="stMetric"] {
+    border: 1px solid rgba(128,128,128,.18);
+    border-radius: 12px;
+    padding: .75rem .9rem;
+    background: rgba(128,128,128,.035);
+}
+div[data-testid="stForm"], div[data-testid="stExpander"] {
+    border-radius: 12px;
 }
 [data-testid="stChatMessage"] {
     border: 1px solid rgba(128,128,128,.18);
@@ -87,8 +107,7 @@ st.markdown("""
 
 st.title("⚛️ DKT Research Assistant")
 st.caption(
-    "A research interface for Double Kicked Top simulations, "
-    "analysis, and evidence retrieval."
+    "Classical dynamics  ·  Quantum entanglement  ·  Ergodic hierarchy  ·  Research evidence"
 )
 
 
@@ -1124,12 +1143,12 @@ with st.sidebar:
                 value=0.0, step=100.0, format="%.4f",
             )
             sim_theta0 = st.number_input(
-                "Initial theta (radians)",
+                r"Initial polar angle $\theta_0$ (radians)",
                 min_value=0.0, max_value=3.141592653589793,
                 value=1.5707963268, step=0.05,
             )
             sim_phi0 = st.number_input(
-                "Initial phi (radians)",
+                r"Initial azimuth $\phi_0$ (radians)",
                 min_value=-3.141592653589793,
                 max_value=3.141592653589793,
                 value=-1.5707963268, step=0.05,
@@ -1573,7 +1592,14 @@ with diagnose_tab:
                 with c1:
                     d_lyap_steps = st.number_input("Total kicks", min_value=100, max_value=500000, value=20000, step=1000, key="ws_lyap_steps")
                 with c2:
-                    d_lyap_transient = st.number_input("Transient kicks to discard", min_value=0, max_value=499900, value=1000, step=100, key="ws_lyap_transient")
+                    d_lyap_transient = st.number_input(
+                        "Transient kicks to discard",
+                        min_value=0,
+                        max_value=int(d_lyap_steps) - 100,
+                        value=min(1000, int(d_lyap_steps) - 100),
+                        step=100,
+                        key="ws_lyap_transient",
+                    )
                 with c3:
                     d_lyap_timeout = st.number_input("Timeout (seconds)", min_value=1, max_value=3600, value=900, step=30, key="ws_lyap_timeout")
             elif diagnostic == "Autocorrelation and mixing diagnostics":
@@ -1601,7 +1627,14 @@ with diagnose_tab:
                 with c2:
                     d_birk_steps = st.number_input("Total kicks", min_value=100, max_value=50000, value=10000, step=500, key="ws_birk_steps")
                 with c3:
-                    d_birk_transient = st.number_input("Transient kicks to discard", min_value=0, max_value=49999, value=1000, step=100, key="ws_birk_transient")
+                    d_birk_transient = st.number_input(
+                        "Transient kicks to discard",
+                        min_value=0,
+                        max_value=int(d_birk_steps) - 2,
+                        value=min(1000, int(d_birk_steps) - 2),
+                        step=100,
+                        key="ws_birk_transient",
+                    )
                 d_birk_seed = st.number_input("Random seed", min_value=0, value=20261124, step=1, key="ws_birk_seed")
             diagnose_submit = st.form_submit_button("Run diagnostic", type="primary", width="stretch")
         if diagnose_submit:
@@ -1861,26 +1894,30 @@ with compare_tab:
                     step=1.0, key="ws_cq_s",
                 )
                 cq_kr = st.number_input(
-                    "kr", value=1.0, step=0.1,
+                    r"Average kicking strength $k_r$", value=1.0, step=0.1,
                     key="ws_cq_kr",
                 )
                 cq_kt = st.number_input(
-                    "ktheta", value=0.0, step=100.0,
+                    r"Asymmetry parameter $k_\theta$", value=0.0, step=100.0,
                     key="ws_cq_kt",
                 )
             with c2:
                 cq_theta = st.number_input(
-                    "Initial theta", value=0.75,
+                    r"Initial polar angle $\theta_0$", value=0.75,
                     key="ws_cq_theta",
                 )
                 cq_phi = st.number_input(
-                    "Initial phi", value=-1.0,
+                    r"Initial azimuth $\phi_0$", value=-1.0,
                     key="ws_cq_phi",
                 )
                 cq_n = st.number_input(
                     "Number of kicks", min_value=1,
                     max_value=100000, value=1000, step=100,
                     key="ws_cq_n",
+                )
+                cq_p = st.number_input(
+                    r"Rotation angle $p$", value=1.5707963267948966,
+                    step=0.05, key="ws_cq_p",
                 )
 
             cq_run = st.form_submit_button(
@@ -1898,7 +1935,7 @@ with compare_tab:
                     "theta0": float(cq_theta),
                     "phi0": float(cq_phi),
                     "nsteps": int(cq_n),
-                    "p": 1.5707963267948966,
+                    "p": float(cq_p),
                 },
                 "compare",
             )
