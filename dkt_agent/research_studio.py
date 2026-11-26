@@ -46,7 +46,12 @@ def _render_scientific_text(value: str) -> str:
         (r"\bDelta[_\s-]*phi\b", r"$\Delta\phi$"),
     )
     for pattern, replacement in replacements:
-        rendered = re.sub(pattern, replacement, rendered, flags=re.IGNORECASE)
+        rendered = re.sub(
+            pattern,
+            lambda _match, latex=replacement: latex,
+            rendered,
+            flags=re.IGNORECASE,
+        )
     for index, original in enumerate(protected):
         rendered = rendered.replace(f"\x00MATH{index}\x00", original)
     return rendered
