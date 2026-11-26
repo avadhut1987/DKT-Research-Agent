@@ -51,8 +51,9 @@ def render_research_studio() -> None:
                 st.caption(step["why_this_step"])
             with c2:
                 st.caption(step["execution_mode"].replace("_", " ").title())
-            st.code(step["tool"], language="text")
-            with st.expander("Required inputs and scientific caveat"):
+            with st.expander("Required inputs, method and scientific caveat"):
+                st.caption("Technical tool")
+                st.code(step["tool"], language="text")
                 st.markdown("**Required inputs**")
                 for item in step["required_inputs"]:
                     st.markdown(f"- {item}")
