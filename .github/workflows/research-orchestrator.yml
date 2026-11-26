@@ -11,6 +11,7 @@ on:
       - "tests/python/test_research_orchestrator.py"
       - "tests/python/test_research_execution.py"
       - "tests/python/test_streamlit_math_notation.py"
+      - "tests/python/test_streamlit_research_presentation.py"
       - ".github/workflows/research-orchestrator.yml"
   push:
     branches: [main]
@@ -44,3 +45,5 @@ jobs:
         run: PYTHONPATH=. python tests/python/test_research_execution.py
       - name: Run Streamlit mathematical-notation tests
         run: PYTHONPATH=. python -m pytest -q tests/python/test_streamlit_math_notation.py
+      - name: Run Research Studio presentation tests
+        run: PYTHONPATH=. python -m pytest -q tests/python/test_streamlit_research_presentation.py
