@@ -111,3 +111,15 @@ def test_p_parameter_default_is_exact_pi_over_2():
     assert all(np.array_equal(u, v) for u, v in zip(a, b))
     c = dkt_step(x, y, z, 2.0, 1.0, p=0.7)            # other p: still on the sphere
     assert np.max(np.abs(c[0] ** 2 + c[1] ** 2 + c[2] ** 2 - 1)) < 1e-12
+
+def test_tool_layer_save_false_does_not_write_artifacts(tmp_path):
+    from dkt_agent.mean_ergodicity_tools import run_mean_ergodic_diagnostic
+
+    out = run_mean_ergodic_diagnostic(
+        0.75, 0.0, ("z",), n_kicks=128,
+        n_initial_conditions=100, seed=2, save=False,
+        results_root=str(tmp_path),
+    )
+    assert out["artifacts"] == {}
+    assert list(tmp_path.iterdir()) == []
+
