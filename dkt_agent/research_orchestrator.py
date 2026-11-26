@@ -149,7 +149,7 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             "Calculate finite-record averages, block fluctuations and selected autocorrelations.",
             ["Exact trajectory CSV path", "transient", "maximum lag", "optional block sizes"],
             "Finite-record averages and correlations are not infinite-time Birkhoff limits or proofs of mixing."))
-    elif _has(t, r"empirical measure", r"jensen.?shannon", r"phase.?space distribution"):
+    elif _has(t, r"empirical.*measure", r"jensen.?shannon", r"phase.?space distribution"):
         intent = "empirical_measure_comparison"
         steps.append(_step("2 · Empirical measure comparison", "compare_trajectory_measures",
             "Compare finite sampled distributions on a common equal-area spherical partition.",
