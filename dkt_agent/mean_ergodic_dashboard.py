@@ -14,11 +14,14 @@ from dkt_agent.mean_ergodicity import DEFAULT_BATTERY, mean_ergodic_battery, ren
 from dkt_agent.mean_ergodicity_tools import CAVEAT, save_mean_ergodic_artifacts
 
 
-def render_mean_ergodic_panel(title: str = "Mean ergodicity (von Neumann L² diagnostic)"):
+def render_mean_ergodic_panel(title: str = "Mean ergodicity (von Neumann L² diagnostic)", *, in_tab: bool = False):
+    from contextlib import nullcontext
+
     import pandas as pd
     import streamlit as st
 
-    with st.expander(title, expanded=False):
+    panel = nullcontext() if in_tab else st.expander(title, expanded=False)
+    with panel:
         st.markdown(
             "Estimates **D_N = ‖A_N f − ⟨f⟩‖²** (mean-square distance of the time average "
             "from the phase-space average) over uniformly sampled initial conditions. "
