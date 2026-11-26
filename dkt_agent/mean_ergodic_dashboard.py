@@ -18,7 +18,7 @@ def render_mean_ergodic_panel(
     *,
     in_tab: bool = False,
 ) -> None:
-    """Render the independent L² mean-ergodicity sampling workflow."""
+    """Render the independent L2 mean-ergodicity sampling workflow."""
     panel = nullcontext() if in_tab else st.expander(title, expanded=False)
 
     with panel:
