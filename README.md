@@ -143,9 +143,9 @@ The Julia-backed quantum tools provide:
 
 The normalized subsystem entropy is
 
-$
+$$
 s_A = \frac{S_A}{\log_2[\min(Q+1,N-Q+1)]},
-$
+$$
 
 where $N=2s$ and $Q$ denotes the subsystem size used in the bipartition.
 
@@ -195,17 +195,17 @@ The agent is intended to assist with computational research and evidence-based a
 
 ## Scientific Parameter Convention
 
-The DKT kicking parameters are defined as
+The DKT kicking parameters are defined as 
 
-$
+$$
 k_r = \frac{k+k'}{2}, \qquad k_\theta = \frac{k-k'}{2},
-$
+$$
 
-so that
+so that 
 
-$
+$$
 k=k_r+k_\theta, \qquad k'=k_r-k_\theta.
-$
+$$
 
 The distinction between these parameters is central to the research:
 
