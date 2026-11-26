@@ -23,6 +23,8 @@ on:
       - "dkt_agent/agent.py"
       - "tests/python/test_research_orchestrator.py"
       - "tests/python/test_research_execution.py"
+      - "tests/python/test_streamlit_math_notation.py"
+      - "tests/python/test_streamlit_research_presentation.py"
       - ".github/workflows/research-orchestrator.yml"
 
 jobs:
