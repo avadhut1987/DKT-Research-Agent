@@ -17,6 +17,7 @@ CAPABILITIES = {
     "search_dkt_periodic_orbits": ("Primitive periodic-orbit search", "new_numerical_data"),
     "compare_dkt_simulations": ("Compare two existing trajectories kick by kick", "existing_data_required"),
     "run_dkt_comparison_study": ("Controlled two-trajectory comparison", "new_numerical_data"),
+    "run_dkt_geometry_ensemble_comparison": ("Matched-ensemble phase-space geometry comparison", "new_numerical_data"),
     "compare_dkt_periodic_orbits": ("Fixed-k_r periodic-orbit geometry comparison", "new_numerical_data"),
     "mean_ergodicity_langchain_tool": ("von Neumann L² mean-ergodicity diagnostic", "new_numerical_data"),
     "run_ergodicity_variance_study": ("Birkhoff-average ensemble variance", "new_numerical_data"),
@@ -83,6 +84,10 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
                 "A matched comparison isolates the change in k_theta at fixed k_r.",
                 ["k_r", "two k_theta values", "theta_0 and phi_0", "number of kicks", "p (default pi/2)"],
                 "Trajectory separation alone does not establish changed chaos, Lyapunov behaviour or ergodicity."))
+            steps.append(_step("3 · Matched-ensemble geometry comparison", "run_dkt_geometry_ensemble_comparison",
+                "Compare pooled empirical phase-space distributions using the same uniform-sphere initial conditions for both k_theta values.",
+                ["k_r", "two k_theta values", "matched ensemble size and random seed", "kick count", "equal-area spherical partition", "p"],
+                "Finite-partition Jensen-Shannon divergence measures sampled distributional differences; it does not prove distinct invariant measures, local ergodicity or changed chaoticity."))
     elif _has(t, r"mean.?ergod", r"von neumann", r"l²", r"l\^2", r"d_n"):
         intent = "mean_ergodicity"
         scope = ["Treat mean ergodicity separately from Birkhoff/pointwise ergodicity and mixing.",
