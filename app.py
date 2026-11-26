@@ -201,7 +201,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             {"Setting": "Maximum iterations",
              "Value": parameters.get("max_iterations")},
         ])
-        st.dataframe(settings, use_container_width=True, hide_index=True)
+        st.dataframe(settings, width="stretch", hide_index=True)
 
         if points:
             st.markdown("**Fixed-point coordinates and stability**")
@@ -214,7 +214,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             columns = [c for c in preferred if c in frame.columns]
             st.dataframe(
                 frame[columns],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -310,7 +310,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             st.markdown("**Trajectory-averaged observables**")
             st.dataframe(
                 pd.DataFrame(statistics_rows),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -433,7 +433,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                 })
             st.dataframe(
                 pd.DataFrame(rows),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -479,7 +479,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             if norm_rows:
                 st.dataframe(
                     pd.DataFrame(norm_rows),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -528,7 +528,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             path = artifacts.get(key)
             if path and Path(path).is_file():
                 st.markdown(f"**{title}**")
-                st.image(str(path), use_container_width=True)
+                st.image(str(path), width="stretch")
 
         for key, label in [
             ("correlation_curve_csv", "Download correlation curve CSV"),
@@ -567,7 +567,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                 })
             st.dataframe(
                 pd.DataFrame(rows),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -585,7 +585,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             fluctuation_frame = pd.DataFrame(fluctuation_rows)
             st.dataframe(
                 fluctuation_frame,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -665,7 +665,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             frame = pd.DataFrame(checkpoints)
             st.dataframe(
                 frame,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -713,7 +713,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                 })
             st.dataframe(
                 pd.DataFrame(rows),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -783,7 +783,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             with st.expander("Full variance-scaling data"):
                 st.dataframe(
                     frame,
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -794,7 +794,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             )
             st.dataframe(
                 reference,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -823,7 +823,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
         if labels and matrix:
             frame = pd.DataFrame(matrix, index=labels, columns=labels)
             frame.index.name = "Trajectory"
-            st.dataframe(frame, use_container_width=True)
+            st.dataframe(frame, width="stretch")
 
             values = [
                 matrix[i][j]
@@ -920,7 +920,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                 records.append(record)
             st.dataframe(
                 pd.DataFrame(records),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -965,7 +965,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
             st.markdown("**Column-wise descriptive statistics**")
             st.dataframe(
                 pd.DataFrame(rows),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -1054,7 +1054,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
                 ax.set_xlabel(r"$\phi_0$")
                 ax.set_ylabel(r"$\theta_0$")
                 fig.tight_layout()
-                st.pyplot(fig, use_container_width=True)
+                st.pyplot(fig, width="stretch")
                 plt.close(fig)
 
             metric_row([
@@ -1090,20 +1090,22 @@ def get_agent():
 
 
 with st.sidebar:
-    st.header("DKT parameters")
+    st.header("Quick simulations")
 
-    st.markdown("**Average kicking strength**")
-    st.latex(r"k_r = \frac{k+k'}{2}")
-    st.caption(
-        "Controls the degree of classical chaos and the "
-        "regular-to-chaotic transition."
-    )
-    st.markdown("**Asymmetry parameter**")
-    st.latex(r"k_\theta = \frac{k-k'}{2}")
-    st.caption(
-        "Changes phase-space geometry and its orientation/structure; "
-        "it does not control the degree of classical chaos."
-    )
+    with st.expander("DKT parameter guide", expanded=False):
+        st.markdown("**Average kicking strength**")
+        st.latex(r"k_r = \frac{k+k'}{2}")
+        st.caption(
+            "Controls the degree of classical chaos and the "
+            "regular-to-chaotic transition."
+        )
+        st.markdown("**Asymmetry parameter**")
+        st.latex(r"k_\theta = \frac{k-k'}{2}")
+        st.caption(
+            "Changes phase-space geometry and its orientation/structure; "
+            "it does not control the degree of classical chaos."
+        )
+        st.latex(r"k = k_r+k_\theta, \qquad k\prime = k_r-k_\theta")
 
     with st.expander("Interactive DKT simulation", expanded=False):
         st.caption("Evolve one classical initial condition under the DKT map.")
@@ -1150,7 +1152,7 @@ with st.sidebar:
 
             run_simulation = st.form_submit_button(
                 "Run DKT Simulation",
-                use_container_width=True,
+                width="stretch",
             )
 
         if run_simulation:
@@ -1209,7 +1211,7 @@ with st.sidebar:
 
             run_grid_simulation = st.form_submit_button(
                 "Run phase-space grid",
-                use_container_width=True,
+                width="stretch",
             )
 
         if run_grid_simulation:
@@ -1265,7 +1267,7 @@ with st.sidebar:
                 max_value=50000, value=1000, step=100, key="ed_n"
             )
             ed_run = st.form_submit_button(
-                "Run entropy dynamics", use_container_width=True
+                "Run entropy dynamics", width="stretch"
             )
 
         if ed_run:
@@ -1318,7 +1320,7 @@ with st.sidebar:
                 value=15, step=1, key="hm_grid"
             )
             hm_run = st.form_submit_button(
-                "Run averaged entropy heatmap", use_container_width=True
+                "Run averaged entropy heatmap", width="stretch"
             )
 
         if hm_run:
@@ -1342,7 +1344,7 @@ with st.sidebar:
     st.divider()
 
 
-    if st.button("Clear conversation", use_container_width=True):
+    if st.button("Clear conversation", width="stretch"):
         st.session_state.agent_messages = []
         st.session_state.chat_history = []
         st.rerun()
@@ -1448,17 +1450,14 @@ if "workspace_results" not in st.session_state:
 
 
 st.divider()
-st.header("DKT Research Workspaces")
+st.header("Research workspaces")
 st.caption(
     "Diagnose, Compare and Research Data execute selected tools directly. "
     "Explain and the main chat use the Gemini research agent."
 )
 
 diagnose_tab, compare_tab, data_tab, explain_tab = st.tabs([
-    "Diagnose",
-    "Compare",
-    "Research Data",
-    "Explain",
+    "Diagnostics", "Comparisons", "Data & evidence", "Research assistant",
 ])
 
 # ------------------------------------------------------------------
@@ -1466,10 +1465,10 @@ diagnose_tab, compare_tab, data_tab, explain_tab = st.tabs([
 # ------------------------------------------------------------------
 
 with diagnose_tab:
-    st.subheader("Diagnose DKT dynamics")
-    st.write(
-        "Select a diagnostic and provide the relevant parameters or "
-        "an existing trajectory CSV path."
+    st.subheader("Classical-dynamics diagnostics")
+    st.caption(
+        "Choose one of the seven diagnostic workflows. The controls below "
+        "are the actual inputs passed to the selected analysis."
     )
 
     diagnostic = st.selectbox(
@@ -1518,7 +1517,7 @@ with diagnose_tab:
 
             diagnose_submit = st.form_submit_button(
                 "Run fixed-point search",
-                use_container_width=True,
+                width="stretch",
             )
 
         if diagnose_submit:
@@ -1535,87 +1534,120 @@ with diagnose_tab:
 
     else:
         with st.form("ws_diagnostic_form"):
-            trajectory_path = st.text_input(
-                "Existing trajectory CSV path (if required)",
-                placeholder="Paste the exact path returned by the agent",
-                key="ws_diag_path",
-            )
-            diagnostic_parameters = st.text_area(
-                "Additional parameters or instructions",
-                placeholder=(
-                    "For example: kr=1, ktheta=0, transient=1000, "
-                    "nsteps=10000. Use the tool defaults for unspecified "
-                    "optional parameters."
-                ),
-                height=100,
-                key="ws_diag_parameters",
-            )
-            diagnose_submit = st.form_submit_button(
-                "Run diagnostic",
-                use_container_width=True,
-            )
-
-        if diagnose_submit:
+            trajectory_path = ""
+            if diagnostic in {"Trajectory geometry", "Observable time series", "Autocorrelation and mixing diagnostics"}:
+                trajectory_path = st.text_input(
+                    "Existing trajectory CSV path",
+                    placeholder="Paste the exact path returned by a simulation or evidence search",
+                    key="ws_diag_path",
+                )
             if diagnostic == "Trajectory geometry":
-                if not trajectory_path.strip():
-                    st.error("Please provide an existing trajectory CSV path.")
-                else:
-                    run_workspace_tool(
-                        diagnose_classical_trajectory,
-                        {"trajectory_csv": trajectory_path.strip()},
-                        "diagnose",
-                    )
-
+                st.markdown("**Geometric diagnostic settings**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_theiler = st.number_input("Theiler window", min_value=0, value=20, step=1, key="ws_geom_theiler")
+                with c2:
+                    d_pairs = st.number_input("Random point pairs", min_value=1000, max_value=2000000, value=200000, step=10000, key="ws_geom_pairs")
+                with c3:
+                    d_geom_seed = st.number_input("Random seed", min_value=0, value=1234, step=1, key="ws_geom_seed")
             elif diagnostic == "Observable time series":
-                if not trajectory_path.strip():
-                    st.error("Please provide an existing trajectory CSV path.")
-                else:
-                    run_workspace_tool(
-                        diagnose_observable_timeseries,
-                        {"trajectory_csv": trajectory_path.strip()},
-                        "diagnose",
-                    )
-
+                st.markdown("**Time-series settings**")
+                c1, c2 = st.columns(2)
+                with c1:
+                    d_ts_transient = st.number_input("Transient kicks to discard", min_value=0, value=0, step=10, key="ws_ts_transient")
+                with c2:
+                    d_ts_lag = st.number_input("Maximum autocorrelation lag", min_value=1, max_value=5000, value=200, step=10, key="ws_ts_lag")
             elif diagnostic == "Finite-time Lyapunov exponents and KS estimate":
-                run_workspace_tool(
-                    diagnose_lyapunov_ks,
-                    {
-                        "kr": 1.0,
-                        "ktheta": 0.0,
-                        "theta0": 0.75,
-                        "phi0": -1.0,
-                        "nsteps": 20000,
-                        "transient": 1000,
-                    },
-                    "diagnose",
-                )
-
+                st.markdown("**Map and initial-condition parameters**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_lyap_kr = st.number_input(r"Average kicking strength $k_r$", value=1.0, step=0.1, key="ws_lyap_kr")
+                    d_lyap_kt = st.number_input(r"Asymmetry parameter $k_\theta$", value=0.0, step=100.0, key="ws_lyap_kt")
+                with c2:
+                    d_lyap_theta = st.number_input(r"Initial polar angle $\theta_0$", value=0.75, step=0.05, key="ws_lyap_theta")
+                    d_lyap_phi = st.number_input(r"Initial azimuth $\phi_0$", value=-1.0, step=0.05, key="ws_lyap_phi")
+                with c3:
+                    d_lyap_p = st.number_input(r"Rotation angle $p$", value=1.5707963267948966, step=0.05, key="ws_lyap_p")
+                st.markdown("**Evolution settings**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_lyap_steps = st.number_input("Total kicks", min_value=100, max_value=500000, value=20000, step=1000, key="ws_lyap_steps")
+                with c2:
+                    d_lyap_transient = st.number_input("Transient kicks to discard", min_value=0, max_value=499900, value=1000, step=100, key="ws_lyap_transient")
+                with c3:
+                    d_lyap_timeout = st.number_input("Timeout (seconds)", min_value=1, max_value=3600, value=900, step=30, key="ws_lyap_timeout")
             elif diagnostic == "Autocorrelation and mixing diagnostics":
-                if not trajectory_path.strip():
-                    st.error("Please provide an existing trajectory CSV path.")
-                else:
-                    run_workspace_tool(
-                        diagnose_mixing_correlations,
-                        {"trajectory_csv": trajectory_path.strip()},
-                        "diagnose",
-                    )
-
+                st.markdown("**Correlation settings**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_mix_transient = st.number_input("Transient kicks to discard", min_value=0, value=0, step=10, key="ws_mix_transient")
+                with c2:
+                    d_mix_lag = st.number_input("Maximum lag", min_value=1, max_value=5000, value=2000, step=50, key="ws_mix_lag")
+                with c3:
+                    d_mix_threshold = st.number_input("Correlation threshold", min_value=0.001, max_value=0.999, value=0.05, step=0.01, format="%.3f", key="ws_mix_threshold")
             elif diagnostic == "Birkhoff-average variance study":
-                run_workspace_tool(
-                    run_ergodicity_variance_study,
-                    {
-                        "kr": 1.0,
-                        "ktheta": 0.0,
-                        "n_trajectories": 8,
-                        "nsteps": 10000,
-                        "transient": 1000,
-                        "seed": 20261124,
-                    },
-                    "diagnose",
-                )
-
+                st.markdown("**Map parameters**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_birk_kr = st.number_input(r"Average kicking strength $k_r$", value=1.0, step=0.1, key="ws_birk_kr")
+                with c2:
+                    d_birk_kt = st.number_input(r"Asymmetry parameter $k_\theta$", value=0.0, step=100.0, key="ws_birk_kt")
+                with c3:
+                    d_birk_p = st.number_input(r"Rotation angle $p$", value=1.5707963267948966, step=0.05, key="ws_birk_p")
+                st.markdown("**Ensemble settings**")
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    d_birk_count = st.number_input("Initial conditions", min_value=3, max_value=24, value=8, step=1, key="ws_birk_count")
+                with c2:
+                    d_birk_steps = st.number_input("Total kicks", min_value=100, max_value=50000, value=10000, step=500, key="ws_birk_steps")
+                with c3:
+                    d_birk_transient = st.number_input("Transient kicks to discard", min_value=0, max_value=49999, value=1000, step=100, key="ws_birk_transient")
+                d_birk_seed = st.number_input("Random seed", min_value=0, value=20261124, step=1, key="ws_birk_seed")
+            diagnose_submit = st.form_submit_button("Run diagnostic", type="primary", width="stretch")
+        if diagnose_submit:
+            if diagnostic in {"Trajectory geometry", "Observable time series", "Autocorrelation and mixing diagnostics"} and not trajectory_path.strip():
+                st.error("Please provide an existing trajectory CSV path.")
+            elif diagnostic == "Trajectory geometry":
+                run_workspace_tool(diagnose_classical_trajectory, {
+                    "trajectory_csv": trajectory_path.strip(),
+                    "theiler": int(d_theiler), "n_pairs": int(d_pairs), "seed": int(d_geom_seed),
+                }, "diagnose")
+            elif diagnostic == "Observable time series":
+                run_workspace_tool(diagnose_observable_timeseries, {
+                    "trajectory_csv": trajectory_path.strip(),
+                    "transient": int(d_ts_transient), "max_lag": int(d_ts_lag),
+                }, "diagnose")
+            elif diagnostic == "Finite-time Lyapunov exponents and KS estimate":
+                run_workspace_tool(diagnose_lyapunov_ks, {
+                    "kr": float(d_lyap_kr), "ktheta": float(d_lyap_kt),
+                    "theta0": float(d_lyap_theta), "phi0": float(d_lyap_phi),
+                    "p": float(d_lyap_p), "nsteps": int(d_lyap_steps),
+                    "transient": int(d_lyap_transient), "timeout": int(d_lyap_timeout),
+                }, "diagnose")
+            elif diagnostic == "Autocorrelation and mixing diagnostics":
+                run_workspace_tool(diagnose_mixing_correlations, {
+                    "trajectory_csv": trajectory_path.strip(),
+                    "transient": int(d_mix_transient), "max_lag": int(d_mix_lag),
+                    "threshold": float(d_mix_threshold),
+                }, "diagnose")
+            elif diagnostic == "Birkhoff-average variance study":
+                run_workspace_tool(run_ergodicity_variance_study, {
+                    "kr": float(d_birk_kr), "ktheta": float(d_birk_kt),
+                    "n_trajectories": int(d_birk_count), "nsteps": int(d_birk_steps),
+                    "transient": int(d_birk_transient), "seed": int(d_birk_seed),
+                    "p": float(d_birk_p),
+                }, "diagnose")
 
     show_workspace_result("diagnose")
+
+    with st.expander("Ensemble-based ergodic-hierarchy diagnostics", expanded=False):
+        st.caption(
+            "A separate multi-trajectory workflow for finite-data Birkhoff, "
+            "autocorrelation/Cesàro, and finite-partition alpha diagnostics. "
+            "These tests complement the single-trajectory tools above; they do "
+            "not establish mathematical ergodicity or mixing."
+        )
+        render_mixing_hierarchy_dashboard()
 
 
 # ------------------------------------------------------------------
@@ -1624,6 +1656,7 @@ with diagnose_tab:
 
 with compare_tab:
     st.subheader("Controlled comparisons")
+    st.caption("Vary one map parameter at a time, compare existing trajectories, or examine classical–quantum correspondence.")
 
 
     comparison_type = st.selectbox(
@@ -1678,7 +1711,7 @@ with compare_tab:
 
             c_run = st.form_submit_button(
                 "Run controlled comparison",
-                use_container_width=True,
+                width="stretch",
             )
 
         if c_run:
@@ -1737,7 +1770,7 @@ with compare_tab:
 
             c_run_kr = st.form_submit_button(
                 "Run controlled comparison",
-                use_container_width=True,
+                width="stretch",
             )
 
         if c_run_kr:
@@ -1769,7 +1802,7 @@ with compare_tab:
             )
             c_run = st.form_submit_button(
                 "Compare trajectories",
-                use_container_width=True,
+                width="stretch",
             )
 
         if c_run:
@@ -1795,7 +1828,7 @@ with compare_tab:
             )
             c_run = st.form_submit_button(
                 "Compare empirical measures",
-                use_container_width=True,
+                width="stretch",
             )
 
         if c_run:
@@ -1852,7 +1885,7 @@ with compare_tab:
 
             cq_run = st.form_submit_button(
                 "Run classical–quantum comparison",
-                use_container_width=True,
+                width="stretch",
             )
 
         if cq_run:
@@ -1879,6 +1912,7 @@ with compare_tab:
 
 with data_tab:
     st.subheader("Research evidence and datasets")
+    st.caption("Search existing project outputs and inspect or summarize saved CSV data.")
 
     data_action = st.radio(
         "Choose an operation",
@@ -1920,7 +1954,7 @@ with data_tab:
 
         data_run = st.form_submit_button(
             "Run research-data operation",
-            use_container_width=True,
+            width="stretch",
         )
 
     if data_run:
@@ -1995,7 +2029,7 @@ with explain_tab:
         )
         explain_run = st.form_submit_button(
             "Explain",
-            use_container_width=True,
+            width="stretch",
         )
 
     if explain_run:
@@ -2084,7 +2118,7 @@ with st.expander("Interactive DKT simulation results", expanded=False):
             with st.expander("Trajectory data", expanded=False):
                 st.dataframe(
                     trajectory.head(20),
-                    use_container_width=True,
+                    width="stretch",
                 )
                 st.caption(
                     f"Showing the first 20 of {len(trajectory)} trajectory rows."
@@ -2123,7 +2157,7 @@ with st.expander("Interactive DKT simulation results", expanded=False):
                 data=csv_data,
                 file_name=trajectory_filename,
                 mime="text/csv",
-                use_container_width=True,
+                width="stretch",
             )
         else:
             st.warning("The simulation returned no trajectory data.")
@@ -2188,7 +2222,7 @@ with st.expander("θ–φ phase grid results", expanded=False):
             ax.grid(False)
             fig.tight_layout()
 
-            st.pyplot(fig, use_container_width=True)
+            st.pyplot(fig, width="stretch")
             plt.close(fig)
 
             st.caption(
@@ -2232,7 +2266,7 @@ with st.expander("θ–φ phase grid results", expanded=False):
                 data=csv_data,
                 file_name=grid_filename,
                 mime="text/csv",
-                use_container_width=True,
+                width="stretch",
             )
         else:
             st.warning("The grid simulation returned no orbit points.")
@@ -2291,12 +2325,12 @@ with st.expander("Entropy dynamics results", expanded=False):
                 )
                 st.dataframe(
                     parameter_table,
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
         with st.expander("Entropy time-series data", expanded=False):
-            st.dataframe(edf, use_container_width=True)
+            st.dataframe(edf, width="stretch")
 
         if not edf.empty:
             ed_parameters = er["parameters"]
@@ -2443,7 +2477,7 @@ with st.expander("Long-time-averaged entropy heatmap results", expanded=False):
             )
             fig.tight_layout()
 
-            st.pyplot(fig, use_container_width=True)
+            st.pyplot(fig, width="stretch")
             plt.close(fig)
 
         else:
@@ -2480,7 +2514,7 @@ with st.expander("Long-time-averaged entropy heatmap results", expanded=False):
 
                 st.dataframe(
                     parameter_table,
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -2506,7 +2540,7 @@ with st.expander("Long-time-averaged entropy heatmap results", expanded=False):
                 st.markdown("**Grid-resolved data**")
                 st.dataframe(
                     hdf,
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
             else:
@@ -2568,9 +2602,6 @@ with st.expander("Long-time-averaged entropy heatmap results", expanded=False):
             "classical chaos, ergodicity, or mixing. The asymmetry parameter "
             "changes phase-space geometry, not the degree of classical chaos."
         )
-
-
-render_mixing_hierarchy_dashboard()
 
 
 for item in st.session_state.chat_history:
