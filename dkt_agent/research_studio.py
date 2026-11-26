@@ -61,6 +61,150 @@ def _render_scientific_text(value: str) -> str:
 
 
 
+def _question_defaults(question: str) -> dict[str, float | int]:
+    """Extract only explicit scalar values; otherwise use documented tool defaults."""
+    values: dict[str, float | int] = {
+        "kr": 1.0, "ktheta_a": 0.0, "ktheta_b": 10000.0,
+        "theta0": 0.75, "phi0": -1.0, "nsteps": 1000,
+        "p": math.pi / 2,
+    }
+    kr = re.search(r"k[_\s-]?r\s*=\s*([-+]?\d+(?:\.\d+)?)", question, re.I)
+    if kr:
+        values["kr"] = float(kr.group(1))
+    kt = re.search(r"k[_\s-]?theta\s*(?:from|between)\s*([-+]?\d+(?:\.\d+)?)\s*(?:to|and|[-–])\s*([-+]?\d+(?:\.\d+)?)", question, re.I)
+    if kt:
+        values["ktheta_a"], values["ktheta_b"] = float(kt.group(1)), float(kt.group(2))
+    elif re.search(r"k[_\s-]?theta\s*=\s*[-+]?\d", question, re.I):
+        vals = re.findall(r"k[_\s-]?theta\s*=\s*([-+]?\d+(?:\.\d+)?)", question, re.I)
+        if len(vals) >= 2:
+            values["ktheta_a"], values["ktheta_b"] = float(vals[0]), float(vals[1])
+    for key, pattern in (
+        ("theta0", r"(?:theta[_\s]?0|θ[_\s]?0)\s*=\s*([-+]?\d+(?:\.\d+)?)"),
+        ("phi0", r"(?:phi[_\s]?0|φ[_\s]?0)\s*=\s*([-+]?\d+(?:\.\d+)?)"),
+        ("p", r"\bp\s*=\s*([-+]?\d+(?:\.\d+)?)"),
+    ):
+        match = re.search(pattern, question, re.I)
+        if match:
+            values[key] = float(match.group(1))
+    nsteps = re.search(r"(?:nsteps|number of kicks|kicks)\s*(?:=|of)?\s*(\d+)", question, re.I)
+    if nsteps:
+        values["nsteps"] = int(nsteps.group(1))
+    return values
+
+
+def _campaign_is_authorized(campaign: dict) -> bool:
+    """Read current and legacy campaign authorization fields."""
+    if "execution_authorization" in campaign:
+        return campaign.get("execution_authorization") == "authorized_by_user"
+    return campaign.get("plan", {}).get("execution_authorization") == "authorized_by_user"
+
+
+def _record_authorization_if_requested(campaign: dict, authorized: bool) -> None:
+    """Persist the explicit checkbox decision before a numerical stage starts."""
+    if authorized and not _campaign_is_authorized(campaign):
+        record_execution_authorization(campaign, authorized=True)
+
+
+def _run_stage(campaign: dict, index: int, arguments: dict, authorized: bool = False) -> None:
+    try:
+        updated = execute_campaign_stage(
+            campaign, index, arguments, execution_authorized=authorized
+        )
+        refreshed = load_campaign(updated["campaign_id"])
+        st.session_state["research_studio_campaign"] = refreshed
+        st.success(f"Completed: {_render_scientific_text(refreshed['stages'][index]['label'])}")
+    except Exception as exc:
+        try:
+            st.session_state["research_studio_campaign"] = load_campaign(campaign["campaign_id"])
+        except (OSError, ValueError, KeyError):
+            st.session_state["research_studio_campaign"] = campaign
+        st.error(f"Stage could not be completed: {exc}")
+
+
+def _render_stage_result(stage: dict) -> None:
+    """Present saved stage outputs as a concise research summary, with raw data on demand."""
+    result = stage.get("result")
+    if result is None:
+        if stage.get("error"):
+            st.error(stage["error"])
+        return
+    tool = stage.get("tool", "")
+    if not isinstance(result, dict):
+        st.write(result)
+    elif tool == "search_research_evidence":
+        st.markdown("**Evidence-search outcome**")
+        metrics = st.columns(3)
+        metrics[0].metric("Files scanned", result.get("files_scanned", "—"))
+        metrics[1].metric("Files matched", result.get("files_matched", "—"))
+        metrics[2].metric("Files returned", result.get("files_returned", "—"))
+        st.caption("Read-only, keyword-based discovery. A match is a lead for inspection, not confirmation that the file supports the research claim.")
+        matches = result.get("matches", [])
+        if matches:
+            rows = []
+            for item in matches:
+                if isinstance(item, dict):
+                    rows.append({
+                        "File": item.get("path", "Unknown"),
+                        "Match score": item.get("score", "—"),
+                        "Match type": str(item.get("match_type", "—")).replace("_", " "),
+                        "Matched terms": ", ".join(item.get("content_matched_terms", [])[:6]),
+                    })
+            if rows:
+                st.markdown("**Files returned by the search**")
+                st.dataframe(rows, use_container_width=True, hide_index=True)
+    else:
+        st.markdown("**Calculation outcome**")
+        parameters = result.get("parameters") or result.get("study_parameters") or result.get("input_arguments")
+        if isinstance(parameters, dict) and parameters:
+            st.markdown("**Parameters reported by the tool**")
+            st.json(parameters)
+        # Show scalar result fields as compact metrics without guessing their meaning.
+        excluded = {"parameters", "study_parameters", "input_arguments", "matches", "artifacts", "files", "paths"}
+        scalar_items = [(key, value) for key, value in result.items()
+                        if key not in excluded and isinstance(value, (str, int, float, bool))]
+        if scalar_items:
+            cols = st.columns(min(3, len(scalar_items)))
+            for i, (key, value) in enumerate(scalar_items[:9]):
+                cols[i % len(cols)].metric(key.replace("_", " ").title(), str(value))
+        if tool == "run_dkt_comparison_study":
+            st.caption("This compares the specified matched initial condition under the two maps. Trajectory separation describes divergence of these paired trajectories; it is not, by itself, a Lyapunov-exponent or changed-chaoticity result.")
+        elif tool == "run_dkt_geometry_ensemble_comparison":
+            st.caption("The matched local cloud is a geometric probe around the selected initial condition, not an invariant phase-space region or a test proving ergodicity or mixing.")
+        else:
+            st.caption("Interpret finite-data diagnostics within the tool's stated sampling protocol and limitations.")
+    artifacts = _result_artifacts(result)
+    if artifacts:
+        st.markdown("**Saved output files**")
+        for label, path in artifacts:
+            from pathlib import Path
+            p = Path(path)
+            try:
+                data = p.read_bytes()
+                st.download_button(
+                    f"Download {p.name}", data=data, file_name=p.name,
+                    mime="text/csv" if p.suffix.lower() == ".csv" else "application/json",
+                    key=f"artifact_{stage.get('index', 0)}_{p.name}",
+                )
+                if p.suffix.lower() == ".csv":
+                    import pandas as pd
+                    frame = pd.read_csv(p)
+                    st.caption(f"{p.name} · {len(frame):,} rows × {len(frame.columns)} columns")
+                    st.dataframe(frame.head(20), use_container_width=True, hide_index=True)
+            except (OSError, ValueError, ImportError) as exc:
+                st.caption(f"{p.name}: file could not be previewed ({exc})")
+    with st.expander(f"Advanced details · {stage.get('label', 'stage result')}", expanded=False):
+        st.json(result)
+        st.download_button(
+            "Download stage result (JSON)",
+            data=json.dumps(result, indent=2, ensure_ascii=False, default=str).encode("utf-8"),
+            file_name=f"{tool or 'stage'}_result.json",
+            mime="application/json",
+            key=f"stage_result_{stage.get('index', 0)}",
+        )
+    if stage.get("error"):
+        st.error(stage["error"]")
+
+
 def _duration_seconds(started: str | None, finished: str | None) -> float | None:
     """Return a non-negative elapsed duration for ISO timestamps."""
     from datetime import datetime
