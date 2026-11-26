@@ -23,17 +23,17 @@ def _question_defaults(question: str) -> dict[str, float | int]:
         "theta0": 0.75, "phi0": -1.0, "nsteps": 1000,
         "p": math.pi / 2,
     }
-    kr = re.search(r"k[_\\s-]?r\\s*=\\s*([-+]?\\d+(?:\\.\\d+)?)", question, re.I)
+    kr = re.search(r"k[_\s-]?r\s*=\s*([-+]?\d+(?:\.\d+)?)", question, re.I)
     if kr:
         values["kr"] = float(kr.group(1))
-    kt = re.search(r"k[_\\s-]?theta\\s*(?:from|between)\\s*([-+]?\\d+(?:\\.\\d+)?)\\s*(?:to|and|[-–])\\s*([-+]?\\d+(?:\\.\\d+)?)", question, re.I)
+    kt = re.search(r"k[_\s-]?theta\s*(?:from|between)\s*([-+]?\d+(?:\.\d+)?)\s*(?:to|and|[-–])\s*([-+]?\d+(?:\.\d+)?)", question, re.I)
     if kt:
         values["ktheta_a"], values["ktheta_b"] = float(kt.group(1)), float(kt.group(2))
-    elif re.search(r"k[_\\s-]?theta\\s*=\\s*[-+]?\\d", question, re.I):
-        vals = re.findall(r"k[_\\s-]?theta\\s*=\\s*([-+]?\\d+(?:\\.\\d+)?)", question, re.I)
+    elif re.search(r"k[_\s-]?theta\s*=\s*[-+]?\d", question, re.I):
+        vals = re.findall(r"k[_\s-]?theta\s*=\s*([-+]?\d+(?:\.\d+)?)", question, re.I)
         if len(vals) >= 2:
             values["ktheta_a"], values["ktheta_b"] = float(vals[0]), float(vals[1])
-    nsteps = re.search(r"(?:nsteps|number of kicks|kicks)\\s*(?:=|of)?\\s*(\\d+)", question, re.I)
+    nsteps = re.search(r"(?:nsteps|number of kicks|kicks)\s*(?:=|of)?\s*(\d+)", question, re.I)
     if nsteps:
         values["nsteps"] = int(nsteps.group(1))
     return values
@@ -120,12 +120,12 @@ def _render_execution(campaign: dict) -> None:
             c1, c2, c3 = st.columns(3)
             with c1:
                 kr = st.number_input(r"$k_r$", value=float(defaults["kr"]), format="%.8g")
-                kt_a = st.number_input(r"$k_{\\theta,a}$", value=float(defaults["ktheta_a"]), format="%.8g")
+                kt_a = st.number_input(r"$k_{\theta,a}$", value=float(defaults["ktheta_a"]), format="%.8g")
             with c2:
-                kt_b = st.number_input(r"$k_{\\theta,b}$", value=float(defaults["ktheta_b"]), format="%.8g")
-                theta0 = st.number_input(r"$\\theta_0$", value=float(defaults["theta0"]), format="%.8g")
+                kt_b = st.number_input(r"$k_{\theta,b}$", value=float(defaults["ktheta_b"]), format="%.8g")
+                theta0 = st.number_input(r"$\theta_0$", value=float(defaults["theta0"]), format="%.8g")
             with c3:
-                phi0 = st.number_input(r"$\\phi_0$", value=float(defaults["phi0"]), format="%.8g")
+                phi0 = st.number_input(r"$\phi_0$", value=float(defaults["phi0"]), format="%.8g")
                 p = st.number_input(r"$p$", value=float(defaults["p"]), format="%.8g")
             nsteps = st.number_input("Number of kicks", min_value=1, max_value=500000,
                                      value=int(defaults["nsteps"]), step=100)
@@ -145,7 +145,7 @@ def _render_execution(campaign: dict) -> None:
             c1, c2, c3 = st.columns(3)
             with c1:
                 kr = st.number_input(r"$k_r$", value=float(defaults["kr"]), format="%.8g")
-                kt = st.number_input(r"$k_{\\theta}$", value=float(defaults["ktheta_a"]), format="%.8g")
+                kt = st.number_input(r"$k_{\theta}$", value=float(defaults["ktheta_a"]), format="%.8g")
             with c2:
                 p = st.number_input(r"$p$", value=float(defaults["p"]), format="%.8g")
                 seed = st.number_input("Random seed", min_value=0, value=0, step=1)
@@ -175,7 +175,7 @@ def _render_execution(campaign: dict) -> None:
             c1, c2, c3 = st.columns(3)
             with c1:
                 kr = st.number_input(r"$k_r$", value=float(defaults["kr"]), format="%.8g")
-                kt = st.number_input(r"$k_{\\theta}$", value=float(defaults["ktheta_a"]), format="%.8g")
+                kt = st.number_input(r"$k_{\theta}$", value=float(defaults["ktheta_a"]), format="%.8g")
             with c2:
                 p = st.number_input(r"$p$", value=float(defaults["p"]), format="%.8g")
                 seed = st.number_input("Random seed", min_value=0, value=20261124, step=1)
