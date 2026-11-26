@@ -16,7 +16,7 @@ import numpy as np
 
 from dkt_agent.mean_ergodicity import (DEFAULT_BATTERY, mean_ergodic_analysis,
                                        mean_ergodic_battery, render, render_battery)
-from dkt_agent.mean_ergodicity_tools import CAVEAT, run_mean_ergodic_diagnostic
+from dkt_agent.mean_ergodicity_tools import (\n    CAVEAT, save_mean_ergodic_artifacts,\n)
 
 
 def render_mean_ergodic_panel(title: str = "Mean ergodicity (von Neumann L² diagnostic)"):
@@ -55,7 +55,11 @@ def render_mean_ergodic_panel(title: str = "Mean ergodicity (von Neumann L² dia
                     seed=int(seed), p=p)
             st.session_state["me_results"] = (results, summary, (kr, kt, p, N, M, seed))
             if save:
-                run_mean_ergodic_diagnostic(kr, kt, obs, int(N), int(M), p, int(seed), save=True)
+                saved = save_mean_ergodic_artifacts(
+                    float(kr), float(kt), obs, int(N), int(M), float(p), int(seed),
+                    results, summary,
+                )
+                st.success(f"Saved diagnostic artifacts to {saved['artifacts']['directory']}")
 
         if "me_results" in st.session_state:
             results, summary, pr = st.session_state["me_results"]
