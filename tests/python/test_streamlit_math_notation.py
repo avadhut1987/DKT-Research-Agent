@@ -27,5 +27,5 @@ def test_streamlit_ui_avoids_unformatted_parameter_and_diagnostic_glyphs():
         (PROJECT_ROOT / relative_path).read_text(encoding="utf-8")
         for relative_path in UI_FILES
     )
-    for unformatted in ("kᵣ", "kθ", "λ₁", "λ₂", "θ–φ", "n_φ"):
+    for unformatted in ("kᵣ", "kθ", "λ₁", "λ₂", "θ–φ", "n_φ", "²"):
         assert unformatted not in source
