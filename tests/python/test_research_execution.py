@@ -398,6 +398,27 @@ class TestResearchExecution(unittest.TestCase):
         self.assertFalse(execution.is_stage_terminal("interrupted"))
 
 
+    def test_all_existing_evidence_can_complete_at_preexecution_gate(self):
+        campaign = {
+            "evidence_review": {"decision": "stop_existing_evidence_sufficient"},
+            "stages": [
+                {"status": "reused_existing_evidence", "execution_mode": "new_numerical_data"}
+            ],
+        }
+        self.assertEqual(execution.derive_campaign_status(campaign), "completed_existing_evidence")
+
+    def test_reused_stage_without_result_does_not_crash_validation(self):
+        report = execution.build_campaign_validation_report({
+            "stages": [{
+                "index": 0, "label": "Reused comparison",
+                "status": "reused_existing_evidence",
+                "execution_mode": "new_numerical_data",
+                "review_decision": {"action": "reuse", "note": "results/prior.csv"},
+                "result": None,
+            }]
+        })
+        self.assertTrue(report["ready_for_review"])
+
     def test_completed_numerical_campaign_waits_for_scientific_review(self):
         campaign = {
             "stages": [
