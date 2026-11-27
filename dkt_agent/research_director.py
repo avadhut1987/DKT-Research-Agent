@@ -126,7 +126,7 @@ When retrieval is truncated or only filenames/snippets are visible, the next
 action must be read-only retrieval targeted to the missing evidence (for example
 search_research_evidence with a focused query), not a new numerical experiment.
 For a relevant matched JSON/Markdown/text/log artifact, use read_research_evidence_file
-with its exact returned path; for CSV evidence, use read_research_csv_tool. Inspect
+with its exact returned path and set max_chars between 1000 and 60000; for CSV evidence, use read_research_csv_tool. Inspect
 those contents before deciding that a numerical result is missing.
 Do not state that a local diagnostic "failed due to region leakage" unless the
 actual result is present in the evidence/history and has been inspected.
@@ -235,6 +235,14 @@ def validate_decision(decision: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"Execution mode mismatch for {tool_name}: expected {actual_mode}.")
         if not isinstance(arguments, dict):
             raise ValueError("Tool arguments must be a JSON object.")
+        # Keep model-generated read limits within the evidence reader's hard cap.
+        # This avoids a recoverable oversized read request becoming a UI error.
+        if tool_name == "read_research_evidence_file" and "max_chars" in arguments:
+            requested_chars = arguments["max_chars"]
+            if isinstance(requested_chars, bool) or not isinstance(requested_chars, int):
+                raise ValueError("read_research_evidence_file.max_chars must be an integer.")
+            arguments = dict(arguments)
+            arguments["max_chars"] = max(1000, min(requested_chars, 60000))
         tool_object = TOOL_REGISTRY[tool_name][0]
         schema_factory = getattr(tool_object, "get_input_schema", None)
         if callable(schema_factory):
