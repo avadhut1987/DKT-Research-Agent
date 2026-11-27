@@ -118,3 +118,49 @@ def test_director_can_select_symbolic_analysis_without_numerical_approval():
     })
     assert result["execution_mode"] == "symbolic"
     assert result["tool_name"] == "symbolic_math_tool"
+
+
+
+def test_director_validates_design_only_tool_development_proposal():
+    proposal = {
+        "name": "Invariant-set retention estimator",
+        "scientific_gap": "Existing region screens do not quantify long-time retention uncertainty.",
+        "mathematical_definition": "Estimate the survival probability under the sampled area measure.",
+        "algorithm": "Use independent area-uniform initial ensembles and report survival curves.",
+        "validation_plan": ["Test against an analytically invariant region.", "Check sample-size scaling."],
+        "expected_outputs": ["Survival curve", "Uncertainty bands"],
+        "limitations": ["Finite samples cannot prove invariance."],
+    }
+    result = validate_decision({
+        "status": "UNRESOLVED",
+        "conclusion": "A suitable validated diagnostic is not yet available.",
+        "evidence_assessment": "Existing registered tools do not address this specific gap.",
+        "tool_name": None,
+        "arguments": {},
+        "execution_mode": "none",
+        "tool_development_proposal": proposal,
+    })
+    assert result["tool_development_proposal"]["name"] == "Invariant-set retention estimator"
+    assert result["tool_name"] is None
+    assert result["execution_mode"] == "none"
+
+
+def test_tool_development_proposal_cannot_be_combined_with_execution():
+    proposal = {
+        "name": "New diagnostic",
+        "scientific_gap": "Gap",
+        "mathematical_definition": "Definition",
+        "algorithm": "Algorithm",
+        "validation_plan": [],
+        "expected_outputs": [],
+        "limitations": [],
+    }
+    with pytest.raises(ValueError, match="must not be combined"):
+        validate_decision({
+            "status": "UNRESOLVED",
+            "conclusion": "Need a new diagnostic.",
+            "tool_name": "symbolic_math_tool",
+            "arguments": {"operation": "simplify", "expressions": ["x"], "variables": ["x"]},
+            "execution_mode": "symbolic",
+            "tool_development_proposal": proposal,
+        })
