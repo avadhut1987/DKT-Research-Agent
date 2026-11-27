@@ -328,10 +328,7 @@ with st.expander("Investigation history and results", expanded=bool(st.session_s
         st.markdown("Arguments")
         _render_json(item.get("arguments", {}))
         parsed = parse_tool_result(item.get("result", ""))
-        if isinstance(parsed, (dict, list)):
-            _render_json(parsed)
-        else:
-            st.text(str(parsed))
+        _render_json(parsed)
 
 with st.expander("Machine-readable investigation record (JSON)", expanded=False):
     record = {
