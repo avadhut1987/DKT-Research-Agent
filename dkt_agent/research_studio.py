@@ -197,8 +197,8 @@ def _render_stage_result(stage: dict) -> None:
                 st.caption(f"{p.name}: file could not be previewed ({exc})")
     with st.expander(f"Advanced details · {stage.get('label', 'stage result')}", expanded=False):
         render_structured_data(result, title="Structured stage result")
-        st.markdown("**Raw stage-result JSON**")
-        st.code(json.dumps(result, indent=2, ensure_ascii=False, default=str), language="json")
+        with st.expander("Raw machine-readable result (JSON)", expanded=False):
+            st.code(json.dumps(result, indent=2, ensure_ascii=False, default=str), language="json")
         st.download_button(
             "Download stage result (JSON)",
             data=json.dumps(result, indent=2, ensure_ascii=False, default=str).encode("utf-8"),
@@ -278,7 +278,11 @@ def _render_execution(campaign: dict) -> None:
     for stage in stages:
         raw_status = stage.get("status", "pending")
         elapsed = _duration_seconds(stage.get("started_at"), stage.get("completed_at"))
-        with st.container(border=True):
+        stage_label = _render_scientific_text(stage.get("label", "Stage"))
+        with st.expander(
+            f"Stage {stage['index'] + 1} · {stage_label} · {raw_status.replace('_', ' ').title()}",
+            expanded=False,
+        ):
             left, right = st.columns([4, 1])
             with left:
                 st.markdown(f"**Stage {stage['index'] + 1} · {_render_scientific_text(stage['label'])}**")
@@ -862,4 +866,5 @@ def render_research_studio() -> None:
                 mime="application/json",
                 use_container_width=True,
             )
-            st.code(raw_json, language="json")
+            with st.expander("View raw campaign JSON", expanded=False):
+                st.code(raw_json, language="json")
