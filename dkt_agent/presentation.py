@@ -36,6 +36,9 @@ def normalize_math_notation(value: Any) -> str:
         (r"(?<![\w])k\s*(?:_\s*\{?\s*|[\s-]+)(?:\\)?r\s*\}?(?![\w])", r"$k_r$"),
         (r"(?<![\w])k[ᵣ](?![\w])", r"$k_r$"),
         (r"(?<![\w])k[θ](?![\w])", r"$k_\theta$"),
+        (r"(?<![\w])θ(?![\w])", r"$\theta$"),
+        (r"(?<![\w])φ(?![\w])", r"$\phi$"),
+        (r"(?<![\w])π(?![\w])", r"$\pi$"),
         (r"(?<![\w])theta[_\s-]*0(?![\w])", r"$\theta_0$"),
         (r"(?<![\w])phi[_\s-]*0(?![\w])", r"$\phi_0$"),
         (r"(?<![\w])Delta[_\s-]*theta(?![\w])", r"$\Delta\theta$"),
@@ -51,6 +54,7 @@ def normalize_math_notation(value: Any) -> str:
         (r"(?<![\w])beta(?![\w])", r"$\beta$"),
         (r"(?<![\w])k(?=\s*(?:=|′|'|,|;|\)|$))", r"$k$"),
         (r"(?<![\w])p(?=\s*(?:=|:|∈|≤|≥|,|;|\)|$))", r"$p$"),
+        (r"(?<![\w])p(?=\s+(?:is|denotes|remains|at|defaults|takes))", r"$p$"),
     )
     for pattern, replacement in patterns:
         text = re.sub(pattern, lambda _m, rep=replacement: rep, text, flags=re.I)
