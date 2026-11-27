@@ -32,6 +32,7 @@ from dkt_agent.tools import (simulate_dkt, simulate_dkt_grid, run_entanglement_d
 from dkt_agent.streamlit_mixing_dashboard import render_mixing_hierarchy_dashboard
 from dkt_agent.periodic_orbit_dashboard import render_periodic_orbit_panel
 from dkt_agent.research_studio import render_research_studio
+from dkt_agent.streamlit_rendering import render_structured_data
 import matplotlib.pyplot as plt
 
 def filename_token(value: float | int) -> str:
@@ -125,7 +126,8 @@ def content_to_text(content: Any) -> str:
                 if block.get("type") == "text":
                     parts.append(str(block.get("text", "")))
                 else:
-                    parts.append(json.dumps(block, ensure_ascii=False, default=str))
+                    block_type = block.get("type", "structured")
+                    parts.append(f"[{str(block_type).replace('_', ' ').title()} content]")
             else:
                 parts.append(str(block))
         return "\n".join(part for part in parts if part)
@@ -141,8 +143,11 @@ def render_tool_result(tool: dict[str, Any]) -> None:
     except (TypeError, json.JSONDecodeError):
         payload = None
 
+    if payload is None:
+        render_structured_data(content_to_text(raw), title="Tool output")
+        return
     if not isinstance(payload, dict):
-        st.text(content_to_text(raw))
+        render_structured_data(payload, title="Structured tool output")
         return
 
     def number(value, digits=6):
@@ -539,7 +544,7 @@ def render_tool_result(tool: dict[str, Any]) -> None:
         parameters = payload.get("parameters", {})
         if parameters:
             st.markdown("**Diagnostic settings**")
-            st.json(parameters)
+            render_structured_data(parameters, title="Diagnostic settings")
 
         artifacts = payload.get("artifacts", {})
         for key, title in [
@@ -1099,10 +1104,10 @@ def render_tool_result(tool: dict[str, Any]) -> None:
         f"No dedicated presentation is defined yet for `{name}`. "
         "Showing the structured result below."
     )
-    st.json({
+    render_structured_data({
         key: value for key, value in payload.items()
         if key not in {"julia_stdout"}
-    })
+    }, title="Structured result")
 
 
 @st.cache_resource(show_spinner=False)
@@ -2243,7 +2248,7 @@ with simulation_results_tab:
             )
     
             with st.expander("Grid simulation parameters", expanded=False):
-                st.json(grid_parameters)
+                render_structured_data(grid_parameters, title="Grid simulation parameters")
     
             if not grid_data.empty:
                 fig, ax = plt.subplots(figsize=(10, 6))
@@ -2659,15 +2664,7 @@ with explain_tab:
                     for tool in item["tools"]:
                         st.markdown(f"**{tool['name']}**")
                         if tool.get("args"):
-                            st.code(
-                                json.dumps(
-                                    tool["args"],
-                                    indent=2,
-                                    ensure_ascii=False,
-                                    default=str,
-                                ),
-                                language="json",
-                            )
+                            render_structured_data(tool["args"], title="Tool inputs")
                         if tool.get("result"):
                             render_tool_result(tool)
     
@@ -2757,15 +2754,7 @@ with explain_tab:
                         for tool in tool_calls:
                             st.markdown(f"**{tool['name']}**")
                             if tool["args"]:
-                                st.code(
-                                    json.dumps(
-                                        tool["args"],
-                                        indent=2,
-                                        ensure_ascii=False,
-                                        default=str,
-                                    ),
-                                    language="json",
-                                )
+                                render_structured_data(tool["args"], title="Tool inputs")
                             if tool["result"]:
                                 render_tool_result(tool)
     

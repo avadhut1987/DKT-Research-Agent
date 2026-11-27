@@ -8,6 +8,7 @@ import re
 import streamlit as st
 
 from dkt_agent.research_orchestrator import build_research_plan
+from dkt_agent.streamlit_rendering import render_structured_data
 from dkt_agent.research_execution import (
     create_campaign,
     execute_campaign_stage,
@@ -130,7 +131,7 @@ def _render_stage_result(stage: dict) -> None:
         return
     tool = stage.get("tool", "")
     if not isinstance(result, dict):
-        st.write(result)
+        render_structured_data(result, title="Stage result")
     elif tool == "search_research_evidence":
         st.markdown("**Evidence-search outcome**")
         metrics = st.columns(3)
@@ -157,7 +158,7 @@ def _render_stage_result(stage: dict) -> None:
         parameters = result.get("parameters") or result.get("study_parameters") or result.get("input_arguments")
         if isinstance(parameters, dict) and parameters:
             st.markdown("**Parameters reported by the tool**")
-            st.json(parameters)
+            render_structured_data(parameters, title="Parameters reported by the tool")
         # Show scalar result fields as compact metrics without guessing their meaning.
         excluded = {"parameters", "study_parameters", "input_arguments", "matches", "artifacts", "files", "paths"}
         scalar_items = [(key, value) for key, value in result.items()
@@ -193,7 +194,9 @@ def _render_stage_result(stage: dict) -> None:
             except (OSError, ValueError, ImportError) as exc:
                 st.caption(f"{p.name}: file could not be previewed ({exc})")
     with st.expander(f"Advanced details · {stage.get('label', 'stage result')}", expanded=False):
-        st.json(result)
+        render_structured_data(result, title="Structured stage result")
+        st.markdown("**Raw stage-result JSON**")
+        st.code(json.dumps(result, indent=2, ensure_ascii=False, default=str), language="json")
         st.download_button(
             "Download stage result (JSON)",
             data=json.dumps(result, indent=2, ensure_ascii=False, default=str).encode("utf-8"),
@@ -298,7 +301,7 @@ def _render_execution(campaign: dict) -> None:
             info[2].metric("Saved output", "Yes" if stage.get("result") is not None else "No")
             if stage.get("input_arguments"):
                 with st.expander("Exact inputs used", expanded=False):
-                    st.json(stage["input_arguments"])
+                    render_structured_data(stage["input_arguments"], title="Execution inputs")
             if stage.get("started_at") or stage.get("completed_at"):
                 st.caption(f"Started: {stage.get('started_at') or '—'} · Finished: {stage.get('completed_at') or '—'}")
             _render_stage_result(stage)
@@ -726,16 +729,16 @@ def render_research_studio() -> None:
             for item in campaign.get("stages", []):
                 with st.expander(f"Stage {item.get('index', 0) + 1} · {item.get('label', 'Stage')}", expanded=False):
                     st.markdown("**Execution inputs**")
-                    st.json(item.get("input_arguments") or {"note": "No execution inputs recorded."})
+                    render_structured_data(item.get("input_arguments") or {"note": "No execution inputs recorded."}, title="Execution inputs")
                     decision = item.get("review_decision")
                     if decision:
                         st.markdown("**Evidence decision**")
-                        st.write(decision)
+                        render_structured_data(decision, title="Evidence decision")
                     result = item.get("result")
                     params = result.get("parameters") or result.get("study_parameters") if isinstance(result, dict) else None
                     if params:
                         st.markdown("**Parameters reported by the tool**")
-                        st.json(params)
+                        render_structured_data(params, title="Parameters reported by the tool")
                     st.markdown("**Generated artifacts**")
                     artifacts = _result_artifacts(result)
                     if artifacts:
@@ -752,7 +755,7 @@ def render_research_studio() -> None:
                         st.caption(event.get("at", "Timestamp unavailable"))
                         details = {key: value for key, value in event.items() if key not in {"event", "at"}}
                         if details:
-                            st.json(details)
+                            render_structured_data(details, title="Event details")
             else:
                 st.info("No campaign audit events have been recorded.")
             for item in campaign.get("stages", []):
