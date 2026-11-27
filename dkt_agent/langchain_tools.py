@@ -14,6 +14,7 @@ from dkt_agent.tools import (
 from dkt_agent.evidence import (
     search_research_evidence as _search_research_evidence,
     read_research_csv as _read_research_csv,
+    read_research_evidence_file as _read_research_evidence_file,
 )
 
 @tool
@@ -182,6 +183,24 @@ def search_research_evidence(
     )
 
     return json.dumps(result, indent=2)
+
+
+@tool
+def read_research_evidence_file(
+    relative_path: str,
+    max_chars: int = 30000,
+) -> str:
+    """
+    Read one existing JSON, Markdown, text, or log artifact under results/.
+    Use after search_research_evidence identifies the exact relevant path.
+    This is read-only and never executes file contents. Use read_research_csv_tool
+    for CSV evidence.
+    """
+    result = _read_research_evidence_file(
+        relative_path=relative_path,
+        max_chars=max_chars,
+    )
+    return json.dumps(result, indent=2, ensure_ascii=False)
 
 
 @tool
