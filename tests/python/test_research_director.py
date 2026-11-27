@@ -4,6 +4,7 @@ import pytest
 
 from dkt_agent.research_director import (
     _extract_json,
+    execute_approved_step,
     parse_tool_result,
     validate_decision,
 )
@@ -60,3 +61,8 @@ def test_parse_tool_result_preserves_json_structure():
 def test_parse_tool_result_preserves_plain_text():
     result = parse_tool_result("diagnostic completed")
     assert result == {"text": "diagnostic completed"}
+
+
+def test_numerical_execution_requires_explicit_approval():
+    with pytest.raises(PermissionError, match="explicit user approval"):
+        execute_approved_step("mean_ergodicity_langchain_tool", {"k_r": 1.0})
