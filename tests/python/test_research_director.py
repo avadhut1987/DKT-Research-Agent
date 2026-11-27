@@ -99,4 +99,4 @@ def test_reader_character_limit_is_capped_before_schema_validation():
         },
         "execution_mode": "read_only",
     })
-    assert result["arguments"]["max_chars"] == 60000
+    assert result["arguments"]["max_chars"] == 40000
