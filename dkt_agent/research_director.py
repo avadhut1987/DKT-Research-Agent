@@ -125,6 +125,9 @@ unavailable merely because their values are not visible in a truncated excerpt.
 When retrieval is truncated or only filenames/snippets are visible, the next
 action must be read-only retrieval targeted to the missing evidence (for example
 search_research_evidence with a focused query), not a new numerical experiment.
+For a relevant matched JSON/Markdown/text/log artifact, use read_research_evidence_file
+with its exact returned path; for CSV evidence, use read_research_csv_tool. Inspect
+those contents before deciding that a numerical result is missing.
 Do not state that a local diagnostic "failed due to region leakage" unless the
 actual result is present in the evidence/history and has been inspected.
 
