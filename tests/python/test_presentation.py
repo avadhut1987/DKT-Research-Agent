@@ -56,3 +56,12 @@ def test_normalize_math_notation_removes_invisible_wrapping_characters():
     assert r"$k_\theta$" in rendered
     assert "$p$" in rendered
     assert r"$\pi/2$" in rendered
+
+
+
+def test_normalize_diagnostic_argument_identifiers():
+    text = "Use n_kicks=16384 and n_initial_conditions=3000 at k_theta=0."
+    rendered = normalize_math_notation(text)
+    assert r"$n_{\mathrm{kicks}}$" in rendered
+    assert r"$n_{\mathrm{initial\ conditions}}$" in rendered
+    assert r"$k_\theta$" in rendered
