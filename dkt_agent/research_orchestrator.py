@@ -4,7 +4,7 @@ import json
 import re
 from typing import Any
 
-PLANNER_VERSION = "0.2.0"
+PLANNER_VERSION = "0.3.0"
 CAPABILITIES = {
     "search_research_evidence": ("Search existing research evidence", "read_only"),
     "read_research_csv_tool": ("Inspect an existing research CSV", "read_only"),
