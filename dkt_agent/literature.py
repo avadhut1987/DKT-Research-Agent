@@ -8,7 +8,7 @@ from __future__ import annotations
 from html.parser import HTMLParser
 import re
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlencode
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import xml.etree.ElementTree as ET
 
@@ -27,7 +27,7 @@ def _plain_text(value: str | None) -> str:
     if not value:
         return ""
     value = re.sub(r"<[^>]+>", " ", value)
-    value = re.sub(r"\\s+", " ", value)
+    value = re.sub(r"\s+", " ", value)
     return value.strip()
 
 
@@ -159,24 +159,24 @@ class _TextExtractor(HTMLParser):
         if tag in {"script", "style", "svg", "nav"}:
             self.skip_depth += 1
         if tag in {"p", "h1", "h2", "h3", "h4", "li"} and not self.skip_depth:
-            self.parts.append("\\n")
+            self.parts.append("\n")
 
     def handle_endtag(self, tag):
         if tag in {"script", "style", "svg", "nav"} and self.skip_depth:
             self.skip_depth -= 1
         if tag in {"p", "h1", "h2", "h3", "h4", "li"} and not self.skip_depth:
-            self.parts.append("\\n")
+            self.parts.append("\n")
 
     def handle_data(self, data):
         if not self.skip_depth:
-            cleaned = re.sub(r"\\s+", " ", data).strip()
+            cleaned = re.sub(r"\s+", " ", data).strip()
             if cleaned:
                 self.parts.append(cleaned)
 
 
 def read_arxiv_paper(arxiv_id: str, max_chars: int = 24000, start_char: int = 0) -> dict:
     """Read available ar5iv HTML text for one arXiv paper in bounded chunks."""
-    if not isinstance(arxiv_id, str) or not re.fullmatch(r"(?:\\d{4}\\.\\d{4,5}(?:v\\d+)?|[a-z-]+(?:\\.[A-Z]{2})?/\\d{7}(?:v\\d+)?)", arxiv_id.strip()):
+    if not isinstance(arxiv_id, str) or not re.fullmatch(r"(?:\d{4}\.\d{4,5}(?:v\d+)?|[a-z-]+(?:\.[A-Z]{2})?/\d{7}(?:v\d+)?)", arxiv_id.strip()):
         raise ValueError("Provide a valid arXiv identifier, not an arbitrary URL.")
     if isinstance(max_chars, bool) or not isinstance(max_chars, int) or not 1000 <= max_chars <= 40000:
         raise ValueError("max_chars must be between 1000 and 40000.")
@@ -196,7 +196,7 @@ def read_arxiv_paper(arxiv_id: str, max_chars: int = 24000, start_char: int = 0)
 
     parser = _TextExtractor()
     parser.feed(html)
-    text = re.sub(r"\\n{3,}", "\\n\\n", " ".join(parser.parts)).strip()
+    text = re.sub(r"\n{3,}", "\n\n", " ".join(parser.parts)).strip()
     end_char = min(start_char + max_chars, len(text))
     return {
         "status": "success",
