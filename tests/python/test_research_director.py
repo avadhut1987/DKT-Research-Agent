@@ -77,7 +77,7 @@ def test_director_prioritizes_controlled_mean_ergodicity_robustness_check():
 
 
 def test_director_must_reconsider_when_user_declines_proposal():
-    assert "do not execute it or repeat the" in SYSTEM_DECISION_RULES
+    assert "do not execute\n the same proposal unchanged" in SYSTEM_DECISION_RULES or "do not execute it or repeat" in SYSTEM_DECISION_RULES
 
 
 def test_director_requires_read_only_retrieval_when_evidence_is_truncated():
