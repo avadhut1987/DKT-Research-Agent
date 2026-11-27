@@ -15,10 +15,10 @@ import streamlit as st
 
 def _label(value: Any) -> str:
     label = str(value).replace("_", " ").replace(".", " · ").strip()
-    label = re.sub(r"\\bk theta\\b|\\bkθ\\b", r"kθ", label, flags=re.IGNORECASE)
-    label = re.sub(r"\\bkr\\b", "kᵣ", label, flags=re.IGNORECASE)
-    label = re.sub(r"\\btheta0\\b", "θ₀", label, flags=re.IGNORECASE)
-    label = re.sub(r"\\bphi0\\b", "φ₀", label, flags=re.IGNORECASE)
+    label = re.sub(r"\bktheta\b|\bk theta\b|kθ", "k theta", label, flags=re.IGNORECASE)
+    label = re.sub(r"\bkr\b", "k r", label, flags=re.IGNORECASE)
+    label = re.sub(r"\btheta0\b", "theta 0", label, flags=re.IGNORECASE)
+    label = re.sub(r"\bphi0\b", "phi 0", label, flags=re.IGNORECASE)
     return label[:1].upper() + label[1:] if label else label
 
 
