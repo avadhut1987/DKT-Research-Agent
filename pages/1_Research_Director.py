@@ -539,6 +539,25 @@ if decision:
             st.markdown(_render_math(decision["user_question"]))
         st.markdown("**Next action**")
         st.markdown(_render_math(decision.get("next_action", "No further action proposed.")))
+        proposal = decision.get("tool_development_proposal")
+        if proposal:
+            st.markdown("### New research-tool design proposal")
+            st.caption("Design only: no source code has been written and no calculation has been executed.")
+            st.markdown(f"**{_render_math(proposal['name'])}**")
+            st.markdown("**Scientific gap**")
+            st.markdown(_render_math(proposal["scientific_gap"]))
+            st.markdown("**Mathematical definition**")
+            st.markdown(_render_math(proposal["mathematical_definition"]))
+            st.markdown("**Proposed algorithm**")
+            st.markdown(_render_math(proposal["algorithm"]))
+            for heading, key in (
+                ("Validation plan", "validation_plan"),
+                ("Expected outputs", "expected_outputs"),
+                ("Limitations", "limitations"),
+            ):
+                st.markdown(f"**{heading}**")
+                for item in proposal[key]:
+                    st.markdown(f"- {_render_math(item)}")
 
 with st.expander("Investigation history and results", expanded=bool(st.session_state.director_history)):
     if not st.session_state.director_history:
