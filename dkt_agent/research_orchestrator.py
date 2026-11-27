@@ -112,7 +112,7 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             steps.append(_step("4 · Weak/strong-mixing indicators", "diagnose_mixing_hierarchy",
                 "Add the finite-record weak-mixing observable test and finite-partition strong-mixing indicator as separate reported diagnostics.",
                 ["2–24 exact trajectory CSV paths from distinct initial conditions", "verified common k_r, k_theta and p", "transient", "maximum lag", "spherical partition resolution"],
-                "The weak-mixing indicator tests only the implemented Cartesian observables over finite records. The strong-mixing alpha estimate uses a finite partition and sampled lags; it is not the supremum over all measurable sets. Neither is a proof of asymptotic mixing."))
+                "The weak-mixing indicator tests only the implemented Cartesian observables over finite records. The strong-mixing alpha estimate uses a finite-partition approximation and sampled lags; it is not the supremum over all measurable sets. Neither is a proof of asymptotic mixing."))
             if existing_data_available is not True:
                 gates.append("The mixing follow-up requires an existing ensemble generated under one verified map. Locate suitable trajectories or explicitly authorize an ensemble-generation workflow.")
     elif _has(t, r"weak.?mix", r"strong.?mix", r"mixing", r"ergodic hierarchy", r"hierarchy"):
