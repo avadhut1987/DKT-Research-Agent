@@ -51,7 +51,8 @@ def _validate_region(region_type: str, *, center_theta: float, center_phi: float
             raise ValueError("Use full_sphere for a complete longitude range.")
 
 
-def region_area_fraction(region_type: str, *, angular_radius: float = 0.35,
+def region_area_fraction(region_type: str, *, center_theta: float = 0.75,
+                         center_phi: float = -1.0, angular_radius: float = 0.35,
                          theta_min: float = 0.3, theta_max: float = 1.3,
                          phi_min: float = -1.0, phi_max: float = 1.0) -> float:
     """Exact spherical-area fraction for the supported geometric region types."""
