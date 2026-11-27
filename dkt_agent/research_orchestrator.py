@@ -20,6 +20,7 @@ CAPABILITIES = {
     "run_dkt_geometry_ensemble_comparison": ("Matched local-cloud phase-space geometry comparison", "new_numerical_data"),
     "compare_dkt_periodic_orbits": ("Fixed-k_r periodic-orbit geometry comparison", "new_numerical_data"),
     "mean_ergodicity_langchain_tool": ("von Neumann L² mean-ergodicity diagnostic", "new_numerical_data"),
+    "diagnose_direction_dependent_local_ergodicity": ("Region-conditioned, observable-resolved local ergodicity investigation", "new_numerical_data"),
     "run_ergodicity_variance_study": ("Birkhoff-average ensemble variance", "new_numerical_data"),
     "diagnose_mixing_hierarchy": ("Combined ergodic-hierarchy diagnostics", "existing_data_required"),
     "diagnose_mixing_correlations": ("Finite-record correlation diagnostics", "existing_data_required"),
@@ -51,7 +52,29 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             "Locate existing records before repeating calculations or quoting numerical results.",
             ["Focused keywords: parameters, observables, diagnostic and run identifier."],
             "Search results locate evidence; they do not validate a method or prove an asymptotic property."))
-    if _has(t, r"direction.?dependent", r"directional", r"along\s+[xyz]", r"observable.?wise", r"axis.?wise", r"not\s+global", r"local\s+ergod") and _has(t, r"ergod", r"mix", r"birkhoff", r"observable"):
+    if _has(t, r"local", r"region", r"neighbou?rhood", r"phase.?space subset", r"restricted component", r"island") and _has(t, r"ergod", r"birkhoff", r"observable", r"direction"):
+        intent = "direction_dependent_local_ergodicity"
+        scope = [
+            "Define a geometric phase-space region explicitly and sample it uniformly with respect to spherical area.",
+            "Screen forward one-step leakage, backward one-step leakage and multi-kick orbit retention before interpreting a regional conditional measure.",
+            "Evaluate X, Y, Z and selected quadratic/cross observables independently; retain all observable-wise results.",
+            "Use the regional area mean only as an invariant-measure candidate when the region passes the finite-sample invariance screen.",
+            "If the screen fails, report conditional-start Birkhoff statistics descriptively and do not make a local-ergodicity claim.",
+            "A passing finite-sample leakage screen is not proof of an invariant component, mean ergodicity, pointwise ergodicity or mixing.",
+        ]
+        steps.append(_step("2 · Region-conditioned directional ergodicity", "diagnose_direction_dependent_local_ergodicity",
+            "Test whether a specified spherical region is numerically retained by the map, then compare finite-time Birkhoff-average spreads for X, Y, Z and selected higher-order observables.",
+            ["k_r, k_theta, p", "region geometry: full sphere, spherical cap, latitude band or longitude sector", "region boundaries/centre and angular parameters in radians", "observable battery", "maximum kicks N", "initial-condition, reference and invariance sample sizes", "random seed and leakage tolerance"],
+            "The conditional area measure is justified only if the region is invariant. Forward/backward leakage bounds and multi-kick retention are finite-sample screens, not proofs; if they fail, only descriptive conditional-start statistics are reported."))
+        gates.append("Select and justify the phase-space region before execution. A visually chosen patch is not automatically an invariant component.")
+        if _has(t, r"weak.?mix", r"strong.?mix", r"mixing"):
+            steps.append(_step("3 · Optional mixing-hierarchy follow-up", "diagnose_mixing_hierarchy",
+                "Assess weak- and strong-mixing-related finite-data indicators separately, using a verified same-map ensemble.",
+                ["2–24 exact same-map trajectory CSV paths", "distinct initial conditions", "verified common k_r, k_theta and p", "transient, maximum lag and partition resolution"],
+                "Finite-record correlations and finite-partition alpha estimates do not prove asymptotic weak or strong mixing."))
+            if existing_data_available is not True:
+                gates.append("The mixing follow-up requires existing same-map trajectories; locate them or separately authorize ensemble generation.")
+    elif _has(t, r"direction.?dependent", r"directional", r"along\\s+[xyz]", r"observable.?wise", r"axis.?wise", r"not\\s+global", r"local\\s+ergod") and _has(t, r"ergod", r"mix", r"birkhoff", r"observable"):
         intent = "direction_dependent_ergodicity"
         scope = [
             "Evaluate X, Y, Z and selected quadratic/cross observables separately; do not collapse them into one global verdict.",
