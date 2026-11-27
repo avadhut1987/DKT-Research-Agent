@@ -34,6 +34,7 @@ from dkt_agent.research_tools import (
 )
 from dkt_agent.mixing_tools import diagnose_mixing_hierarchy
 from dkt_agent.mean_ergodicity_tools import mean_ergodicity_langchain_tool
+from dkt_agent.local_ergodicity import diagnose_direction_dependent_local_ergodicity
 from dkt_agent.periodic_orbit_tools import periodic_orbit_langchain_tool, periodic_orbit_comparison_langchain_tool
 from dkt_agent.research_orchestrator import plan_dkt_research
 
@@ -128,7 +129,13 @@ OBSERVABLE-RESOLVED AND DIRECTION-DEPENDENT ERGODICITY
 1. When a question asks whether X, Y, and Z (or other specified observables) behave differently, preserve the observable-wise results. Use the nine-observable mean-ergodicity battery and, when appropriate, the Birkhoff-average variance study.
 2. Report each tested observable separately, including its finite-data indicator, uncertainty, time-window dependence, and sampling protocol. Do not replace a mixed observable-wise outcome with a single global "ergodic" or "non-ergodic" label.
 3. Observable-specific mean-ergodicity indicators are not equivalent to a proof of pointwise ergodicity, nor do they establish ergodicity restricted to a spatial region of phase space.
-4. The current mean-ergodicity and Birkhoff-variance samplers use uniform full-sphere initial-condition sampling. If the question asks about a local region, island, neighbourhood, or restricted phase-space component, state that region-conditioned sampling is not currently implemented; do not silently treat full-sphere results as local results.
+4. For a question about direction-dependent behaviour within a specified phase-space region, use diagnose_direction_dependent_local_ergodicity. It samples the selected spherical region with respect to spherical area and tests forward one-step leakage, backward one-step leakage, and multi-kick orbit retention before assigning any local-measure interpretation.
+5. Supported region geometries are full_sphere, spherical_cap, latitude_band, and longitude_sector. Angles are radians; theta is measured from +Z and phi=atan2(Y,X). A user-defined region must be stated explicitly; never invent region boundaries as a scientific assumption.
+6. Interpret the region-conditioned D_N only when the finite-sample invariance screen passes. Even then, call it a candidate region that passed the stated finite-sample screen, not a proven invariant component. The conditional area measure is a working hypothesis pending stronger invariance validation.
+7. If the leakage screen fails, the tool explicitly blocks local-measure interpretation. Report its conditional-start Birkhoff statistics as descriptive only; do not call the region locally ergodic or non-ergodic.
+8. Report X,Y,Z and selected quadratic/cross observables separately. Different finite-time D_N/Var_R values are observable-dependent statistics, not proof that a map is ergodic in one direction and non-ergodic in another.
+9. The one-step leakage bounds are Wilson confidence bounds for finite random samples; the multi-kick retention test is also finite. Passing these tests is not a mathematical proof of invariance.
+10. Keep this diagnostic distinct from the matched local-cloud geometry comparison: a geometric patch is not automatically invariant and its deformation is not a local-ergodicity test.
 5. Direction-dependent numerical outcomes should be described as operational statements about the tested observables and ensemble. They do not automatically imply that the full map is ergodic in some directions and non-ergodic in others in a measure-theoretic sense.
 6. Keep mean ergodicity, Birkhoff/pointwise ergodicity, weak mixing, and strong mixing distinct. Finite correlations and finite-partition alpha coefficients remain diagnostics, not proofs.
 
@@ -412,6 +419,7 @@ def build_agent():
             run_lyapunov_parameter_scan,
             diagnose_mixing_hierarchy,
             mean_ergodicity_langchain_tool,
+            diagnose_direction_dependent_local_ergodicity,
             periodic_orbit_langchain_tool,
             periodic_orbit_comparison_langchain_tool,
             plan_dkt_research,
