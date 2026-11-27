@@ -18,7 +18,7 @@ def test_normalize_line_wrapped_and_latex_like_subscripts():
     text = "At k\nr=1 and k_\\theta=0."
     rendered = normalize_math_notation(text)
     assert "$k_r$" in rendered
-    assert "$k_\theta$" in rendered
+    assert r"$k_\theta$" in rendered
 
 
 def test_preserve_existing_math_and_normalize_parenthesis_delimiters():
