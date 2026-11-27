@@ -44,11 +44,26 @@ def _json_text(value: object) -> str:
     return format_json(value)
 
 
+def _looks_like_json(value: str) -> bool:
+    candidate = value.strip()
+    if not candidate.startswith(("{", "[")):
+        return False
+    try:
+        json.loads(candidate)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 def _display_value(value: object) -> str:
     if value is None:
         return "Not specified"
     if isinstance(value, bool):
         return "Yes" if value else "No"
+    if isinstance(value, str):
+        if _looks_like_json(value):
+            return "Structured machine-readable content (hidden in the normal view)."
+        return value
     if isinstance(value, dict):
         return "; ".join(f"{key}: {_display_value(item)}" for key, item in value.items())
     if isinstance(value, (list, tuple)):
@@ -81,7 +96,7 @@ def _render_readable_result(value: object, heading: str = "Result") -> None:
     rendered = set()
     for key in preferred_text:
         text_value = value.get(key)
-        if isinstance(text_value, str) and text_value.strip():
+        if isinstance(text_value, str) and text_value.strip() and not _looks_like_json(text_value):
             st.markdown(f"**{key.replace('_', ' ').title()}**")
             st.markdown(_render_math(text_value))
             rendered.add(key)
@@ -92,7 +107,11 @@ def _render_readable_result(value: object, heading: str = "Result") -> None:
             continue
         if isinstance(item, list) and item and all(isinstance(row, dict) for row in item):
             st.markdown(f"**{key.replace('_', ' ').title()}**")
-            st.dataframe(item, use_container_width=True, hide_index=True)
+            safe_rows = [
+                {str(column): _display_value(cell) for column, cell in row.items()}
+                for row in item
+            ]
+            st.dataframe(safe_rows, use_container_width=True, hide_index=True)
         elif isinstance(item, dict):
             st.markdown(f"**{key.replace('_', ' ').title()}**")
             _render_parameter_table(item)
@@ -505,13 +524,13 @@ record = {
     "decision": decision,
     "history": st.session_state.director_history,
 }
-with st.expander("Optional: export technical research record", expanded=False):
+with st.expander("Optional: export research record", expanded=False):
     st.caption(
         "The normal research view contains no raw JSON. If you need a machine-readable "
-        "archive for reproducibility or external analysis, you can download it here."
+        "archive for reproducibility or external analysis, you can download it here. No raw JSON is displayed on this page."
     )
     st.download_button(
-        "Download technical record (.json)",
+        "Download technical archive",
         data=_json_text(record).encode("utf-8"),
         file_name="dkt_research_director_record.json",
         mime="application/json",
