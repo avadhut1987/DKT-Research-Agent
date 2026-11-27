@@ -17,4 +17,4 @@ jobs:
         with:
           python-version: '3.14'
       - name: Compile Python modules
-        run: python -m compileall -q app.py dkt_agent
+        run: python -m compileall -q app.py dkt_agent pages tests/python

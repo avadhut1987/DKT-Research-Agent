@@ -267,3 +267,46 @@ def read_research_csv(
             "do not infer column meanings from position alone."
         ),
     }
+
+
+def read_research_evidence_file(
+    relative_path: str, max_chars: int = 30000, start_char: int = 0
+) -> dict:
+    """Read a bounded chunk of an existing text evidence artifact without executing it.
+
+    Use start_char to continue reading a large file in sequential chunks.
+    CSV files should be inspected with read_research_csv.
+    """
+    if not isinstance(relative_path, str) or not relative_path.strip():
+        raise ValueError("A relative evidence path is required.")
+    if isinstance(max_chars, bool) or not isinstance(max_chars, int) or not 1000 <= max_chars <= 40000:
+        raise ValueError("max_chars must be between 1000 and 40000.")
+    if isinstance(start_char, bool) or not isinstance(start_char, int) or start_char < 0:
+        raise ValueError("start_char must be a non-negative integer.")
+    requested = Path(relative_path)
+    if requested.is_absolute():
+        raise ValueError("Use a path relative to results/.")
+    if requested.parts and requested.parts[0] == RESULTS_ROOT.name:
+        requested = Path(*requested.parts[1:])
+    try:
+        path = (RESULTS_ROOT / requested).resolve(strict=True)
+        path.relative_to(RESULTS_ROOT)
+    except (OSError, ValueError) as exc:
+        raise ValueError("Evidence path must identify an existing file inside results/.") from exc
+    if not path.is_file() or path.suffix.lower() not in {".json", ".md", ".txt", ".log"}:
+        raise ValueError("Only existing JSON, Markdown, text, and log evidence files can be read here; use the CSV reader for CSV files.")
+    content = path.read_text(encoding="utf-8", errors="replace")
+    end_char = min(start_char + max_chars, len(content))
+    chunk = content[start_char:end_char]
+    truncated = end_char < len(content)
+    return {
+        "status": "success",
+        "path": path.relative_to(PROJECT_ROOT).as_posix(),
+        "characters_total": len(content),
+        "start_char": start_char,
+        "end_char": end_char,
+        "truncated": truncated,
+        "content": chunk,
+        "next_start_char": end_char if truncated else None,
+        "note": "Read-only artifact inspection; if truncated is true, continue from next_start_char."
+    }
