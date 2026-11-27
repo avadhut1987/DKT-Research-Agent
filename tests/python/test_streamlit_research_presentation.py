@@ -58,3 +58,32 @@ class ResearchStudioPresentationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StructuredRenderingDataTests(unittest.TestCase):
+    def test_scalar_rows_format_booleans_none_and_numeric_values(self):
+        from dkt_agent.streamlit_rendering import scalar_rows
+
+        rows = scalar_rows({
+            "status": "success",
+            "authorized": True,
+            "optional": None,
+            "max_norm_error": 9.547918011776346e-15,
+            "ktheta_values": [0, 10000],
+        })
+        self.assertEqual(rows[0], {"Field": "Status", "Value": "success"})
+        self.assertEqual(rows[1], {"Field": "Authorized", "Value": "Yes"})
+        self.assertEqual(rows[2], {"Field": "Optional", "Value": "—"})
+        self.assertEqual(rows[3]["Value"], "9.547918e-15")
+        self.assertEqual(rows[4]["Value"], "0, 10000")
+
+    def test_record_lists_flatten_nested_parameters_for_tables(self):
+        from dkt_agent.streamlit_rendering import records_to_frame
+
+        frame = records_to_frame([
+            {"stage": 1, "parameters": {"kr": 1, "ktheta": 0}},
+            {"stage": 2, "parameters": {"kr": 1, "ktheta": 10000}},
+        ])
+        self.assertEqual(list(frame.columns), ["Stage", "Parameters · Kr", "Parameters · Ktheta"])
+        self.assertEqual(frame.iloc[0]["Parameters · Kr"], 1)
+        self.assertEqual(frame.iloc[1]["Parameters · Ktheta"], 10000)
