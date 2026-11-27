@@ -48,3 +48,11 @@ def test_format_json_is_complete_valid_and_strict():
 def test_format_json_serializes_nonfinite_values_as_null():
     rendered = format_json({"value": math.nan})
     assert rendered == '{\n  "value": null\n}'
+
+
+def test_normalize_math_notation_removes_invisible_wrapping_characters():
+    text = "At k\u200b_\u200btheta=0 and p\u00a0=\u00a0pi/2."
+    rendered = normalize_math_notation(text)
+    assert r"$k_\\theta$" in rendered
+    assert "$p$" in rendered
+    assert r"$\\pi/2$" in rendered
