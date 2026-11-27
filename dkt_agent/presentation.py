@@ -1,6 +1,7 @@
 """Presentation helpers shared by the DKT Research Agent UI."""
 from __future__ import annotations
 
+import json
 import math
 import re
 from typing import Any
@@ -98,3 +99,13 @@ def json_safe(value: Any) -> Any:
     if hasattr(value, "dict") and callable(value.dict):
         return json_safe(value.dict())
     return str(value)
+
+
+def format_json(value: Any) -> str:
+    """Serialize a complete, standards-compliant, human-inspectable JSON value."""
+    return json.dumps(
+        json_safe(value),
+        indent=2,
+        ensure_ascii=False,
+        allow_nan=False,
+    )
