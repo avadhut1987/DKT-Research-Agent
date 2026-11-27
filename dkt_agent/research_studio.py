@@ -174,17 +174,21 @@ def _render_stage_result(stage: dict) -> None:
             st.markdown("**Region-invariance screening**")
             status = screen.get("status", "not reported")
             st.metric("Finite-sample region screen", "Passed" if status == "finite_sample_invariance_screen_passed" else "Not passed")
-            leakage = st.columns(3)
+            leakage = st.columns(4)
             leakage[0].metric("Forward escape", f"{screen.get('forward_one_step', {}).get('escape_fraction', float('nan')):.3%}")
             leakage[1].metric("Backward escape", f"{screen.get('backward_one_step', {}).get('escape_fraction', float('nan')):.3%}")
             leakage[2].metric("Orbits leaving region", f"{screen.get('trajectory_retention', {}).get('fraction', float('nan')):.3%}")
-            st.caption(screen.get("interpretation", "The region screen was not reported."))
+            leakage[3].metric("Max sphere-norm error", f"{result.get('numerical_checks', {}).get('maximum_unit_sphere_norm_error', float('nan')):.2e}")
+            if status == "finite_sample_invariance_screen_passed":
+                st.info(screen.get("interpretation", "The finite-sample screen passed; the region remains a candidate only."))
+            else:
+                st.warning(screen.get("interpretation", "The region screen was not passed."))
             rows = []
             for observable, values in result.get("observables", {}).items():
                 series = values.get("D_N_over_regional_variance", [])
                 rows.append({
                     "Observable": observable,
-                    "Final $D_N/\\mathrm{Var}_R$": series[-1] if series else None,
+                    "Final normalized spread": series[-1] if series else None,
                     "Tail exponent (descriptive)": values.get("descriptive_tail_decay_exponent"),
                     "Regional mean": values.get("regional_mean_estimate"),
                     "Mean uncertainty": values.get("regional_mean_standard_error"),
@@ -568,7 +572,7 @@ def _render_execution(campaign: dict) -> None:
             st.rerun()
     elif tool_name == "diagnose_direction_dependent_local_ergodicity":
         st.markdown("**Region-conditioned directional ergodicity**")
-        st.caption("First define the region. The calculation screens forward/backward leakage and multi-kick retention before interpreting the regional area measure.")
+        st.caption("Define a spherical region explicitly. Coordinates use θ from +Z and φ = atan2(Y, X); all angles are in radians. The calculation screens forward/backward leakage and multi-kick retention before interpreting the regional area measure.")
         with st.form(f"local_ergodicity_inputs_{campaign['campaign_id']}"):
             c1, c2, c3 = st.columns(3)
             with c1:
