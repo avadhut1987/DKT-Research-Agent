@@ -18,6 +18,11 @@ from dkt_agent.evidence import (
     read_research_evidence_file as _read_research_evidence_file,
 )
 
+from dkt_agent.literature import (
+    search_theoretical_literature as _search_theoretical_literature,
+    read_arxiv_paper as _read_arxiv_paper,
+)
+
 @tool
 def run_dkt_simulation(
     kr: float,
@@ -321,3 +326,37 @@ def run_classical_quantum_comparison_tool(
         nsteps=nsteps, p=p,
     )
     return json.dumps(result, indent=2)
+
+
+
+@tool
+def search_theoretical_literature(query: str, max_results: int = 8) -> str:
+    """Search arXiv and Crossref for scholarly literature in theoretical physics,
+    mathematical physics, mathematics, quantum chaos, and related fields.
+
+    Returns source metadata, titles, authors, dates, abstracts when available,
+    DOI/arXiv identifiers, and stable source links. This is read-only discovery;
+    search ranking is not a measure of correctness or authority.
+    """
+    result = _search_theoretical_literature(query=query, max_results=max_results)
+    return json.dumps(result, indent=2, ensure_ascii=False)
+
+
+@tool
+def read_arxiv_paper_tool(
+    arxiv_id: str,
+    max_chars: int = Field(default=24000, ge=1000, le=40000),
+    start_char: int = Field(default=0, ge=0),
+) -> str:
+    """Read available ar5iv HTML text for an exact arXiv identifier.
+
+    Use after scholarly search identifies the paper. For long papers, continue
+    from next_start_char. HTML may simplify equations and figures; verify
+    technical details against the original paper/PDF.
+    """
+    result = _read_arxiv_paper(
+        arxiv_id=arxiv_id,
+        max_chars=max_chars,
+        start_char=start_char,
+    )
+    return json.dumps(result, indent=2, ensure_ascii=False)
