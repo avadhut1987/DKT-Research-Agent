@@ -295,8 +295,8 @@ def _run_until_decision_gate() -> None:
             )
             result_label = "SYMBOLIC ANALYSIS RESULT" if mode == "symbolic" else "READ-ONLY FOLLOW-UP RESULT"
             st.session_state.director_evidence += (
-                f"\\n\\n{result_label} — "
-                + decision["tool_name"] + ":\\n" + result
+                f"\n\n{result_label} — "
+                + decision["tool_name"] + ":\n" + result
             )
             _save_checkpoint()
         st.session_state.director_status = "ready_to_continue"
