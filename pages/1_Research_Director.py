@@ -284,17 +284,19 @@ def _run_until_decision_gate() -> None:
 
             # Read-only actions can be carried out automatically after the user
             # started this investigation. Each result is added to the audit history.
-            with st.spinner(f"Automatically performing read-only step: {decision['tool_name']}…"):
+            mode = decision["execution_mode"]
+            with st.spinner(f"Automatically performing {mode.replace('_', ' ')} step: {decision['tool_name']}…"):
                 result = execute_approved_step(decision["tool_name"], decision["arguments"])
             _record(
                 decision["tool_name"],
-                "read_only",
+                mode,
                 decision["arguments"],
                 result,
             )
+            result_label = "SYMBOLIC ANALYSIS RESULT" if mode == "symbolic" else "READ-ONLY FOLLOW-UP RESULT"
             st.session_state.director_evidence += (
-                "\n\nREAD-ONLY FOLLOW-UP RESULT — "
-                + decision["tool_name"] + ":\n" + result
+                f"\\n\\n{result_label} — "
+                + decision["tool_name"] + ":\\n" + result
             )
             _save_checkpoint()
         st.session_state.director_status = "ready_to_continue"
