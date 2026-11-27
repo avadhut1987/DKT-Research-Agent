@@ -3,6 +3,7 @@
 import json
 
 from langchain_core.tools import tool
+from pydantic import Field
 
 from dkt_agent.tools import (
     simulate_dkt,
@@ -188,13 +189,13 @@ def search_research_evidence(
 @tool
 def read_research_evidence_file(
     relative_path: str,
-    max_chars: int = 30000,
+    max_chars: int = Field(default=30000, ge=1000, le=60000),
 ) -> str:
     """
     Read one existing JSON, Markdown, text, or log artifact under results/.
     Use after search_research_evidence identifies the exact relevant path.
-    This is read-only and never executes file contents. Use read_research_csv_tool
-    for CSV evidence.
+    This is read-only and never executes file contents. max_chars must be between 1000 and 60000.
+    Use read_research_csv_tool for CSV evidence.
     """
     result = _read_research_evidence_file(
         relative_path=relative_path,
