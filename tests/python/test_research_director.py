@@ -84,3 +84,19 @@ def test_director_requires_read_only_retrieval_when_evidence_is_truncated():
     assert "A truncated search preview is not evidence that a result is absent." in SYSTEM_DECISION_RULES
     assert "LYAPUNOV/KS REUSE GATE" in SYSTEM_DECISION_RULES
     assert "AUTONOMOUS INVESTIGATION LOOP" in SYSTEM_DECISION_RULES
+
+
+
+def test_reader_character_limit_is_capped_before_schema_validation():
+    result = validate_decision({
+        "status": "MORE_EVIDENCE_REQUIRED",
+        "conclusion": "A matching artifact needs full inspection.",
+        "evidence_assessment": "The search result is only a preview.",
+        "tool_name": "read_research_evidence_file",
+        "arguments": {
+            "relative_path": "results/example.json",
+            "max_chars": 250000,
+        },
+        "execution_mode": "read_only",
+    })
+    assert result["arguments"]["max_chars"] == 60000
