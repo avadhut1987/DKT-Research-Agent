@@ -40,12 +40,12 @@ def _math_preview(value: str) -> str:
 
     text = re.sub(r"\$[^$]+\$", hold, value)
     patterns = (
-        (r"\bk[_\s-]*theta\b", r"$k_\theta$),
+        (r"\bk[_\s-]*theta\b", r"$k_\theta$"),
         (r"\bk[_\s-]*r\b", r"$k_r$"),
-        (r"\btheta[_\s-]*0\b", r"$\theta_0$),
-        (r"\bphi[_\s-]*0\b", r"$\phi_0$),
-        (r"\bpi\s*/\s*2\b", r"$\pi/2$),
-        (r"\bDelta[_\s-]*theta\b", r"$\Delta\theta$),
+        (r"\btheta[_\s-]*0\b", r"$\theta_0$"),
+        (r"\bphi[_\s-]*0\b", r"$\phi_0$"),
+        (r"\bpi\s*/\s*2\b", r"$\pi/2$"),
+        (r"\bDelta[_\s-]*theta\b", r"$\Delta\theta$"),
         (r"\bDelta[_\s-]*phi\b", r"$\Delta\phi$"),
     )
     for pattern, replacement in patterns:
