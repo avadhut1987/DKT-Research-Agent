@@ -182,10 +182,16 @@ conclusion (string), evidence_assessment (string), limitations (array of strings
 next_action (string), tool_name (string or null), arguments (object),
 execution_mode ("read_only" | "symbolic" | "numerical" | "none"),
 why_needed (string), expected_decision_impact (string),
-user_question (string or null).
+user_question (string or null),
+tool_development_proposal (object or null).
 
 If no more work is justified, tool_name must be null, arguments {}, execution_mode
-"none", and status must be SUFFICIENT, UNRESOLVED, or PAUSED.
+"none", and status must be SUFFICIENT, UNRESOLVED, or PAUSED. If a genuinely
+necessary scientific method is not covered by any registered tool, do not force
+an unsuitable tool. Return tool_name null and execution_mode "none", and provide
+tool_development_proposal with: name, scientific_gap, mathematical_definition,
+algorithm, validation_plan, expected_outputs, and limitations. This is a
+design proposal only; it does not write code or authorize execution.
 If you propose a numerical tool, arguments must contain all required arguments
 with reasonable conservative values. Do not make an execution claim.
 Do not propose a second tool in the same decision.
@@ -299,11 +305,34 @@ def validate_decision(decision: dict[str, Any]) -> dict[str, Any]:
         "why_needed": str(decision.get("why_needed", "")).strip(),
         "expected_decision_impact": str(decision.get("expected_decision_impact", "")).strip(),
         "user_question": decision.get("user_question"),
+        "tool_development_proposal": decision.get("tool_development_proposal"),
         "director_version": DIRECTOR_VERSION,
     }
     if not isinstance(normalized["limitations"], list):
         normalized["limitations"] = [str(normalized["limitations"])]
     normalized["limitations"] = [str(x) for x in normalized["limitations"]]
+    proposal = normalized["tool_development_proposal"]
+    if proposal is not None:
+        if not isinstance(proposal, dict):
+            raise ValueError("tool_development_proposal must be an object or null.")
+        required = {
+            "name", "scientific_gap", "mathematical_definition",
+            "algorithm", "validation_plan", "expected_outputs", "limitations",
+        }
+        missing = required - set(proposal)
+        if missing:
+            raise ValueError(f"Tool-development proposal is missing fields: {sorted(missing)}")
+        for key in ("name", "scientific_gap", "mathematical_definition", "algorithm"):
+            if not isinstance(proposal[key], str) or not proposal[key].strip():
+                raise ValueError(f"tool_development_proposal.{key} must be non-empty text.")
+        for key in ("validation_plan", "expected_outputs", "limitations"):
+            if not isinstance(proposal[key], list):
+                proposal[key] = [str(proposal[key])]
+            proposal[key] = [str(item) for item in proposal[key]]
+        if normalized["tool_name"] is not None:
+            raise ValueError("A tool-development proposal must not be combined with an executable tool step.")
+        if normalized["execution_mode"] != "none":
+            raise ValueError("A tool-development proposal is design-only and cannot execute a tool.")
     if not normalized["conclusion"]:
         raise ValueError("The decision must state the current conclusion or lack of one.")
     return normalized
