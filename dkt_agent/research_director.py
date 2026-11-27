@@ -168,6 +168,14 @@ def validate_decision(decision: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"Execution mode mismatch for {tool_name}: expected {actual_mode}.")
         if not isinstance(arguments, dict):
             raise ValueError("Tool arguments must be a JSON object.")
+        tool_object = TOOL_REGISTRY[tool_name][0]
+        schema_factory = getattr(tool_object, "get_input_schema", None)
+        if callable(schema_factory):
+            schema = schema_factory()
+            if hasattr(schema, "model_validate"):
+                schema.model_validate(arguments)
+            elif hasattr(schema, "parse_obj"):
+                schema.parse_obj(arguments)
         if mode == "read_only" and status not in {"MORE_EVIDENCE_REQUIRED", "UNRESOLVED"}:
             raise ValueError("Read-only follow-up requires an evidence-related status.")
         if mode == "numerical" and status != "MORE_EVIDENCE_REQUIRED":
@@ -223,6 +231,14 @@ def decide_next_step(
             "result": str(item.get("result", ""))[:6000],
             "status": item.get("status"),
         })
+    tool_catalog = {
+        name: {
+            "execution_mode": mode,
+            "description": getattr(tool, "description", ""),
+            "argument_schema": getattr(tool, "args", {}),
+        }
+        for name, (tool, mode) in TOOL_REGISTRY.items()
+    }
     prompt = (
         SYSTEM_DECISION_RULES
         + "\n\nRESEARCH QUESTION:\n" + question
