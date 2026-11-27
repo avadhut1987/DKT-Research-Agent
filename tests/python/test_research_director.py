@@ -78,3 +78,9 @@ def test_director_prioritizes_controlled_mean_ergodicity_robustness_check():
 
 def test_director_must_reconsider_when_user_declines_proposal():
     assert "do not execute it or repeat the" in SYSTEM_DECISION_RULES
+
+
+def test_director_requires_read_only_retrieval_when_evidence_is_truncated():
+    assert "A truncated search preview is not evidence that a result is absent." in SYSTEM_DECISION_RULES
+    assert "LYAPUNOV/KS REUSE GATE" in SYSTEM_DECISION_RULES
+    assert "AUTONOMOUS INVESTIGATION LOOP" in SYSTEM_DECISION_RULES
