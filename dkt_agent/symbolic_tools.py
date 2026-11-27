@@ -6,6 +6,7 @@ calculation aid, not a theorem prover or a substitute for a mathematical proof.
 from __future__ import annotations
 
 import ast
+import math
 from typing import Callable
 
 import sympy as sp
@@ -40,7 +41,9 @@ def _parse_expression(source: str, symbols: dict[str, sp.Symbol]) -> sp.Expr:
     def visit(node):
         if isinstance(node, ast.Expression):
             return visit(node.body)
-        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        if isinstance(node, ast.Constant) and type(node.value) in (int, float):
+            if isinstance(node.value, float) and not math.isfinite(node.value):
+                raise ValueError("Non-finite numeric literals are not supported.")
             return sp.Integer(node.value) if isinstance(node.value, int) else sp.Float(node.value)
         if isinstance(node, ast.Name):
             if node.id in symbols:
@@ -60,6 +63,8 @@ def _parse_expression(source: str, symbols: dict[str, sp.Symbol]) -> sp.Expr:
             operation = operations.get(type(node.op))
             if operation is None:
                 raise ValueError("Only +, -, *, /, and ** are supported.")
+            if isinstance(node.op, ast.Pow) and right.is_Integer and abs(int(right)) > 10000:
+                raise ValueError("Integer exponents must have magnitude at most 10000.")
             return operation(left, right)
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
             value = visit(node.operand)
