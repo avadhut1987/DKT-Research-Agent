@@ -103,24 +103,6 @@ def test_reader_character_limit_is_capped_before_schema_validation():
 
 
 
-def test_director_can_select_symbolic_analysis_without_numerical_approval():
-    result = validate_decision({
-        "status": "MORE_EVIDENCE_REQUIRED",
-        "conclusion": "A symbolic derivative is needed to check the proposed expression.",
-        "evidence_assessment": "The relevant algebra has not yet been evaluated.",
-        "tool_name": "symbolic_math_tool",
-        "arguments": {
-            "operation": "differentiate",
-            "expressions": ["sin(x)**2"],
-            "variables": ["x"],
-        },
-        "execution_mode": "symbolic",
-    })
-    assert result["execution_mode"] == "symbolic"
-    assert result["tool_name"] == "symbolic_math_tool"
-
-
-
 def test_director_validates_design_only_tool_development_proposal():
     proposal = {
         "name": "Invariant-set retention estimator",
@@ -159,8 +141,8 @@ def test_tool_development_proposal_cannot_be_combined_with_execution():
         validate_decision({
             "status": "UNRESOLVED",
             "conclusion": "Need a new diagnostic.",
-            "tool_name": "symbolic_math_tool",
-            "arguments": {"operation": "simplify", "expressions": ["x"], "variables": ["x"]},
-            "execution_mode": "symbolic",
+            "tool_name": "search_research_evidence",
+            "arguments": {"query": "invariant region"},
+            "execution_mode": "read_only",
             "tool_development_proposal": proposal,
         })
