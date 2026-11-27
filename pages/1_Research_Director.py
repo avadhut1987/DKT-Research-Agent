@@ -196,6 +196,18 @@ if controls[0].button(
         st.session_state.director_error = None
         st.session_state.director_active_question = question.strip()
     _run_until_decision_gate()
+if controls[2].button("Pause / stop here", use_container_width=True):
+    st.session_state.director_status = "paused_by_user"
+    st.session_state.director_decision = {
+        "status": "PAUSED",
+        "conclusion": "The investigation was paused by the user. No further calculations will run unless the user resumes it.",
+        "evidence_assessment": "The current evidence and completed steps remain available in the investigation history.",
+        "limitations": ["A user pause is a workflow decision, not a scientific conclusion."],
+        "tool_name": None,
+        "execution_mode": "none",
+        "arguments": {},
+        "next_action": "Resume only if a further research step is justified.",
+    }
 if controls[1].button("Reset investigation", use_container_width=True):
     for key in (
         "director_history", "director_evidence", "director_started",
@@ -285,6 +297,8 @@ if decision:
         else:
             st.caption("No further tool execution is proposed.")
     else:
+        if decision.get("user_question"):
+            st.info(_math_preview(decision["user_question"]))
         st.markdown("**Next action**")
         st.markdown(_math_preview(decision.get("next_action", "No further action proposed.")))
 
