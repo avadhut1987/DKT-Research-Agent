@@ -105,7 +105,7 @@ def _render_readable_result(value: object, heading: str = "Result") -> None:
         st.write(_display_value(value))
         return
 
-    preferred_text = ("text", "summary", "interpretation", "message", "note")
+    preferred_text = ("text", "summary", "interpretation", "message", "note", "abstract", "content")
     rendered = set()
     for key in preferred_text:
         text_value = value.get(key)
@@ -118,7 +118,27 @@ def _render_readable_result(value: object, heading: str = "Result") -> None:
     for key, item in value.items():
         if key in rendered or item is None:
             continue
-        if isinstance(item, list) and item and all(isinstance(row, dict) for row in item):
+        if key == "latex" and isinstance(item, list):
+            st.markdown("**Symbolic expression**")
+            for expression in item:
+                if isinstance(expression, str):
+                    st.latex(expression)
+        elif key == "results" and isinstance(item, list) and all(isinstance(row, dict) for row in item):
+            st.markdown("**Scholarly sources found**")
+            for source in item:
+                title = source.get("title", "Untitled source")
+                st.markdown(f"**{_render_math(title)}**")
+                authors = ", ".join(source.get("authors") or [])
+                metadata = " · ".join(str(part) for part in (source.get("year"), source.get("source"), authors) if part)
+                if metadata:
+                    st.caption(metadata)
+                if source.get("abstract"):
+                    st.markdown(_render_math(source["abstract"]))
+                if source.get("url"):
+                    st.markdown(f"[Open source]({source['url']})")
+                elif source.get("doi"):
+                    st.markdown(f"[DOI](https://doi.org/{source['doi']})")
+        elif isinstance(item, list) and item and all(isinstance(row, dict) for row in item):
             st.markdown(f"**{key.replace('_', ' ').title()}**")
             safe_rows = [
                 {str(column): _display_value(cell) for column, cell in row.items()}
