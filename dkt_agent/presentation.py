@@ -60,7 +60,7 @@ def normalize_math_notation(value: Any) -> str:
 
     def hold_generated(replacement: str) -> str:
         generated.append(replacement)
-        return f"\\x00GENERATED{len(generated) - 1}\\x00"
+        return f"\x00GENERATED{len(generated) - 1}\x00"
 
     for pattern, replacement in patterns:
         text = re.sub(
@@ -78,7 +78,7 @@ def normalize_math_notation(value: Any) -> str:
         text = text.replace(f"\x00MATH{index}\x00", original)
 
     for index, replacement in enumerate(generated):
-        text = text.replace(f"\\x00GENERATED{index}\\x00", replacement)
+        text = text.replace(f"\x00GENERATED{index}\x00", replacement)
 
     return text
 
