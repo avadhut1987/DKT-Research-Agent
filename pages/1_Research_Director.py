@@ -43,7 +43,7 @@ def _math_preview(value: str) -> str:
     # common plain-text forms emitted by the language model.
     text = re.sub(r"\$\$.*?\$\$|\$[^$]+\$|\\\(.*?\\\)", hold, value, flags=re.S)
     patterns = (
-        (r"(?<![\w])k\s*[_\s-]*\{?\s*theta\s*\}?(?![\w])", r"$k_\theta$"),
+        (r"(?<![\w])k\s*[_\s-]*\{?\s*(?:\\)?theta\s*\}?(?![\w])", r"$k_\theta$"),
         (r"(?<![\w])k\s*[_\s-]*\{?\s*r\s*\}?(?![\w])", r"$k_r$"),
         (r"(?<![\w])theta[_\s-]*0(?![\w])", r"$\theta_0$"),
         (r"(?<![\w])phi[_\s-]*0(?![\w])", r"$\phi_0$"),
