@@ -139,7 +139,7 @@ Only propose a new Lyapunov/KS calculation if the research question explicitly
 requires a fresh quantitative estimate and read-only inspection confirms that
 the relevant existing estimates cannot answer it. If proposing one, explain
 why the existing estimates are inadequate and what comparison/robustness issue
-the new run resolves. Never suggest that changing $k_\\theta$ changes chaoticity.
+the new run resolves. Never suggest that changing $k_\theta$ changes chaoticity.
 
 AUTONOMOUS INVESTIGATION LOOP:
 After each completed tool result, interpret the result against the original
