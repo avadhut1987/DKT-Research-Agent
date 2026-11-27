@@ -45,6 +45,8 @@ def normalize_math_notation(value: Any) -> str:
         (r"(?<![\w])π(?![\w])", r"$\pi$"),
         (r"(?<![\w])theta[_\s-]*0(?![\w])", r"$\theta_0$"),
         (r"(?<![\w])phi[_\s-]*0(?![\w])", r"$\phi_0$"),
+        (r"(?<![\w])n[_\s-]*kicks(?![\w])", r"$n_{\mathrm{kicks}}$"),
+        (r"(?<![\w])n[_\s-]*initial[_\s-]*conditions(?![\w])", r"$n_{\mathrm{initial\ conditions}}$"),
         (r"(?<![\w])Delta[_\s-]*theta(?![\w])", r"$\Delta\theta$"),
         (r"(?<![\w])Delta[_\s-]*phi(?![\w])", r"$\Delta\phi$"),
         (r"(?<![\w])pi\s*/\s*2(?![\w])", r"$\pi/2$"),
