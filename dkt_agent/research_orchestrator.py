@@ -67,13 +67,6 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             ["k_r, k_theta, p", "region geometry: full sphere, spherical cap, latitude band or longitude sector", "region boundaries/centre and angular parameters in radians", "observable battery", "maximum kicks N", "initial-condition, reference and invariance sample sizes", "random seed and leakage tolerance"],
             "The conditional area measure is justified only if the region is invariant. Forward/backward leakage bounds and multi-kick retention are finite-sample screens, not proofs; if they fail, only descriptive conditional-start statistics are reported."))
         gates.append("Select and justify the phase-space region before execution. A visually chosen patch is not automatically an invariant component.")
-        if _has(t, r"weak.?mix", r"strong.?mix", r"mixing"):
-            steps.append(_step("3 · Optional mixing-hierarchy follow-up", "diagnose_mixing_hierarchy",
-                "Assess weak- and strong-mixing-related finite-data indicators separately, using a verified same-map ensemble.",
-                ["2–24 exact same-map trajectory CSV paths", "distinct initial conditions", "verified common k_r, k_theta and p", "transient, maximum lag and partition resolution"],
-                "Finite-record correlations and finite-partition alpha estimates do not prove asymptotic weak or strong mixing."))
-            if existing_data_available is not True:
-                gates.append("The mixing follow-up requires existing same-map trajectories; locate them or separately authorize ensemble generation.")
     elif _has(t, r"direction.?dependent", r"directional", r"along\\s+[xyz]", r"observable.?wise", r"axis.?wise", r"not\\s+global", r"local\\s+ergod") and _has(t, r"ergod", r"mix", r"birkhoff", r"observable"):
         intent = "direction_dependent_ergodicity"
         scope = [
