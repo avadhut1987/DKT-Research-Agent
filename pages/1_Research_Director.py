@@ -29,30 +29,41 @@ st.caption(
 
 
 def _math_preview(value: str) -> str:
-    """Render common DKT plain-text notation without changing stored text."""
+    """Normalize DKT notation for Streamlit Markdown/LaTeX rendering."""
     if not isinstance(value, str):
         return str(value)
+
     protected: list[str] = []
 
     def hold(match: re.Match[str]) -> str:
         protected.append(match.group(0))
-        return f"\x00LATEX{len(protected) - 1}\x00"
+        return f"\x00MATH{len(protected) - 1}\x00"
 
-    text = re.sub(r"\$[^$]+\$", hold, value)
+    # Preserve already-delimited math, including \( ... \), while normalizing
+    # common plain-text forms emitted by the language model.
+    text = re.sub(r"\$\$.*?\$\$|\$[^$]+\$|\\\(.*?\\\)", hold, value, flags=re.S)
     patterns = (
-        (r"\bk[_\s-]*theta\b", r"$k_\theta$"),
-        (r"\bk[_\s-]*r\b", r"$k_r$"),
-        (r"\btheta[_\s-]*0\b", r"$\theta_0$"),
-        (r"\bphi[_\s-]*0\b", r"$\phi_0$"),
-        (r"\bpi\s*/\s*2\b", r"$\pi/2$"),
-        (r"\bDelta[_\s-]*theta\b", r"$\Delta\theta$"),
-        (r"\bDelta[_\s-]*phi\b", r"$\Delta\phi$"),
+        (r"(?<![\w])k\s*[_\s-]*\{?\s*theta\s*\}?(?![\w])", r"$k_\\theta$"),
+        (r"(?<![\w])k\s*[_\s-]*\{?\s*r\s*\}?(?![\w])", r"$k_r$"),
+        (r"(?<![\w])theta[_\s-]*0(?![\w])", r"$\\theta_0$"),
+        (r"(?<![\w])phi[_\s-]*0(?![\w])", r"$\\phi_0$"),
+        (r"(?<![\w])pi\s*/\s*2(?![\w])", r"$\\pi/2$"),
+        (r"(?<![\w])Delta[_\s-]*theta(?![\w])", r"$\\Delta\\theta$"),
+        (r"(?<![\w])Delta[_\s-]*phi(?![\w])", r"$\\Delta\\phi$"),
     )
     for pattern, replacement in patterns:
         text = re.sub(pattern, lambda _m, rep=replacement: rep, text, flags=re.I)
+
     for index, original in enumerate(protected):
-        text = text.replace(f"\x00LATEX{index}\x00", original)
+        if original.startswith(r"\(") and original.endswith(r"\)"):
+            original = "$" + original[2:-2] + "$"
+        text = text.replace(f"\x00MATH{index}\x00", original)
     return text
+
+
+def _render_json(value: object) -> None:
+    """Render structured payloads as valid, copyable JSON text."""
+    st.code(json.dumps(value, indent=2, ensure_ascii=False, default=str), language="json")
 
 
 def _initialize() -> None:
@@ -240,6 +251,9 @@ if decision:
         st.metric("Completed steps", len(st.session_state.director_history))
         st.caption(f"Updated: {st.session_state.director_updated or '—'}")
 
+    with st.expander("Complete research decision (JSON)", expanded=False):
+        _render_json(decision)
+
     st.markdown("**Current conclusion**")
     st.markdown(_math_preview(decision.get("conclusion", "")))
     st.markdown("**Evidence assessment**")
@@ -259,7 +273,7 @@ if decision:
         )
         st.code(decision["tool_name"], language="text")
         st.markdown("**Exact tool arguments (validated JSON)**")
-        st.json(decision.get("arguments", {}), expanded=True)
+        _render_json(decision.get("arguments", {}))
 
         if decision.get("execution_mode") == "numerical":
             st.warning(
@@ -312,10 +326,10 @@ with st.expander("Investigation history and results", expanded=bool(st.session_s
         )
         st.caption(item.get("completed_at", ""))
         st.markdown("Arguments")
-        st.json(item.get("arguments", {}), expanded=False)
+        _render_json(item.get("arguments", {}))
         parsed = parse_tool_result(item.get("result", ""))
         if isinstance(parsed, (dict, list)):
-            st.json(parsed, expanded=False)
+            _render_json(parsed)
         else:
             st.text(str(parsed))
 
