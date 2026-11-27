@@ -106,7 +106,8 @@ def render_structured_data(
             st.caption(f"{len(nested)} additional nested field(s) omitted from this view.")
             return
         for key, child in nested:
-            with st.expander(_label(key), expanded=False):
+            with st.container(border=True):
+                st.markdown(f"**{_label(key)}**")
                 render_structured_data(child, max_items=max_items, _depth=_depth + 1)
         return
 
@@ -133,7 +134,8 @@ def render_structured_data(
             st.caption(f"{len(value):,} nested entries.")
             return
         for index, item in enumerate(value[:max_items], start=1):
-            with st.expander(f"Item {index}", expanded=False):
+            with st.container(border=True):
+                st.markdown(f"**Item {index}**")
                 render_structured_data(item, max_items=max_items, _depth=_depth + 1)
         if len(value) > max_items:
             st.caption(f"Showing the first {max_items:,} of {len(value):,} entries.")
