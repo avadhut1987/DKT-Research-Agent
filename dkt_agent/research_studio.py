@@ -175,7 +175,7 @@ def _render_stage_result(stage: dict) -> None:
     artifacts = _result_artifacts(result)
     if artifacts:
         st.markdown("**Saved output files**")
-        for label, path in artifacts:
+        for artifact_index, (label, path) in enumerate(artifacts):
             from pathlib import Path
             p = Path(path)
             try:
@@ -183,7 +183,7 @@ def _render_stage_result(stage: dict) -> None:
                 st.download_button(
                     f"Download {p.name}", data=data, file_name=p.name,
                     mime="text/csv" if p.suffix.lower() == ".csv" else "application/json",
-                    key=f"artifact_{stage.get('index', 0)}_{p.name}",
+                    key=f"artifact_{stage.get('index', 0)}_{artifact_index}_{p.name}",
                 )
                 if p.suffix.lower() == ".csv":
                     import pandas as pd
@@ -229,6 +229,7 @@ def _result_artifacts(value) -> list[tuple[str, str]]:
     """Find existing CSV/JSON artifacts in a nested tool result."""
     from pathlib import Path
     found: list[tuple[str, str]] = []
+    seen_paths: set[str] = set()
     def visit(item, label=""):
         if isinstance(item, dict):
             for key, child in item.items():
@@ -239,7 +240,12 @@ def _result_artifacts(value) -> list[tuple[str, str]]:
         elif isinstance(item, str) and item.lower().endswith((".csv", ".json")):
             path = Path(item).expanduser()
             if path.is_file():
-                found.append((label or path.name, str(path)))
+                # A tool result may expose the same file under multiple nested
+                # keys. Render one download control per unique resolved file.
+                resolved = str(path.resolve())
+                if resolved not in seen_paths:
+                    seen_paths.add(resolved)
+                    found.append((label or path.name, str(path)))
     visit(value)
     return found
 
