@@ -41,5 +41,5 @@ jobs:
             tests/python/test_periodic_orbits.py \
             tests/python/test_research_director.py \
             tests/python/test_presentation.py \
-            tests/python/test_theory_tools.py \
+            tests/python/test_literature.py \
             tests/python/test_research_director_ui.py
