@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 
-from dkt_agent.presentation import json_safe, normalize_math_notation
+from dkt_agent.presentation import format_json, json_safe, normalize_math_notation
 
 
 def test_normalize_dkt_parameters_in_plain_text():
@@ -32,3 +32,19 @@ def test_preserve_existing_math_and_normalize_parenthesis_delimiters():
 def test_json_safe_converts_nonfinite_values_and_nested_structures():
     value = {"k_r": 1.0, "bad": math.nan, "nested": (1, 2)}
     assert json_safe(value) == {"k_r": 1.0, "bad": None, "nested": [1, 2]}
+
+
+
+def test_format_json_is_complete_valid_and_strict():
+    value = {"arguments": {"k_r": 1, "k_theta": 0, "observables": ["x", "y"]}}
+    rendered = format_json(value)
+    assert '"k_r": 1,' in rendered
+    assert '"k_theta": 0,' in rendered
+    assert '"observables": [' in rendered
+    import json
+    assert json.loads(rendered) == value
+
+
+def test_format_json_serializes_nonfinite_values_as_null():
+    rendered = format_json({"value": math.nan})
+    assert rendered == '{\n  "value": null\n}'
