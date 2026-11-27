@@ -230,6 +230,29 @@ The output includes kick-resolved components and numerical error summaries such 
 
 Finite-time disagreement between a single classical trajectory and quantum expectation values is not, by itself, a diagnostic of classical chaos. Entanglement entropy is treated as a separate observable.
 
+### 8. Scholarly literature and symbolic mathematics
+
+The research assistant and Research Director include read-only scholarly discovery through **arXiv** and **Crossref**. Search results provide bibliographic metadata, abstracts when available, DOI/arXiv identifiers, and source links. Available arXiv HTML full text can be inspected in bounded chunks. Search ranking is only a discovery aid: it does not establish correctness, relevance, or peer-review status. The agent must distinguish preprints from published work and verify theorem statements and technical equations against primary sources.
+
+A bounded **SymPy** tool supports:
+- Algebraic simplification.
+- Symbolic differentiation.
+- Jacobian construction for lists of expressions.
+
+The symbolic parser accepts a restricted expression grammar rather than arbitrary Python. Variables are treated as real unless a later tool explicitly supports stronger assumptions. These calculations can check algebra and support derivations, but they are not a theorem prover and do not establish dynamical-systems results without a complete mathematical argument.
+
+### Theory-to-tool development
+
+The agent can identify a mathematical question, retrieve relevant literature, formulate assumptions, derive candidate expressions, and propose an algorithm or tool specification. It does **not** autonomously rewrite its own source code, install arbitrary packages, or execute unreviewed code. A new research tool follows a controlled development cycle:
+
+1. State the mathematical object, assumptions, intended output, and scientific use.
+2. Derive the algorithm and identify edge cases and failure modes.
+3. Implement it as a separate, bounded module.
+4. Add analytic test cases, numerical cross-checks, and regression tests.
+5. Review the implementation and scientific interpretation before merging it into the research agent.
+
+This separation prevents a language-model-generated method from being treated as validated merely because the model proposed or executed it.
+
 ## Research Studio and reproducibility
 
 The **Research Studio** is a plan-first, human-supervised workflow for structured computational investigations. It makes the path from a scientific question to a numerical result explicit and reviewable.
@@ -283,7 +306,8 @@ Launch the Streamlit application with **streamlit run app.py**. The interface or
 - **Comparisons:** controlled trajectory, geometry, and classical–quantum comparisons.
 - **Data and evidence:** inspection and analysis of existing research data.
 - **Research Studio:** question framing, evidence discovery, workflow planning, guarded campaign execution, campaign records, and scientific review.
-- **Research assistant:** natural-language interaction with the LangGraph research agent.
+- **Research Director:** iterative evidence-led investigation, automatic read-only inspection, scholarly literature retrieval, symbolic algebra support, and approval-gated numerical proposals.
+- **Research assistant:** natural-language interaction with the LangGraph research agent, including DKT numerical tools, scholarly discovery, and symbolic mathematics.
 
 Exact tab labels may evolve as the interface develops. The scientific tools and their recorded inputs, rather than the visual arrangement of tabs, define the calculation performed.
 
