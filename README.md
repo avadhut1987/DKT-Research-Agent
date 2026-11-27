@@ -243,7 +243,7 @@ The symbolic parser accepts a restricted expression grammar rather than arbitrar
 
 ### Theory-to-tool development
 
-The agent can identify a mathematical question, retrieve relevant literature, formulate assumptions, derive candidate expressions, and propose an algorithm or tool specification. It does **not** autonomously rewrite its own source code, install arbitrary packages, or execute unreviewed code. A new research tool follows a controlled development cycle:
+The Research Director can return a structured, design-only research-tool proposal when a genuine scientific need is not covered by the registered tools. Such a proposal includes the scientific gap, mathematical definition, algorithm, validation plan, expected outputs, and limitations. The agent can identify a mathematical question, retrieve relevant literature, formulate assumptions, derive candidate expressions, and propose an algorithm or tool specification. It does **not** autonomously rewrite its own source code, install arbitrary packages, or execute unreviewed code. A new research tool follows a controlled development cycle:
 
 1. State the mathematical object, assumptions, intended output, and scientific use.
 2. Derive the algorithm and identify edge cases and failure modes.
