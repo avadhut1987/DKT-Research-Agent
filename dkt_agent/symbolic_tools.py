@@ -63,7 +63,7 @@ def _parse_expression(source: str, symbols: dict[str, sp.Symbol]) -> sp.Expr:
             operation = operations.get(type(node.op))
             if operation is None:
                 raise ValueError("Only +, -, *, /, and ** are supported.")
-            if isinstance(node.op, ast.Pow) and right.is_Integer and abs(int(right)) > 10000:
+            if isinstance(node.op, ast.Pow) and isinstance(right, sp.Integer) and abs(int(right)) > 1000:
                 raise ValueError("Integer exponents must have magnitude at most 10000.")
             return operation(left, right)
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
