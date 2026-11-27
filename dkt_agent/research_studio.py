@@ -184,11 +184,11 @@ def _render_stage_result(stage: dict) -> None:
             status = screen.get("status", "not reported")
             st.metric("Finite-sample region screen", "Passed" if status == "finite_sample_invariance_screen_passed" else "Not passed")
             leakage = st.columns(5)
-            leakage[0].metric("Forward escape", f"{screen.get('forward_one_step', {}).get('escape_fraction', float('nan')):.3%}")
-            leakage[1].metric("Backward escape", f"{screen.get('backward_one_step', {}).get('escape_fraction', float('nan')):.3%}")
-            leakage[2].metric("Orbits leaving region", f"{screen.get('trajectory_retention', {}).get('fraction', float('nan')):.3%}")
-            leakage[3].metric("Region area fraction", f"{result.get('parameters', {}).get('region_area_fraction_of_sphere', float('nan')):.3%}")
-            leakage[4].metric("Max sphere-norm error", f"{result.get('numerical_checks', {}).get('maximum_unit_sphere_norm_error', float('nan')):.2e}")
+            leakage[0].metric("Forward escape", f"{_mapping(screen.get('forward_one_step')).get('escape_fraction', float('nan')):.3%}")
+            leakage[1].metric("Backward escape", f"{_mapping(screen.get('backward_one_step')).get('escape_fraction', float('nan')):.3%}")
+            leakage[2].metric("Orbits leaving region", f"{_mapping(screen.get('trajectory_retention')).get('fraction', float('nan')):.3%}")
+            leakage[3].metric("Region area fraction", f"{_mapping(result.get('parameters')).get('region_area_fraction_of_sphere', float('nan')):.3%}")
+            leakage[4].metric("Max sphere-norm error", f"{_mapping(result.get('numerical_checks')).get('maximum_unit_sphere_norm_error', float('nan')):.2e}")
             if status == "finite_sample_invariance_screen_passed":
                 st.info(screen.get("interpretation", "The finite-sample screen passed; the region remains a candidate only."))
             else:
@@ -925,7 +925,7 @@ def render_research_studio() -> None:
             st.markdown("**Authorization and evidence review**")
             st.write(f"Numerical execution: **{'Authorized by user' if _campaign_is_authorized(campaign) else 'Not authorized'}**")
             st.write(f"Authorization recorded: {campaign.get('execution_authorized_at') or 'Not recorded'}")
-            st.write(f"Pre-execution evidence gate: **{campaign.get('evidence_review', {}).get('decision', 'Not recorded')}**")
+            st.write(f"Pre-execution evidence gate: **{_mapping(campaign.get('evidence_review')).get('decision', 'Not recorded')}**")
             scientific_review = campaign.get("scientific_review") or {}
             st.write(f"Post-execution scientific review: **{scientific_review.get('decision', 'Pending')}**")
             if scientific_review.get("notes"):
