@@ -69,6 +69,13 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             "Finite-ensemble variance trends are not proofs of ergodicity; a separate region-conditioned sampling protocol is required for local phase-space claims."))
         if _has(t, r"local", r"region", r"neighbou?rhood", r"subset", r"island", r"component"):
             gates.append("PAUSED — Region-restricted local ergodicity is not yet implemented. Current mean-ergodicity and Birkhoff-variance samplers use full-sphere sampling. A region-conditioned sampler, explicit region definition and validation are required before this question can be executed or claimed.")
+        if _has(t, r"weak.?mix", r"strong.?mix", r"mixing"):
+            steps.append(_step("4 · Weak/strong-mixing indicators", "diagnose_mixing_hierarchy",
+                "Assess the implemented weak-mixing observable indicator and finite-partition strong-mixing alpha indicator separately from observable-wise mean ergodicity.",
+                ["2–24 exact same-map trajectory CSV paths", "distinct initial conditions", "verified common k_r, k_theta and p", "transient, maximum lag and partition resolution"],
+                "The weak-mixing test covers only the implemented Cartesian observables and finite records. The strong-mixing alpha estimate is restricted to a finite partition and sampled lags, not the supremum over all measurable sets. Neither proves asymptotic mixing."))
+            if existing_data_available is not True:
+                gates.append("The mixing follow-up requires an existing same-map ensemble. Locate suitable trajectories or explicitly authorize ensemble generation.")
     elif _has(t, r"k[_\s-]?theta", r"kθ", r"asymmetry", r"phase.?space geometry") and _has(t, r"fixed\s*k[_\s-]?r", r"same\s*k[_\s-]?r", r"k[_\s-]?r\s*=", r"vary", r"compare", r"geometry"):
         intent = "fixed_kr_ktheta_geometry"
         scope = ["Hold k_r, p, initial-condition protocol and numerical settings fixed.",
