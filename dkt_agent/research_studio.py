@@ -8,7 +8,7 @@ import re
 import streamlit as st
 
 from dkt_agent.research_orchestrator import build_research_plan
-from dkt_agent.streamlit_rendering import render_structured_data, render_raw_json_expander
+from dkt_agent.streamlit_rendering import render_structured_data
 from dkt_agent.research_execution import (
     create_campaign,
     execute_campaign_stage,
@@ -195,7 +195,8 @@ def _render_stage_result(stage: dict) -> None:
                 st.caption(f"{p.name}: file could not be previewed ({exc})")
     with st.expander(f"Advanced details · {stage.get('label', 'stage result')}", expanded=False):
         render_structured_data(result, title="Structured stage result")
-        render_raw_json_expander(result, label="Raw stage-result JSON")
+        st.markdown("**Raw stage-result JSON**")
+        st.code(json.dumps(result, indent=2, ensure_ascii=False, default=str), language="json")
         st.download_button(
             "Download stage result (JSON)",
             data=json.dumps(result, indent=2, ensure_ascii=False, default=str).encode("utf-8"),
