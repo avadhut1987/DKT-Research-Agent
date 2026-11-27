@@ -43,6 +43,18 @@ class ResearchStudioPresentationTests(unittest.TestCase):
             self.assertEqual({Path(path).name for _, path in found}, {"series.csv", "summary.json"})
             self.assertEqual(len(found), 2)
 
+    def test_artifact_discovery_deduplicates_repeated_file_references(self):
+        with tempfile.TemporaryDirectory() as directory:
+            csv_path = Path(directory) / "trajectory.csv"
+            csv_path.write_text("step,distance\\n0,0\\n", encoding="utf-8")
+            found = _result_artifacts({
+                "artifacts": {"primary": str(csv_path)},
+                "files": [str(csv_path)],
+                "paths": {"copy": str(csv_path)},
+            })
+            self.assertEqual(len(found), 1)
+            self.assertEqual(Path(found[0][1]).name, "trajectory.csv")
+
 
 if __name__ == "__main__":
     unittest.main()
