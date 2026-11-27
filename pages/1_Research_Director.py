@@ -116,6 +116,7 @@ def _initialize() -> None:
             st.session_state.director_started = bool(checkpoint.get("started", False))
             st.session_state.director_status = checkpoint.get("status", "not_started")
             st.session_state.director_updated = checkpoint.get("updated")
+            st.session_state.director_checkpoint_restored = True
         st.session_state.director_checkpoint_loaded = True
 
 
@@ -157,6 +158,7 @@ def _run_until_decision_gate() -> None:
                     "arguments": {},
                     "next_action": "Review the history and start a new focused investigation if justified.",
                 }
+                _save_checkpoint()
                 return
 
             with st.spinner("Research Director is assessing the evidence and selecting the next step…"):
@@ -170,10 +172,12 @@ def _run_until_decision_gate() -> None:
 
             if decision["tool_name"] is None:
                 st.session_state.director_status = decision["status"].lower()
+                _save_checkpoint()
                 return
 
             if decision["execution_mode"] == "numerical":
                 st.session_state.director_status = "awaiting_numerical_approval"
+                _save_checkpoint()
                 return
 
             # Read-only actions can be carried out automatically after the user
@@ -215,6 +219,10 @@ with st.sidebar:
         "The director stops when the available evidence is sufficient, the claim "
         "remains unresolved, a scientific input is missing, or a safety limit is reached."
     )
+
+if st.session_state.get("director_checkpoint_restored"):
+    st.info("Resumed your saved investigation. Its original research question, evidence, results, and pending decision have been restored.")
+    st.session_state.director_checkpoint_restored = False
 
 question = st.text_area(
     "Research question",
