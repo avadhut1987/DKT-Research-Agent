@@ -83,6 +83,7 @@ def test_arxiv_paper_reader_returns_bounded_text(monkeypatch):
     assert result["status"] == "success"
     assert "Paper title" in result["content"]
     assert "First paragraph." in result["content"]
+    assert "\\n" in result["content"]
 
 
 def test_arxiv_reader_rejects_arbitrary_urls():
