@@ -99,7 +99,7 @@ def _render_readable_result(value: object, heading: str = "Result") -> None:
             ]
             st.dataframe(safe_rows, use_container_width=True, hide_index=True)
         else:
-            st.markdown("\\n".join(f"- {_display_value(item)}" for item in value))
+            st.markdown("\n".join(f"- {_display_value(item)}" for item in value))
         return
     if not isinstance(value, dict):
         st.write(_display_value(value))
