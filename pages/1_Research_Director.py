@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import json
-import re
 from datetime import datetime, timezone
 
 import streamlit as st
+
+from dkt_agent.presentation import json_safe, normalize_math_notation
 
 from dkt_agent.research_director import (
     decide_next_step,
@@ -28,42 +29,19 @@ st.caption(
 )
 
 
-def _math_preview(value: str) -> str:
-    """Normalize DKT notation for Streamlit Markdown/LaTeX rendering."""
-    if not isinstance(value, str):
-        return str(value)
-
-    protected: list[str] = []
-
-    def hold(match: re.Match[str]) -> str:
-        protected.append(match.group(0))
-        return f"\x00MATH{len(protected) - 1}\x00"
-
-    # Preserve already-delimited math, including \( ... \), while normalizing
-    # common plain-text forms emitted by the language model.
-    text = re.sub(r"\$\$.*?\$\$|\$[^$]+\$|\\\(.*?\\\)", hold, value, flags=re.S)
-    patterns = (
-        (r"(?<![\w])k\s*[_\s-]*\{?\s*(?:\\)?theta\s*\}?(?![\w])", r"$k_\theta$"),
-        (r"(?<![\w])k\s*[_\s-]*\{?\s*r\s*\}?(?![\w])", r"$k_r$"),
-        (r"(?<![\w])theta[_\s-]*0(?![\w])", r"$\theta_0$"),
-        (r"(?<![\w])phi[_\s-]*0(?![\w])", r"$\phi_0$"),
-        (r"(?<![\w])pi\s*/\s*2(?![\w])", r"$\pi/2$"),
-        (r"(?<![\w])Delta[_\s-]*theta(?![\w])", r"$\Delta\theta$"),
-        (r"(?<![\w])Delta[_\s-]*phi(?![\w])", r"$\Delta\phi$"),
-    )
-    for pattern, replacement in patterns:
-        text = re.sub(pattern, lambda _m, rep=replacement: rep, text, flags=re.I)
-
-    for index, original in enumerate(protected):
-        if original.startswith(r"\(") and original.endswith(r"\)"):
-            original = "$" + original[2:-2] + "$"
-        text = text.replace(f"\x00MATH{index}\x00", original)
-    return text
+def _render_math(value: object) -> str:
+    """Return prose with DKT mathematical notation rendered as LaTeX."""
+    return normalize_math_notation(value)
 
 
-def _render_json(value: object) -> None:
-    """Render structured payloads as valid, copyable JSON text."""
-    st.code(json.dumps(value, indent=2, ensure_ascii=False, default=str), language="json")
+def _render_json(value: object, *, expanded: bool = True) -> None:
+    """Render actual structured JSON, not a JSON-looking code block."""
+    st.json(json_safe(value), expanded=expanded)
+
+
+def _json_text(value: object) -> str:
+    """Serialize a strict, standards-compliant JSON download."""
+    return json.dumps(json_safe(value), indent=2, ensure_ascii=False, allow_nan=False)
 
 
 def _initialize() -> None:
@@ -189,7 +167,7 @@ question = st.text_area(
 if question.strip():
     with st.container(border=True):
         st.caption("Mathematical notation preview")
-        st.markdown(_math_preview(question))
+        st.markdown(_render_math(question))
 
 controls = st.columns([1, 1, 2])
 if controls[0].button(
@@ -255,21 +233,21 @@ if decision:
         _render_json(decision)
 
     st.markdown("**Current conclusion**")
-    st.markdown(_math_preview(decision.get("conclusion", "")))
+    st.markdown(_render_math(decision.get("conclusion", "")))
     st.markdown("**Evidence assessment**")
-    st.markdown(_math_preview(decision.get("evidence_assessment", "")))
+    st.markdown(_render_math(decision.get("evidence_assessment", "")))
     limitations = decision.get("limitations") or []
     if limitations:
         st.markdown("**Scientific and numerical limitations**")
         for item in limitations:
-            st.markdown(f"- {_math_preview(item)}")
+            st.markdown(f"- {_render_math(item)}")
 
     if decision.get("tool_name"):
         st.markdown("### Proposed next step")
-        st.markdown(f"**{_math_preview(decision.get('next_action', ''))}**")
-        st.markdown(_math_preview(decision.get("why_needed", "")))
+        st.markdown(f"**{_render_math(decision.get('next_action', ''))}**")
+        st.markdown(_render_math(decision.get("why_needed", "")))
         st.caption(
-            "Expected impact: " + _math_preview(decision.get("expected_decision_impact", "Not specified"))
+            "Expected impact: " + _render_math(decision.get("expected_decision_impact", "Not specified"))
         )
         st.code(decision["tool_name"], language="text")
         st.markdown("**Exact tool arguments (validated JSON)**")
@@ -312,9 +290,9 @@ if decision:
             st.caption("No further tool execution is proposed.")
     else:
         if decision.get("user_question"):
-            st.info(_math_preview(decision["user_question"]))
+            st.info(_render_math(decision["user_question"]))
         st.markdown("**Next action**")
-        st.markdown(_math_preview(decision.get("next_action", "No further action proposed.")))
+        st.markdown(_render_math(decision.get("next_action", "No further action proposed.")))
 
 with st.expander("Investigation history and results", expanded=bool(st.session_state.director_history)):
     if not st.session_state.director_history:
@@ -328,7 +306,10 @@ with st.expander("Investigation history and results", expanded=bool(st.session_s
         st.markdown("Arguments")
         _render_json(item.get("arguments", {}))
         parsed = parse_tool_result(item.get("result", ""))
-        _render_json(parsed)
+        _render_json(parsed, expanded=False)
+        if isinstance(parsed, dict) and isinstance(parsed.get("text"), str):
+            st.markdown("**Readable result**")
+            st.markdown(_render_math(parsed["text"]))
 
 with st.expander("Machine-readable investigation record (JSON)", expanded=False):
     record = {
@@ -339,10 +320,10 @@ with st.expander("Machine-readable investigation record (JSON)", expanded=False)
         "decision": decision,
         "history": st.session_state.director_history,
     }
-    st.code(json.dumps(record, indent=2, ensure_ascii=False, default=str), language="json")
+    _render_json(record, expanded=False)
     st.download_button(
         "Download investigation record (JSON)",
-        data=json.dumps(record, indent=2, ensure_ascii=False, default=str).encode("utf-8"),
+        data=_json_text(record).encode("utf-8"),
         file_name="dkt_research_director_record.json",
         mime="application/json",
     )
