@@ -733,7 +733,7 @@ def render_research_studio() -> None:
                     decision = item.get("review_decision")
                     if decision:
                         st.markdown("**Evidence decision**")
-                        st.write(decision)
+                        render_structured_data(decision, title="Evidence decision")
                     result = item.get("result")
                     params = result.get("parameters") or result.get("study_parameters") if isinstance(result, dict) else None
                     if params:
