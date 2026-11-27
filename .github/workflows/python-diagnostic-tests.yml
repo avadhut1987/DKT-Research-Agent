@@ -38,4 +38,5 @@ jobs:
           python -m pytest -q \
             tests/python/test_mixing_hierarchy.py \
             tests/python/test_advanced_diagnostics.py \
-            tests/python/test_periodic_orbits.py
+            tests/python/test_periodic_orbits.py \
+            tests/python/test_research_director.py
