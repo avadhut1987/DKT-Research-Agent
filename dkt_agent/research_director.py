@@ -23,7 +23,6 @@ from dkt_agent.langchain_tools import (
     compare_dkt_simulations,
     search_theoretical_literature,
     read_arxiv_paper_tool,
-    symbolic_math_tool,
 )
 from dkt_agent.research_tools import (
     diagnose_classical_trajectory,
@@ -71,7 +70,6 @@ TOOL_REGISTRY = {
     "search_research_evidence": (search_research_evidence, "read_only"),
     "search_theoretical_literature": (search_theoretical_literature, "read_only"),
     "read_arxiv_paper_tool": (read_arxiv_paper_tool, "read_only"),
-    "symbolic_math_tool": (symbolic_math_tool, "symbolic"),
 }
 
 SYSTEM_DECISION_RULES = """
@@ -103,10 +101,7 @@ automatically peer reviewed. Prefer original sources and authoritative reviews.
 Separate established theorems/definitions, published model-specific findings,
 your own derivations, conjectures, and numerical observations. For a derivation,
 state assumptions and show intermediate reasoning; do not claim a rigorous
-proof if a step is unverified. Use symbolic_math_tool for bounded symbolic simplification, differentiation,
-and Jacobian construction when it directly addresses a derivation. Its output
-is algebraic assistance, not a proof. State real-variable assumptions and
-check domains/branches separately. The Director may propose a derivation or
+proof if a step is unverified. The Director may propose a derivation or
 mathematical diagnostic, but it cannot silently write, install, or execute new
 source code. New computational tools require reviewed code changes and tests.
 
@@ -180,7 +175,7 @@ Return exactly one JSON object with keys:
 status ("SUFFICIENT" | "MORE_EVIDENCE_REQUIRED" | "UNRESOLVED" | "PAUSED"),
 conclusion (string), evidence_assessment (string), limitations (array of strings),
 next_action (string), tool_name (string or null), arguments (object),
-execution_mode ("read_only" | "symbolic" | "numerical" | "none"),
+execution_mode ("read_only" | "numerical" | "none"),
 why_needed (string), expected_decision_impact (string),
 user_question (string or null),
 tool_development_proposal (object or null).
@@ -289,8 +284,6 @@ def validate_decision(decision: dict[str, Any]) -> dict[str, Any]:
                 schema.parse_obj(arguments)
         if mode == "read_only" and status not in {"MORE_EVIDENCE_REQUIRED", "UNRESOLVED"}:
             raise ValueError("Read-only follow-up requires an evidence-related status.")
-        if mode == "symbolic" and status not in {"MORE_EVIDENCE_REQUIRED", "UNRESOLVED"}:
-            raise ValueError("Symbolic analysis requires an evidence-related status.")
         if mode == "numerical" and status != "MORE_EVIDENCE_REQUIRED":
             raise ValueError("A numerical proposal must use MORE_EVIDENCE_REQUIRED status.")
     normalized = {
