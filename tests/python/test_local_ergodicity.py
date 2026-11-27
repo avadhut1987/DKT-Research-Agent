@@ -46,9 +46,9 @@ class TestRegionConditionedDirectionalErgodicity(unittest.TestCase):
                 region_type="spherical_cap", center_theta=0.8,
                 center_phi=-0.4, angular_radius=0.3,
                 observables=["x", "y", "z"],
-                n_kicks=32, n_initial_conditions=300,
-                n_reference_samples=2000, n_invariance_samples=1000,
-                invariance_tolerance=0.02, seed=4, results_root=directory,
+                n_kicks=32, n_initial_conditions=1000,
+                n_reference_samples=4000, n_invariance_samples=1000,
+                invariance_tolerance=0.01, seed=4, results_root=directory,
             )
             self.assertEqual(
                 result["region_invariance_screen"]["status"],
