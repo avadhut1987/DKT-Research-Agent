@@ -34,6 +34,7 @@ from dkt_agent.research_tools import (
 )
 from dkt_agent.mixing_tools import diagnose_mixing_hierarchy
 from dkt_agent.mean_ergodicity_tools import mean_ergodicity_langchain_tool
+from dkt_agent.local_ergodicity import diagnose_direction_dependent_local_ergodicity
 from dkt_agent.periodic_orbit_tools import periodic_orbit_langchain_tool, periodic_orbit_comparison_langchain_tool
 from dkt_agent.research_orchestrator import plan_dkt_research
 
@@ -107,6 +108,7 @@ AVAILABLE TOOLS
 17. run_lyapunov_parameter_scan: Scans finite-time Lyapunov and Pesin estimates over kr or ktheta while holding the remaining parameters and initial condition fixed; it does not automatically declare a global transition.
 18. diagnose_mixing_hierarchy: Analyses 2–24 existing DKT trajectory CSVs from distinct initial conditions under the same map. Reports selected-observable Birkhoff-average variance, finite-window Cesàro means of squared autocorrelations, and finite-partition alpha-coefficient estimates. It never assigns an asymptotic hierarchy verdict.
 19. mean_ergodicity_langchain_tool: Estimates the von Neumann L2 mean-ergodicity distance D_N for uniformly sampled initial conditions, with standard errors, an autocorrelation cross-check, tail exponents, and a nine-observable battery. Results are finite-data indicators, not proofs.
+19a. diagnose_direction_dependent_local_ergodicity: Samples an explicitly defined spherical region, screens forward/backward invariance and multi-kick retention, then reports observable-resolved conditional Birkhoff-average spreads. A passing finite-sample screen is not proof of an invariant component or local ergodicity.
 20. search_dkt_periodic_orbits: Numerically searches for primitive periodic DKT cycles for periods 1..nmax, rejects proper-divisor repeats, deduplicates cycles, and reports closure residuals and Floquet multipliers. The search is finite and non-exhaustive. Use it to compare orbit geometry at fixed kr as ktheta varies; do not claim ktheta changes chaoticity.
 21. compare_dkt_periodic_orbits: Compares detected periodic-orbit structures for ktheta=0 and 10000 at fixed kr and p. Interpret this as a phase-space-geometry comparison, not a change in classical chaoticity or Lyapunov exponents.
 
@@ -128,7 +130,13 @@ OBSERVABLE-RESOLVED AND DIRECTION-DEPENDENT ERGODICITY
 1. When a question asks whether X, Y, and Z (or other specified observables) behave differently, preserve the observable-wise results. Use the nine-observable mean-ergodicity battery and, when appropriate, the Birkhoff-average variance study.
 2. Report each tested observable separately, including its finite-data indicator, uncertainty, time-window dependence, and sampling protocol. Do not replace a mixed observable-wise outcome with a single global "ergodic" or "non-ergodic" label.
 3. Observable-specific mean-ergodicity indicators are not equivalent to a proof of pointwise ergodicity, nor do they establish ergodicity restricted to a spatial region of phase space.
-4. The current mean-ergodicity and Birkhoff-variance samplers use uniform full-sphere initial-condition sampling. If the question asks about a local region, island, neighbourhood, or restricted phase-space component, state that region-conditioned sampling is not currently implemented; do not silently treat full-sphere results as local results.
+4. For a question about direction-dependent behaviour within a specified phase-space region, use diagnose_direction_dependent_local_ergodicity. It samples the selected spherical region with respect to spherical area and tests forward one-step leakage, backward one-step leakage, and multi-kick orbit retention before assigning any local-measure interpretation.
+5. Supported region geometries are full_sphere, spherical_cap, latitude_band, and longitude_sector. Angles are radians; theta is measured from +Z and phi=atan2(Y,X). A user-defined region must be stated explicitly; never invent region boundaries as a scientific assumption.
+6. Interpret the region-conditioned D_N only when the finite-sample invariance screen passes. Even then, call it a candidate region that passed the stated finite-sample screen, not a proven invariant component. The conditional area measure is a working hypothesis pending stronger invariance validation.
+7. If the leakage screen fails, the tool explicitly blocks local-measure interpretation. Report its conditional-start Birkhoff statistics as descriptive only; do not call the region locally ergodic or non-ergodic.
+8. Report X,Y,Z and selected quadratic/cross observables separately. Different finite-time D_N/Var_R values are observable-dependent statistics, not proof that a map is ergodic in one direction and non-ergodic in another.
+9. The one-step leakage bounds are Wilson confidence bounds for finite random samples; the multi-kick retention test is also finite. Passing these tests is not a mathematical proof of invariance.
+10. Keep this diagnostic distinct from the matched local-cloud geometry comparison: a geometric patch is not automatically invariant and its deformation is not a local-ergodicity test.
 5. Direction-dependent numerical outcomes should be described as operational statements about the tested observables and ensemble. They do not automatically imply that the full map is ergodic in some directions and non-ergodic in others in a measure-theoretic sense.
 6. Keep mean ergodicity, Birkhoff/pointwise ergodicity, weak mixing, and strong mixing distinct. Finite correlations and finite-partition alpha coefficients remain diagnostics, not proofs.
 
@@ -187,6 +195,7 @@ TOOL-SELECTION POLICY
 23. When the user requests classical-quantum correspondence, use run_classical_quantum_comparison_tool with the supplied spin s, kr, ktheta, initial angles and kick count. Do not silently run it unless execution is requested or authorized.
 24. When the user requests a combined ergodic-hierarchy analysis of existing data, use diagnose_mixing_hierarchy with at least two exact trajectory CSV paths from distinct initial conditions. The tool cannot infer map parameters from coordinates, so verify that all files were generated with identical kr, ktheta and p. Do not silently generate new trajectories; ask for authorization if the required ensemble does not already exist.
 25. For a direct von Neumann mean-ergodicity question, use mean_ergodicity_langchain_tool. Prefer the nine-observable battery; a single observable may be symmetry-blind. Interpret D_N decay or a plateau only as finite-data evidence for the tested observables and sampled N,M. Report the Monte Carlo uncertainty and finite-sample limitations. Do not call this a proof of pointwise ergodicity or mixing.
+26. For spatially local or direction-dependent local-ergodicity questions, use diagnose_direction_dependent_local_ergodicity. Require an explicitly specified region geometry and report the invariance screen before discussing regional D_N. If the screen fails, report descriptive conditional-start statistics only; if it passes, use candidate-region wording and never claim proof of invariance or ergodicity.
 
 
 RESEARCH PLANNING AND ORCHESTRATION
@@ -412,6 +421,7 @@ def build_agent():
             run_lyapunov_parameter_scan,
             diagnose_mixing_hierarchy,
             mean_ergodicity_langchain_tool,
+            diagnose_direction_dependent_local_ergodicity,
             periodic_orbit_langchain_tool,
             periodic_orbit_comparison_langchain_tool,
             plan_dkt_research,
@@ -466,7 +476,7 @@ def main():
     print("Model: Gemini 2.5 Flash")
     print("Physics engine: QuantumKickedTop.jl")
     print("Framework: LangGraph")
-    print("Available research tools: 24")
+    print("Available research tools: 25")
     print("\nEnter a research request, or type 'exit' to quit.")
     print("For multiline requests, type /multi and finish with /send.\n")
 

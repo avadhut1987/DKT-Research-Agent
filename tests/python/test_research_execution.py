@@ -8,6 +8,12 @@ from dkt_agent import research_execution as execution
 
 
 class TestResearchExecution(unittest.TestCase):
+    def test_local_ergodicity_tool_is_registered_for_supervised_execution(self):
+        tool_name = "diagnose_direction_dependent_local_ergodicity"
+        self.assertEqual(execution.TOOL_MODES[tool_name], "new_numerical_data")
+        resolved = execution._resolve_tool(tool_name)
+        self.assertEqual(resolved.name, tool_name)
+
     def test_campaign_persists_plan_and_pending_stages(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):

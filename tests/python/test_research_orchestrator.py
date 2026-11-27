@@ -113,12 +113,15 @@ class TestResearchOrchestrator(unittest.TestCase):
         self.assertTrue(any("X, Y, Z" in item for item in p["scope_and_controls"]))
         self.assertTrue(any("not a proof" in step["scientific_caveat"] for step in p["workflow"]))
 
-    def test_region_restricted_local_ergodicity_is_explicitly_gated(self):
+    def test_region_restricted_local_ergodicity_uses_region_conditioned_tool(self):
         p = build_research_plan(
-            "Test local ergodicity in a phase-space region; compare X, Y and Z observables."
+            "Test direction-dependent local ergodicity in a phase-space region; compare X, Y and Z observables."
         )
-        self.assertEqual(p["research_intent"], "direction_dependent_ergodicity")
-        self.assertTrue(any("Region-restricted local ergodicity" in item for item in p["clarifications_or_gates"]))
+        self.assertEqual(p["research_intent"], "direction_dependent_local_ergodicity")
+        tools = [step["tool"] for step in p["workflow"]]
+        self.assertEqual(tools, ["diagnose_direction_dependent_local_ergodicity"])
+        self.assertTrue(any("Select and justify the phase-space region" in item for item in p["clarifications_or_gates"]))
+        self.assertTrue(any("finite-sample" in step["scientific_caveat"] for step in p["workflow"]))
 
 if __name__ == "__main__":
     unittest.main()

@@ -169,7 +169,41 @@ def _render_stage_result(stage: dict) -> None:
             cols = st.columns(min(3, len(scalar_items)))
             for i, (key, value) in enumerate(scalar_items[:9]):
                 cols[i % len(cols)].metric(key.replace("_", " ").title(), str(value))
-        if tool == "run_dkt_comparison_study":
+        if tool == "diagnose_direction_dependent_local_ergodicity":
+            screen = result.get("region_invariance_screen", {})
+            st.markdown("**Region-invariance screening**")
+            status = screen.get("status", "not reported")
+            st.metric("Finite-sample region screen", "Passed" if status == "finite_sample_invariance_screen_passed" else "Not passed")
+            leakage = st.columns(5)
+            leakage[0].metric("Forward escape", f"{screen.get('forward_one_step', {}).get('escape_fraction', float('nan')):.3%}")
+            leakage[1].metric("Backward escape", f"{screen.get('backward_one_step', {}).get('escape_fraction', float('nan')):.3%}")
+            leakage[2].metric("Orbits leaving region", f"{screen.get('trajectory_retention', {}).get('fraction', float('nan')):.3%}")
+            leakage[3].metric("Region area fraction", f"{result.get('parameters', {}).get('region_area_fraction_of_sphere', float('nan')):.3%}")
+            leakage[4].metric("Max sphere-norm error", f"{result.get('numerical_checks', {}).get('maximum_unit_sphere_norm_error', float('nan')):.2e}")
+            if status == "finite_sample_invariance_screen_passed":
+                st.info(screen.get("interpretation", "The finite-sample screen passed; the region remains a candidate only."))
+            else:
+                st.warning(screen.get("interpretation", "The region screen was not passed."))
+            rows = []
+            for observable, values in result.get("observables", {}).items():
+                series = values.get("D_N_over_regional_variance", [])
+                rows.append({
+                    "Observable": observable,
+                    "Final normalized spread": series[-1] if series else None,
+                    "Tail exponent (descriptive)": values.get("descriptive_tail_decay_exponent"),
+                    "Regional mean": values.get("regional_mean_estimate"),
+                    "Mean uncertainty": values.get("regional_mean_standard_error"),
+                })
+            if rows:
+                st.markdown("**Observable-resolved regional averages**")
+                st.dataframe(rows, use_container_width=True, hide_index=True)
+            plot_path = (result.get("artifacts") or {}).get("directional_birkhoff_plot")
+            if plot_path:
+                from pathlib import Path
+                if Path(plot_path).is_file():
+                    st.image(plot_path, caption="Finite-data Birkhoff-average spread by observable")
+            st.caption("A passed screen identifies only a candidate region at the tested sampling resolution. It does not prove invariance or ergodicity. If the screen fails, the observable statistics are descriptive conditional-start results only.")
+        elif tool == "run_dkt_comparison_study":
             st.caption("This compares the specified matched initial condition under the two maps. Trajectory separation describes divergence of these paired trajectories; it is not, by itself, a Lyapunov-exponent or changed-chaoticity result.")
         elif tool == "run_dkt_geometry_ensemble_comparison":
             st.caption("The matched local cloud is a geometric probe around the selected initial condition, not an invariant phase-space region or a test proving ergodicity or mixing.")
@@ -535,6 +569,80 @@ def _render_execution(campaign: dict) -> None:
                     "n_kicks": int(n_kicks), "n_initial_conditions": int(n_initial),
                     "p": p, "seed": int(seed)}
             with st.spinner("Estimating the observable-wise finite-data L2 diagnostics…"):
+                _run_stage(campaign, index, args, authorized=True)
+            st.rerun()
+    elif tool_name == "diagnose_direction_dependent_local_ergodicity":
+        st.markdown("**Region-conditioned directional ergodicity**")
+        st.caption("Define a spherical region explicitly. Coordinates use θ from +Z and φ = atan2(Y, X); all angles are in radians. The calculation screens forward/backward leakage and multi-kick retention before interpreting the regional area measure.")
+        with st.form(f"local_ergodicity_inputs_{campaign['campaign_id']}"):
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                kr = st.number_input(r"$k_r$", value=float(defaults["kr"]), format="%.8g")
+                kt = st.number_input(r"$k_{\theta}$", value=float(defaults["ktheta_a"]), format="%.8g")
+            with c2:
+                p = st.number_input(r"$p$", value=float(defaults["p"]), format="%.8g")
+                region_type = st.selectbox(
+                    "Phase-space region",
+                    ["spherical_cap", "latitude_band", "longitude_sector", "full_sphere"],
+                    format_func=lambda value: {
+                        "spherical_cap": "Spherical cap",
+                        "latitude_band": "Latitude band",
+                        "longitude_sector": "Longitude sector",
+                        "full_sphere": "Full sphere (global reference)",
+                    }[value],
+                )
+            with c3:
+                seed = st.number_input("Random seed", min_value=0, value=0, step=1)
+                tolerance = st.number_input(
+                    "Maximum 95% escape upper bound",
+                    min_value=0.001, max_value=0.05, value=0.005, step=0.001, format="%.3f",
+                    help="Finite-sample screening tolerance only; it is not a mathematical invariance tolerance.",
+                )
+            region_args = {}
+            if region_type == "spherical_cap":
+                st.markdown("**Spherical-cap definition**")
+                r1, r2, r3 = st.columns(3)
+                region_args["center_theta"] = r1.number_input(r"Centre $\theta_c$ (rad)", min_value=0.0, max_value=3.14159265, value=0.75, format="%.5f")
+                region_args["center_phi"] = r2.number_input(r"Centre $\phi_c$ (rad)", min_value=-3.14159265, max_value=3.14159265, value=-1.0, format="%.5f")
+                region_args["angular_radius"] = r3.number_input(r"Angular radius $\alpha$ (rad)", min_value=0.01, max_value=3.14159265, value=0.35, format="%.5f")
+            elif region_type == "latitude_band":
+                st.markdown("**Latitude-band definition**")
+                r1, r2 = st.columns(2)
+                region_args["theta_min"] = r1.number_input(r"Minimum polar angle $\theta_{\min}$", min_value=0.0, max_value=3.14159265, value=0.3, format="%.5f")
+                region_args["theta_max"] = r2.number_input(r"Maximum polar angle $\theta_{\max}$", min_value=0.0, max_value=3.14159265, value=1.3, format="%.5f")
+            elif region_type == "longitude_sector":
+                st.markdown("**Longitude-sector definition**")
+                r1, r2 = st.columns(2)
+                region_args["phi_min"] = r1.number_input(r"Starting angle $\phi_{\min}$", min_value=-3.14159265, max_value=3.14159265, value=-1.0, format="%.5f")
+                region_args["phi_max"] = r2.number_input(r"Ending angle $\phi_{\max}$", min_value=-3.14159265, max_value=3.14159265, value=1.0, format="%.5f")
+            observables = st.multiselect(
+                "Observables to test independently",
+                ["x", "y", "z", "x2", "y2", "z2", "xy", "yz", "xz"],
+                default=["x", "y", "z", "x2", "y2", "z2", "xy", "yz", "xz"],
+            )
+            q1, q2, q3 = st.columns(3)
+            n_kicks = q1.select_slider("Maximum kicks $N$", [512, 1024, 2048, 4096, 8192, 16384], value=4096)
+            n_initial = q2.slider("Initial conditions $M$", 300, 4000, 1200, 100)
+            n_reference = q3.select_slider("Regional reference samples", [3000, 5000, 8000, 12000, 20000, 30000], value=12000)
+            n_invariance = st.slider("Region-screen samples", 1000, 10000, 5000, 500)
+            st.caption("The regional mean is estimated independently from the Birkhoff ensemble. A failed leakage screen blocks local-measure interpretation; a passed screen is only a finite-sample candidate.")
+            submitted = st.form_submit_button(
+                "Retry interrupted local-ergodicity test" if next_stage.get("status") == "interrupted" else "Execute region-conditioned diagnostic",
+                type="primary", disabled=(not authorized or not retry_confirmed or not observables),
+                use_container_width=True,
+            )
+        if submitted:
+            _record_authorization_if_requested(campaign, authorized)
+            args = {
+                "k_r": kr, "k_theta": kt, "p": p, "region_type": region_type,
+                "observables": observables, "n_kicks": int(n_kicks),
+                "n_initial_conditions": int(n_initial),
+                "n_reference_samples": int(n_reference),
+                "n_invariance_samples": int(n_invariance),
+                "invariance_tolerance": float(tolerance), "seed": int(seed),
+                **region_args,
+            }
+            with st.spinner("Screening the region and calculating observable-resolved Birkhoff statistics…"):
                 _run_stage(campaign, index, args, authorized=True)
             st.rerun()
     elif tool_name == "run_ergodicity_variance_study":
