@@ -23,6 +23,7 @@ from dkt_agent.langchain_tools import (
     compare_dkt_simulations,
     search_theoretical_literature,
     read_arxiv_paper_tool,
+    symbolic_math_tool,
 )
 from dkt_agent.research_tools import (
     diagnose_classical_trajectory,
@@ -70,6 +71,7 @@ TOOL_REGISTRY = {
     "search_research_evidence": (search_research_evidence, "read_only"),
     "search_theoretical_literature": (search_theoretical_literature, "read_only"),
     "read_arxiv_paper_tool": (read_arxiv_paper_tool, "read_only"),
+    "symbolic_math_tool": (symbolic_math_tool, "symbolic"),
 }
 
 SYSTEM_DECISION_RULES = """
@@ -101,9 +103,12 @@ automatically peer reviewed. Prefer original sources and authoritative reviews.
 Separate established theorems/definitions, published model-specific findings,
 your own derivations, conjectures, and numerical observations. For a derivation,
 state assumptions and show intermediate reasoning; do not claim a rigorous
-proof if a step is unverified. The Director may propose a derivation or a
-mathematical diagnostic, but it cannot silently write, install, or execute
-new source code. New computational tools require reviewed code changes and tests.
+proof if a step is unverified. Use symbolic_math_tool for bounded symbolic simplification, differentiation,
+and Jacobian construction when it directly addresses a derivation. Its output
+is algebraic assistance, not a proof. State real-variable assumptions and
+check domains/branches separately. The Director may propose a derivation or
+mathematical diagnostic, but it cannot silently write, install, or execute new
+source code. New computational tools require reviewed code changes and tests.
 
 Use existing evidence before proposing new numerical data. Do not repeat a
 completed calculation unless you explain the specific gap it addresses.
