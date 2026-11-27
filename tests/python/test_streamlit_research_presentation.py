@@ -27,6 +27,13 @@ class ResearchStudioPresentationTests(unittest.TestCase):
         self.assertEqual(_format_duration(2.5), "2.50 s")
         self.assertEqual(_format_duration(125), "2 min 5 s")
 
+    def test_stage_details_are_collapsed_by_default(self):
+        from pathlib import Path
+        source = (Path(__file__).resolve().parents[2] / "dkt_agent" / "research_studio.py").read_text(encoding="utf-8")
+        self.assertIn("Stage {stage['index'] + 1} · {stage_label} · {raw_status.replace('_', ' ').title()}", source)
+        self.assertIn("expanded=False", source)
+        self.assertIn("Raw machine-readable result (JSON)", source)
+
     def test_artifact_discovery_finds_existing_nested_csv_and_json(self):
         with tempfile.TemporaryDirectory() as directory:
             csv_path = Path(directory) / "series.csv"
@@ -82,9 +89,9 @@ class StructuredRenderingDataTests(unittest.TestCase):
             {"stage": 1, "parameters": {"kr": 1, "ktheta": 0}},
             {"stage": 2, "parameters": {"kr": 1, "ktheta": 10000}},
         ])
-        self.assertEqual(list(frame.columns), ["Stage", "Parameters · kr", "Parameters · ktheta"])
-        self.assertEqual(frame.iloc[0]["Parameters · kr"], 1)
-        self.assertEqual(frame.iloc[1]["Parameters · ktheta"], 10000)
+        self.assertEqual(list(frame.columns), ["Stage", "Parameters · kᵣ", "Parameters · kθ"])
+        self.assertEqual(frame.iloc[0]["Parameters · kᵣ"], 1)
+        self.assertEqual(frame.iloc[1]["Parameters · kθ"], 10000)
 
 
 if __name__ == "__main__":

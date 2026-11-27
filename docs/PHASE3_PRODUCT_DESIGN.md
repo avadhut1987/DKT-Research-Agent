@@ -14,8 +14,8 @@ The DKT Research Agent is a scientific research environment, not a chat wrapper 
 8. **Report** a reproducible record with figures, tables, methods and artifacts.
 
 ## Scientific invariants
-- \(k_r\) controls classical chaoticity, Lyapunov behaviour and the regular-to-chaotic transition.
-- \(k_\theta\) changes phase-space geometry and may break time-reversal symmetry; it must not be described as changing classical chaoticity.
+- $k_r$ controls classical chaoticity, Lyapunov behaviour and the regular-to-chaotic transition.
+- $k_\theta$ changes phase-space geometry and may break time-reversal symmetry; it must not be described as changing classical chaoticity.
 - Mean ergodicity, Birkhoff/pointwise ergodicity, weak mixing and strong mixing are separate concepts.
 - Finite-data indicators are not mathematical proofs of asymptotic properties.
 - Missing is not zero; non-detection in a finite search is not proof of non-existence.

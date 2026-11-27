@@ -68,7 +68,14 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             ["k_r, k_theta, p", "ensemble size", "kick count and transient", "random seed"],
             "Finite-ensemble variance trends are not proofs of ergodicity; a separate region-conditioned sampling protocol is required for local phase-space claims."))
         if _has(t, r"local", r"region", r"neighbou?rhood", r"subset", r"island", r"component"):
-            gates.append("The current mean-ergodicity and Birkhoff-variance samplers use the full uniform sphere. Region-restricted local ergodicity is not yet implemented; define a phase-space region and add a validated region-conditioned sampling method before making that claim.")
+            gates.append("PAUSED — Region-restricted local ergodicity is not yet implemented. Current mean-ergodicity and Birkhoff-variance samplers use full-sphere sampling. A region-conditioned sampler, explicit region definition and validation are required before this question can be executed or claimed.")
+        if _has(t, r"weak.?mix", r"strong.?mix", r"mixing"):
+            steps.append(_step("4 · Weak/strong-mixing indicators", "diagnose_mixing_hierarchy",
+                "Assess the implemented weak-mixing observable indicator and finite-partition strong-mixing alpha indicator separately from observable-wise mean ergodicity.",
+                ["2–24 exact same-map trajectory CSV paths", "distinct initial conditions", "verified common k_r, k_theta and p", "transient, maximum lag and partition resolution"],
+                "The weak-mixing test covers only the implemented Cartesian observables and finite records. The strong-mixing alpha estimate is restricted to a finite partition and sampled lags, not the supremum over all measurable sets. Neither proves asymptotic mixing."))
+            if existing_data_available is not True:
+                gates.append("The mixing follow-up requires an existing same-map ensemble. Locate suitable trajectories or explicitly authorize ensemble generation.")
     elif _has(t, r"k[_\s-]?theta", r"kθ", r"asymmetry", r"phase.?space geometry") and _has(t, r"fixed\s*k[_\s-]?r", r"same\s*k[_\s-]?r", r"k[_\s-]?r\s*=", r"vary", r"compare", r"geometry"):
         intent = "fixed_kr_ktheta_geometry"
         scope = ["Hold k_r, p, initial-condition protocol and numerical settings fixed.",
@@ -101,6 +108,13 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
                 "Compare finite-time Birkhoff-average variance across sampled initial conditions.",
                 ["Map parameters", "ensemble size", "time-window checkpoints", "seed"],
                 "Finite-ensemble variance decay does not establish pointwise ergodicity."))
+        if _has(t, r"weak.?mix", r"strong.?mix", r"mixing"):
+            steps.append(_step("4 · Weak/strong-mixing indicators", "diagnose_mixing_hierarchy",
+                "Add the finite-record weak-mixing observable test and finite-partition strong-mixing indicator as separate reported diagnostics.",
+                ["2–24 exact trajectory CSV paths from distinct initial conditions", "verified common k_r, k_theta and p", "transient", "maximum lag", "spherical partition resolution"],
+                "The weak-mixing indicator tests only the implemented Cartesian observables over finite records. The strong-mixing alpha estimate uses a finite-partition approximation and sampled lags; it is not the supremum over all measurable sets. Neither is a proof of asymptotic mixing."))
+            if existing_data_available is not True:
+                gates.append("The mixing follow-up requires an existing ensemble generated under one verified map. Locate suitable trajectories or explicitly authorize an ensemble-generation workflow.")
     elif _has(t, r"weak.?mix", r"strong.?mix", r"mixing", r"ergodic hierarchy", r"hierarchy"):
         intent = "ergodic_hierarchy"
         scope = ["Keep mean ergodicity, Birkhoff behaviour, weak-mixing indicators and strong-mixing indicators distinct.",

@@ -5,6 +5,7 @@ Raw JSON remains available only through an explicit advanced-view expander or do
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -13,7 +14,12 @@ import streamlit as st
 
 
 def _label(value: Any) -> str:
-    return str(value).replace("_", " ").replace(".", " · ").strip().capitalize()
+    label = str(value).replace("_", " ").replace(".", " · ").strip()
+    label = re.sub(r"\bktheta\b|\bk theta\b|kθ", "kθ", label, flags=re.IGNORECASE)
+    label = re.sub(r"\bkr\b|\bk r\b", "kᵣ", label, flags=re.IGNORECASE)
+    label = re.sub(r"\btheta 0\b|\btheta0\b|θ 0", "θ₀", label, flags=re.IGNORECASE)
+    label = re.sub(r"\bphi 0\b|\bphi0\b|φ 0", "φ₀", label, flags=re.IGNORECASE)
+    return label[:1].upper() + label[1:] if label else label
 
 
 def format_display_value(value: Any) -> str:
@@ -114,6 +120,23 @@ def render_structured_data(
     if isinstance(value, (list, tuple)):
         if not value:
             st.caption("No entries.")
+            return
+        # Numeric vector/matrix data (e.g. local initial clouds and principal
+        # axes) should be shown as a compact table, never as dozens of
+        # "Item 1", "Item 2" nested cards.
+        if all(
+            isinstance(row, (list, tuple)) and len(row) > 0
+            and all(item is None or isinstance(item, (int, float, bool)) for item in row)
+            for row in value
+        ):
+            width = max(len(row) for row in value)
+            frame = pd.DataFrame(
+                [list(row) + [None] * (width - len(row)) for row in value],
+                columns=[f"Component {index + 1}" for index in range(width)],
+            )
+            st.dataframe(frame.head(max_items), use_container_width=True, hide_index=True)
+            if len(frame) > max_items:
+                st.caption(f"Showing the first {max_items:,} of {len(frame):,} vectors.")
             return
         if all(isinstance(item, Mapping) for item in value):
             frame = records_to_frame(list(value))

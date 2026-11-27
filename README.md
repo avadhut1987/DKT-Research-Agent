@@ -1,523 +1,463 @@
 # DKT Research Agent
 
-An AI-assisted computational research platform for the **Double Kicked Top (DKT)** model, developed using Python, LangGraph, Julia, and Streamlit.
+**An evidence-led computational research environment for the classical and quantum dynamics of the Double Kicked Top.**
 
-The project integrates classical nonlinear dynamics, quantum entanglement calculations, classical–quantum correspondence, ergodicity and mixing-related diagnostics, scientific visualization, reproducible numerical workflows, and AI-assisted research tools.
+The **DKT Research Agent** integrates Python analysis tools, Julia-based numerical computation, a LangGraph research assistant, and a Streamlit interface. It supports controlled computational studies of nonlinear dynamics, phase-space geometry, the ergodic hierarchy, quantum entanglement, and classical–quantum correspondence.
 
-The platform is designed to support computational investigations of the DKT model, from generating classical trajectories and studying phase-space structures to examining the ergodic hierarchy and comparing classical and quantum dynamics.
+The platform is intended as a research instrument. Numerical calculations are performed by explicit computational tools; research workflows preserve inputs and provenance; and scientific conclusions must remain within the scope of the data and methods actually used. The language model assists with planning, tool selection, evidence discovery, and interpretation. It is not a substitute for numerical validation or mathematical proof.
 
-## Features
+---
 
-### 1. Classical DKT Dynamics
+## Contents
 
-The classical simulation tools provide:
+- [Research scope](#research-scope)
+- [The Double Kicked Top model](#the-double-kicked-top-model)
+- [Scientific interpretation and guardrails](#scientific-interpretation-and-guardrails)
+- [Computational capabilities](#computational-capabilities)
+- [Research Studio and reproducibility](#research-studio-and-reproducibility)
+- [Application interface](#application-interface)
+- [Technology stack](#technology-stack)
+- [Installation](#installation)
+- [Running the application and agent](#running-the-application-and-agent)
+- [Julia workflows](#julia-workflows)
+- [Testing](#testing)
+- [Data and provenance](#data-and-provenance)
+- [Recommended research practice](#recommended-research-practice)
+- [Scientific limitations](#scientific-limitations)
+- [Repository organization](#repository-organization)
 
-- Simulation of classical DKT trajectories.
-- Comparison of trajectories under different kicking parameters.
-- Investigation of phase-space structures and their dependence on the asymmetry parameter.
-- Generation of phase-space portraits and trajectory visualizations.
-- Fixed-point analysis and stability investigations.
-- Parameter sweeps and comparisons of trajectory measures.
-- Export of trajectory data and associated metadata.
+---
 
-### 2. Ergodicity and Mixing-Related Diagnostics
+## Research scope
 
-The project provides numerical tools for investigating different levels of the ergodic hierarchy.
+The platform brings together six related but distinct areas:
 
-**Mean ergodicity**
+1. **Classical nonlinear dynamics:** trajectories, phase-space portraits, fixed points, periodic orbits, stability, Lyapunov exponents, and KS-entropy estimates.
+2. **Ergodic hierarchy:** finite-data investigations of mean ergodicity, Birkhoff-average behaviour, correlation decay, weak-mixing-related indicators, and finite-partition strong-mixing indicators.
+3. **Phase-space geometry:** controlled comparisons of trajectories and matched local clouds under different DKT maps.
+4. **Quantum dynamics:** evolving-state entanglement entropy and long-time-averaged entropy maps.
+5. **Classical–quantum correspondence:** comparisons between classical spin coordinates and normalized quantum spin expectation values.
+6. **Research orchestration:** evidence discovery, workflow planning, explicit execution authorization, persistent campaign records, validation, and scientific review.
 
-- Finite-data evaluation of the von Neumann mean-ergodicity distance, $D_N$.
-- Investigation of the mean-square distance between finite-time averages and the phase-space average.
-- Evaluation over uniformly sampled initial conditions.
-- Comparison across observables and DKT parameter configurations.
+The scientific question should determine which diagnostic is appropriate. The availability of a computational tool should not determine the research question.
 
-The diagnostic is designed to investigate whether finite-time averages approach the corresponding phase-space average in the sampled ensemble. A vanishing distance is consistent with mean ergodicity for the tested observable and sampling procedure; a nonzero plateau may indicate a nonconstant limiting contribution. Finite numerical data cannot establish the asymptotic property.
+## The Double Kicked Top model
 
-**Birkhoff-average and variance diagnostics**
+### Quantum Floquet operator
 
-- Calculation of finite-time trajectory averages.
-- Variance of time averages across distinct initial conditions.
-- Investigation of variance scaling with observation time.
-- Comparison of selected Cartesian observables.
+The quantum DKT is represented by the Floquet operator
 
-These diagnostics examine the behaviour of time averages along individual trajectories and across an ensemble of initial conditions.
+$$
+U =
+\exp\left(-i\frac{k'}{2j}J_x^2\right)
+\exp\left(-i\frac{k}{2j}J_z^2\right)
+\exp(-ipJ_y),
+$$
 
-**Correlation and weak-mixing-related diagnostics**
+where $J_x$, $J_y$, and $J_z$ are angular-momentum operators in the spin-$j$ representation, $p$ is the rotation parameter, and $k$ and $k'$ are the nonlinear kicking strengths. The Hilbert-space dimension is $D=2j+1$.
 
-- Calculation of observable autocorrelation functions.
-- Finite-time and finite-lag correlation analysis.
-- Finite-window Cesàro averages of squared autocorrelations.
-- Analysis of nine Cartesian observables and their correlations.
-- Comparison across multiple trajectories and parameter configurations.
+The average and asymmetry parameters are
 
-**Strong-mixing-related diagnostics**
+$$
+k_r = \frac{k+k'}{2},
+\qquad
+k_\theta = \frac{k-k'}{2},
+$$
 
-- Numerical estimates of finite-partition alpha coefficients.
-- Analysis of correlations between events separated by selected time lags.
-- Use of pooled trajectory ensembles and sampled time origins.
-- Investigation of the dependence on spherical partition resolution and lag range.
+so that
 
-The alpha-coefficient calculation is performed for a specified finite spherical partition. It does not calculate the supremum over all measurable sets required by the mathematical definition of strong mixing.
+$$
+k = k_r+k_\theta,
+\qquad
+k' = k_r-k_\theta.
+$$
 
-**Combined ergodic-hierarchy workflow**
+Here $k_r$ is the average kicking strength and $k_\theta$ is the asymmetry between the two kicks.
 
-The project also provides an integrated diagnostic workflow that reports the following separately:
+### Classical phase space
 
-1. Mean-ergodicity-related diagnostics.
-2. Birkhoff-average and variance behaviour.
-3. Weak-mixing-related Cesàro correlation indicators.
-4. Strong-mixing-related finite-partition alpha-coefficient estimates.
+The classical dynamics is represented on the unit sphere, with normalized spin coordinates satisfying
 
-The diagnostics are intended to be interpreted together with their sampling assumptions and numerical limitations, not as automatic classifications of the underlying dynamics.
+$$
+X^2+Y^2+Z^2=1.
+$$
 
-**Additional dynamical diagnostics**
+Angular coordinates $(\theta,\phi)$ specify initial conditions on the sphere. Classical tools evolve these initial conditions under the DKT map and can save kick-resolved coordinates together with run metadata. For reproducibility, retain the map parameters, initial conditions, number of kicks, and numerical settings recorded with each run.
 
-- Maximal Lyapunov exponent estimates.
-- Kolmogorov–Sinai (KS) entropy estimates under applicable assumptions.
-- Parameter scans and comparisons of selected numerical diagnostics.
+## Scientific interpretation and guardrails
 
-### 3. Reproducible Ergodic-Hierarchy Visual Dashboard
+The distinction between $k_r$ and $k_\theta$ is essential.
 
-The Streamlit application includes a dedicated visual dashboard for generating, saving, selecting, and analysing DKT trajectory ensembles.
+- **The average kicking strength $k_r$ controls the degree of classical chaos.** The regular-to-chaotic transition, Lyapunov behaviour, and KS-entropy behaviour are associated with changes in $k_r$.
+- **The asymmetry parameter $k_\theta$ changes phase-space geometry.** At fixed $k_r$, it can change the orientation, structure, stretching, and rotation of phase-space features and can break time-reversal symmetry.
+- A change in $k_\theta$ at fixed $k_r$ must not be described as an increase or decrease in classical chaoticity, a change in Lyapunov behaviour, or a shift of the regular-to-chaotic transition.
+- Separation between two trajectories is a property of that matched pair over a finite observation time. It is not, by itself, a Lyapunov-exponent estimate.
+- A local initial-condition cloud is a finite-time geometric probe. It is not automatically an invariant region, an invariant measure, or a test of local ergodicity.
 
-The workflow is designed to avoid manual trajectory-file preparation and repeated metadata entry.
+A controlled geometry comparison holds $k_r$, $p$, the initial-condition protocol, and the number of kicks fixed while varying $k_\theta$. For example, comparing $k_\theta=0$ and $k_\theta=10^4$ at the same $k_r$ isolates effects associated with the asymmetry parameter.
 
-**Generate and save a DKT trajectory ensemble**
+### Ergodic hierarchy: distinct questions, distinct diagnostics
 
-Users can specify:
+| Concept | Mathematical question | Numerical support in this project |
+|---|---|---|
+| Mean ergodicity | Do time-averaged observables approach their phase-space averages in the relevant Hilbert-space sense? | Finite-data von Neumann / $L^2$ mean-ergodicity indicators |
+| Birkhoff or pointwise ergodicity | Do time averages along almost every trajectory approach the appropriate space average? | Finite-time trajectory averages and ensemble variance |
+| Weak mixing | Do correlations of suitable observables vanish in the required long-time averaged sense? | Finite-record autocorrelations and Cesàro averages of squared correlations |
+| Strong mixing | Do correlations between suitable measurable events become asymptotically independent under time separation? | Finite-partition alpha-coefficient estimates for sampled lags |
 
-- Average kicking parameter, $k_r$.
-- Asymmetry parameter, $k_\theta$.
-- Rotation parameter, $p$.
-- Angular-grid size.
-- Number of kicks.
-- Transient-discard interval.
-- Maximum correlation lag.
-- Spherical partition resolution.
+These diagnostics are complementary, not interchangeable:
 
-The application generates an ensemble of distinct initial conditions under the selected DKT map, saves the trajectories and metadata, and proceeds to the numerical diagnostics.
+- Mean ergodicity is not the same as pointwise ergodicity.
+- A finite-time Birkhoff-average variance trend is not a proof of almost-everywhere convergence.
+- A finite-window correlation indicator is not a proof of weak mixing.
+- A strong-mixing alpha estimate on one finite partition and a finite set of lags is not the supremum over all measurable sets in the mathematical definition.
+- A result for selected observables does not automatically establish a property for every observable.
+- Observable-dependent behaviour under full-sphere sampling does not establish ergodicity restricted to a spatial subregion.
 
-The angular-grid size can be selected within the supported range of 5–50 points per direction. For example, a grid size of 5–8 produces 25–64 initial conditions.
+The software therefore reports finite-data diagnostics and their scope rather than assigning an unconditional mathematical label to the dynamics.
 
-**Automatic data management**
+## Computational capabilities
 
-- Trajectory CSV files are generated automatically.
-- Parameter-labelled filenames preserve the identity of each trajectory.
-- An `ensemble_manifest.json` records the ensemble configuration and provenance.
-- Generated ensembles are stored in separate run directories.
-- Previously generated metadata-backed ensembles can be selected and analysed again.
-- Individual ensembles can be downloaded as ZIP archives.
-- Numerical results and diagnostic artifacts are stored separately from the original trajectory data.
+### 1. Classical DKT dynamics
 
-**Dashboard visualizations and outputs**
+The classical toolset supports:
 
-The dashboard provides:
+- Single-trajectory simulation and kick-resolved data export.
+- Grid-based trajectory generation and phase-space visualization.
+- Comparisons between selected DKT parameter configurations.
+- Fixed-point searches and local-stability analysis.
+- Primitive periodic-orbit searches with closure and stability diagnostics.
+- Parameter sweeps and selected trajectory/measure comparisons.
+- Finite-time Lyapunov-exponent and KS-entropy estimates.
 
-- Mean-ergodicity diagnostic results.
-- Birkhoff-average variance versus analysed trajectory length.
-- Normalized autocorrelation plots.
-- Cesàro means of squared autocorrelations, selectable by observable.
-- Finite-partition alpha-coefficient estimates versus lag.
-- Numerical tables and downloadable JSON and CSV results.
+Fixed-point and periodic-orbit searches are numerical searches over finite initial seed sets. Failure to find an orbit in a finite search is not proof that no such orbit exists.
 
-The dashboard separates the generation of trajectory data from its subsequent analysis, allowing saved ensembles to be reused for further investigations.
+### 2. Mean ergodicity and Birkhoff averages
 
-**Individual trajectory compatibility**
+The mean-ergodicity workflow evaluates a finite-data von Neumann / $L^2$ indicator for selected observables over sampled initial conditions. The available observable set includes
 
-Individual simulations generated through the `simulate_dkt` workflow are saved in nested run directories. Their trajectory CSV files use parameter-labelled filenames and are accompanied by a `trajectory_metadata.json` file.
+$$
+X,\;Y,\;Z,\;X^2,\;Y^2,\;Z^2,\;XY,\;YZ,\;ZX.
+$$
 
-The dashboard searches these directories recursively. It groups trajectories only when their map parameters match and their initial conditions are distinct.
+The complementary Birkhoff-variance workflow calculates finite-time trajectory averages and examines their variance across an ensemble of distinct initial conditions.
 
-Older trajectory files without metadata cannot always be assigned reliably to a specific DKT map configuration. The application therefore avoids guessing their parameters.
+These workflows allow observable-resolved comparisons. For example, outputs can be examined separately for $X$, $Y$, and $Z$, rather than compressed into one global verdict. Results remain conditional on the chosen observables, sampling protocol, number of initial conditions, transient, and observation window.
 
-### 4. Quantum Entanglement Dynamics
+### 3. Correlation and mixing-hierarchy diagnostics
 
-The Julia-backed quantum tools provide:
+The correlation tools calculate finite-record observable correlations and related time-averaged indicators. The combined mixing-hierarchy diagnostic includes:
 
-- Entanglement entropy as a function of kick number.
+- **Weak-mixing-related indicator:** finite-window Cesàro averages of squared autocorrelations for the implemented Cartesian observables.
+- **Strong-mixing-related indicator:** finite-partition alpha-coefficient estimates over selected time lags, using sampled trajectory ensembles and time origins.
+
+The strong-mixing estimate depends on the chosen spherical partition, lag range, trajectory ensemble, and sampling procedure. It is not a computation of the supremum over all measurable sets.
+
+### 4. Direction-dependent and spatially local questions
+
+The research planner can formulate investigations in which numerical behaviour differs across observables or Cartesian directions. Such questions should be evaluated observable by observable using the implemented mean-ergodicity and Birkhoff-variance diagnostics. Mixing diagnostics can be added when requested and when suitable same-map trajectory data are available.
+
+**Spatially restricted local ergodicity is not currently implemented.** The existing mean-ergodicity and Birkhoff-variance samplers use full-sphere sampling. A valid region-restricted study requires a clearly defined dynamically meaningful region, a region-conditioned sampling protocol, and validation of the measure and dynamics being studied. An arbitrary initial patch or a matched local cloud does not by itself provide these ingredients. The planner therefore marks this type of execution as paused rather than treating a full-sphere result as a local-region result.
+
+### 5. Matched phase-space geometry comparisons
+
+Two complementary comparison workflows are available:
+
+- **Controlled two-trajectory comparison:** evolves the same initial condition under two specified maps and records the kick-by-kick separation.
+- **Matched local-cloud comparison:** constructs the same small angular grid of initial conditions around a specified centre and evolves that grid under both maps.
+
+The local-cloud workflow records finite-time geometric quantities such as covariance eigenvalues, principal axes, cloud radii, anisotropy, axis alignment, and matched-point separations. Principal-axis alignment accounts for the sign ambiguity of eigenvectors.
+
+These measurements characterize the deformation and orientation of the selected finite-time cloud. They do not establish ergodicity, mixing, invariant-region structure, or a change in classical chaoticity.
+
+### 6. Quantum entanglement dynamics
+
+The Julia-backed quantum workflows provide:
+
+- Kick-resolved entanglement entropy for evolving quantum states.
 - Long-time-averaged entanglement entropy heatmaps over grids of spin-coherent initial states.
 - Transient-discarded averaging.
-- State-norm diagnostics.
-- Heatmap failure reporting.
+- State-norm and calculation-status diagnostics.
 - CSV outputs and visualizations.
 
-The normalized subsystem entropy is
+For a bipartition with subsystem size $Q$ and total spin parameter $N=2j$, the normalized subsystem entropy is
 
 $$
-s_A = \frac{S_A}{\log_2[\min(Q+1,N-Q+1)]},
+s_A =
+\frac{S_A}
+{\log_2\left[\min(Q+1,N-Q+1)\right]}.
 $$
 
-where $N=2s$ and $Q$ denotes the subsystem size used in the bipartition.
+Evolving-state entanglement calculations are distinct from Floquet-eigenstate entanglement analysis. For the heatmap workflow, the transient convention is to discard kicks $0:T_0$ and average kicks $T_0+1:T$. Failed calculations remain missing values; they are not interpreted as zero entropy.
 
-The evolving-state entanglement calculations are distinct from Floquet-eigenstate entanglement analysis.
+### 7. Classical–quantum correspondence
 
-For heatmaps, the transient convention is to discard kicks $0:T_0$ and average kicks $T_0+1:T$. Failed calculations remain missing values rather than being interpreted as zero.
-
-### 5. Classical–Quantum Correspondence
-
-The project includes a Julia-backed comparison of classical DKT trajectories and quantum spin-coherent-state evolution.
-
-The comparison provides:
-
-- Kick-resolved classical coordinates $X,Y,Z$.
-- Normalized quantum spin expectations $\langle J_x\rangle/s$, $\langle J_y\rangle/s$, and $\langle J_z\rangle/s$.
-- Component-wise mean absolute error (MAE).
-- Root mean square error (RMSE).
-- Maximum component-wise error.
-- Vector-difference summaries.
-- CSV output and Streamlit visualizations.
-
-The initial quantum normalized-spin vector is checked against the specified classical initial point before the comparison is accepted.
-
-Finite-time differences between a single classical trajectory and quantum expectation values are not, by themselves, a diagnostic of classical chaos. Entanglement entropy is treated as a separate observable.
-
-### 6. AI-Assisted Research Interface
-
-The application also includes a **Research Studio** for plan-first investigations. It translates a scientific question into a structured workflow, identifies suitable existing tools and required inputs, distinguishes read-only evidence retrieval from new numerical execution, and records authorization gates. Planning itself does not run calculations.
-
-The research planner is designed to preserve the model-specific scientific constraints, including the distinction between the roles of $k_r$ and $k_\theta$, and the limitations of finite-data ergodic-hierarchy diagnostics. See [Phase 3 product and interface principles](docs/PHASE3_PRODUCT_DESIGN.md).
-
-Research Studio now also supports persistent research campaigns. Each campaign records the plan, ordered stages, exact execution inputs, timestamps, results, errors and provenance, and can be resumed from the interface. Existing-evidence discovery is read-only; new numerical stages require explicit authorization and a separate execution action.
-
-For fixed-$k_r$ geometry studies, the workflow includes both a matched two-trajectory comparison and a matched local-cloud comparison. The same small angular grid of initial conditions is evolved under both $k_\theta$ values. Per-kick covariance eigenvalues, principal axes, cloud radii, axis alignment and matched-point separations quantify finite-time deformation and orientation. The initial patch is a geometric probe, not an invariant region or invariant measure.
-
-For direction-dependent ergodicity questions, the planner can propose observable-resolved mean-ergodicity and Birkhoff-variance diagnostics for $X,Y,Z$ and selected quadratic/cross observables. The outputs must remain observable-specific. The current samplers use the full uniform sphere; region-conditioned local ergodicity is not yet implemented, and full-sphere results must not be presented as local-region conclusions.
-
-
-The LangGraph research agent provides access to simulation and analysis tools through natural-language interaction.
-
-Capabilities include:
-
-- Running authorized DKT simulations.
-- Comparing parameter configurations.
-- Analysing existing trajectory CSV files.
-- Running numerical research diagnostics.
-- Performing Lyapunov and KS-entropy studies.
-- Investigating mean-ergodicity-related quantities.
-- Analysing Birkhoff averages and correlation functions.
-- Running weak-mixing-related and strong-mixing-related numerical studies.
-- Running quantum entanglement calculations.
-- Comparing classical and quantum dynamics.
-- Searching existing research evidence.
-
-The Streamlit interface provides an interactive environment for simulations, research workflows, plots, and downloadable numerical results.
-
-The agent is intended to assist with computational research and evidence-based analysis. Its conclusions should remain within the scope of the available numerical results and their assumptions.
-
-## Scientific Parameter Convention
-
-The DKT kicking parameters are defined as 
+The classical–quantum comparison workflow evaluates the correspondence between a classical DKT trajectory and normalized quantum spin expectation values:
 
 $$
-k_r = \frac{k+k'}{2}, \qquad k_\theta = \frac{k-k'}{2},
+\frac{\langle J_x\rangle}{j},
+\qquad
+\frac{\langle J_y\rangle}{j},
+\qquad
+\frac{\langle J_z\rangle}{j}.
 $$
 
-so that 
+The output includes kick-resolved components and numerical error summaries such as mean absolute error, root mean square error, maximum component-wise error, and vector differences. The initial normalized quantum spin vector is checked against the specified classical initial point.
 
-$$
-k=k_r+k_\theta, \qquad k'=k_r-k_\theta.
-$$
+Finite-time disagreement between a single classical trajectory and quantum expectation values is not, by itself, a diagnostic of classical chaos. Entanglement entropy is treated as a separate observable.
 
-The distinction between these parameters is central to the research:
+## Research Studio and reproducibility
 
-- $k_r$ controls the degree of classical chaos, including the regular-to-chaotic transition, Lyapunov behaviour, and KS entropy.
-- $k_\theta$ changes the geometry, orientation, and structure of phase-space features. It can also break time-reversal symmetry.
-- Increasing $k_\theta$ at fixed $k_r$ should not be interpreted as increasing the degree of classical chaos or changing the Lyapunov behaviour.
+The **Research Studio** is a plan-first, human-supervised workflow for structured computational investigations. It makes the path from a scientific question to a numerical result explicit and reviewable.
 
-A useful comparison is to investigate $k_\theta=0$ and $k_\theta=10^4$ while keeping $k_r$, initial conditions, $p$, and the number of kicks fixed. This isolates the effects associated with the asymmetry parameter from changes in the average kicking strength.
+### Campaign lifecycle
 
-## Project Structure
+A typical investigation follows these stages:
 
-```text
-DKT-Research-Agent/
-│
-├── app.py
-├── README.md
-├── requirements.txt
-│
-├── dkt_agent/
-│   ├── agent.py
-│   ├── tools.py
-│   ├── langchain_tools.py
-│   ├── classical_analysis.py
-│   ├── evidence.py
-│   ├── research_tools.py
-│   ├── mixing_hierarchy.py
-│   ├── mixing_tools.py
-│   └── mean_ergodic_dashboard.py
-│
-├── scripts/
-│   └── julia/
-│       ├── simulate_dkt.jl
-│       ├── simulate_dkt_grid.jl
-│       ├── analyze_dkt_fixed_points.jl
-│       ├── compare_classical_quantum.jl
-│       ├── dkt_lyapunov_ks.jl
-│       ├── run_entanglement_dynamics.jl
-│       └── run_entropy_heatmap.jl
-│
-├── tests/
-│   └── python/
-│       ├── test_agent_tool_flow.py
-│       ├── test_classical_analysis.py
-│       ├── test_classical_quantum_comparison.py
-│       ├── test_dkt_tool.py
-│       ├── test_advanced_diagnostics.py
-│       ├── test_mixing_hierarchy.py
-│       ├── test_research_capabilities.py
-│       └── test_research_workflows.py
-│
-└── QuantumKickedTop.jl/
-    └── Julia simulation package (Git submodule)
-```
+1. **Frame the question.** Define the scientific claim, parameters, observables, and scope.
+2. **Discover existing evidence.** Search existing records before repeating calculations. Evidence search is read-only; keyword matches are leads for inspection, not confirmation of a claim.
+3. **Plan the workflow.** The deterministic research planner maps the question to supported tools, required inputs, execution modes, and scientific caveats. Planning itself does not run calculations.
+4. **Review the proposed stages.** Decide which stages are already covered by existing evidence and provide a provenance note for reused results.
+5. **Authorize new numerical work.** Numerical execution requires explicit campaign-level authorization.
+6. **Execute stages explicitly.** Each numerical stage is started through a separate execution action. Stages run in the planned order.
+7. **Inspect and validate results.** The campaign record preserves inputs, outputs, attempts, errors, timestamps, and artifact references. Record-integrity validation checks that the saved record is internally consistent; it is not a proof of scientific correctness.
+8. **Record scientific review.** A researcher records an outcome and rationale, distinguishing accepted results from work requiring follow-up or inconclusive outcomes.
 
-The structure above highlights the principal application, analysis, Julia, and test components. Additional modules and scripts may be present as the project develops.
+### Persistent campaign records
 
-## Requirements
+Research campaigns are saved under the results/research_campaigns directory. A campaign records, as applicable:
 
-- Python 3.10 or later.
-- Julia (the project has been developed and tested with Julia 1.12).
-- A Google Gemini API key for the AI research agent.
-- Git, including Git submodule support.
+- The original research question and plan snapshot.
+- Ordered workflow stages and execution modes.
+- Exact submitted inputs and parameter values.
+- Authorization and evidence-review decisions.
+- Attempt history, timestamps, and execution status.
+- Tool outputs, errors, and artifact paths.
+- Validation results and post-execution scientific review.
 
-Python dependencies are listed in `requirements.txt`.
+Campaigns can be resumed through the interface. Failed or interrupted attempts remain distinguishable from completed calculations; a tool error must not be represented as a successful scientific result.
+
+### Evidence reuse and authorization
+
+Existing evidence can be reused only when the researcher records where it came from and why it covers the planned stage. A reused stage is not represented as a newly executed calculation.
+
+New numerical work is guarded by two distinct actions: campaign-level authorization and an explicit stage-execution action. Revoking campaign authorization overrides an earlier authorization. The execution registry restricts numerical execution to registered tools; the planner does not dynamically execute arbitrary tool names produced by a language model.
+
+### Result presentation
+
+Research Studio presents stage summaries and structured numerical outputs in readable sections and tables. Detailed machine-readable JSON remains available through an explicit advanced view and downloadable records for reproducibility. The interface distinguishes campaign execution status, the pre-execution evidence gate, and post-execution scientific review.
+
+For the design principles and workflow rationale, see [Phase 3 product and interface principles](docs/PHASE3_PRODUCT_DESIGN.md).
+
+## Application interface
+
+Launch the Streamlit application with **streamlit run app.py**. The interface organizes the research environment around the following workspaces:
+
+- **Quick simulations:** classical and quantum simulation entry points.
+- **Simulation results:** collected outputs from simulation runs.
+- **Diagnostics:** classical dynamical diagnostics, ergodic-hierarchy analyses, mixing diagnostics, and periodic-orbit investigations.
+- **Comparisons:** controlled trajectory, geometry, and classical–quantum comparisons.
+- **Data and evidence:** inspection and analysis of existing research data.
+- **Research Studio:** question framing, evidence discovery, workflow planning, guarded campaign execution, campaign records, and scientific review.
+- **Research assistant:** natural-language interaction with the LangGraph research agent.
+
+Exact tab labels may evolve as the interface develops. The scientific tools and their recorded inputs, rather than the visual arrangement of tabs, define the calculation performed.
+
+## Technology stack
+
+| Component | Role |
+|---|---|
+| Python | Agent orchestration, analysis, data handling, and application logic |
+| LangGraph / LangChain | Research-agent workflow and tool integration |
+| Google Gemini | Language-model reasoning for the research assistant |
+| Julia | Numerical simulation and quantum-dynamics computation |
+| Streamlit | Interactive research interface and dashboards |
+| NumPy / SciPy | Numerical arrays and scientific computation |
+| Pandas | Tabular data processing and CSV workflows |
+| Matplotlib | Scientific plotting |
+| Pytest | Automated Python tests |
+| Git submodules | Versioned Julia simulation package integration |
+
+Python dependencies are listed in requirements.txt. The Julia package is maintained in the QuantumKickedTop.jl submodule.
 
 ## Installation
 
-Clone the repository with its Julia submodule:
+### Prerequisites
 
-```bash
+- Git with submodule support.
+- Python 3.10 or later.
+- Julia (the project has been developed and tested with Julia 1.12).
+- A Google Gemini API key for the language-model research assistant.
+
+### 1. Clone the repository
+
+~~~bash
 git clone --recurse-submodules https://github.com/avadhut1987/DKT-Research-Agent.git
 cd DKT-Research-Agent
-```
+~~~
 
-If the repository was cloned without submodules, initialize them:
+If the repository has already been cloned without its submodule, initialize it with:
 
-```bash
+~~~bash
 git submodule update --init --recursive
-```
+~~~
 
-Create and activate a Python virtual environment:
+### 2. Create a Python environment
 
-```bash
+~~~bash
 python -m venv .venv
 source .venv/bin/activate
-```
+~~~
 
-Install the Python dependencies:
+On Windows PowerShell:
 
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
-```
+~~~powershell
+.venv\Scripts\Activate.ps1
+~~~
 
-Instantiate the Julia project dependencies:
+### 3. Install Python dependencies
 
-```bash
+~~~bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+~~~
+
+### 4. Instantiate the Julia environment
+
+From the repository root:
+
+~~~bash
 julia --project=QuantumKickedTop.jl -e 'using Pkg; Pkg.instantiate()'
-```
+~~~
 
-Set the Google Gemini API key:
+### 5. Configure the Gemini API key
 
-```bash
+Set the key in the current shell session:
+
+~~~bash
 export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"
-```
+~~~
 
-Replace the placeholder with your own API key. Do not commit API keys or other credentials to the repository.
+Do not place a real API key in source files, commit it to Git, or include it in campaign records. Keep credentials in your local environment or an appropriate secrets manager.
 
-## Running the Application
+## Running the application and agent
 
-Launch the Streamlit interface:
+With the Python environment active and the repository root as the working directory, launch the Streamlit interface:
 
-```bash
+~~~bash
 streamlit run app.py
-```
+~~~
 
-Streamlit will display the local application URL in the terminal. Open that URL in your browser.
+Streamlit prints a local URL in the terminal. Open that address in a web browser.
 
-The application provides an interactive environment for DKT simulations, parameter studies, the ergodic-hierarchy dashboard, numerical diagnostics, and quantum research workflows.
+The LangGraph research agent can also be launched from the terminal:
 
-## Running the Research Agent
-
-The agent can also be launched from the terminal:
-
-```bash
+~~~bash
 PYTHONPATH=. python -m dkt_agent.agent
-```
+~~~
 
-Ensure that the virtual environment is activated and the Gemini API key is available in the environment.
+Ensure that the virtual environment is active and the GOOGLE_API_KEY environment variable is available. The agent can use registered research tools for simulations, comparisons, data analysis, evidence discovery, and supported diagnostics. Tool availability does not remove the need to specify valid inputs or interpret outputs within their scientific limits.
 
-## Julia Simulation Scripts
+## Julia workflows
 
-The Julia scripts in `scripts/julia/` provide standalone entry points for selected numerical workflows, including:
+The Julia simulation package is located in QuantumKickedTop.jl/. The Python application invokes Julia-backed workflows for supported classical and quantum calculations.
 
-- Classical DKT trajectory simulation.
-- Grid-based trajectory simulation.
-- Fixed-point analysis.
-- Classical–quantum comparison.
-- Lyapunov exponent and KS-entropy diagnostics.
-- Entanglement entropy dynamics.
-- Entanglement entropy heatmap calculations.
+Standalone Julia scripts are maintained under scripts/julia/. They cover selected tasks such as classical trajectory generation, grid-based simulations, fixed-point analysis, Lyapunov/KS diagnostics, entanglement dynamics, entropy heatmaps, and classical–quantum comparisons.
 
-Some scripts require input parameters or output paths. Consult the corresponding script for its expected arguments and configuration.
+For a particular script, inspect its source for the expected command-line arguments, parameter conventions, and output paths. Initialize the Julia project before running package-dependent scripts.
 
-## Running Tests
+## Testing
 
 Run the Python test suite from the repository root:
 
-```bash
+~~~bash
 PYTHONPATH=. python -m pytest tests/python/
-```
+~~~
 
-The tests cover agent-tool integration, classical analysis, classical–quantum comparison, research diagnostics, and research workflows.
+The tests cover agent/tool integration, classical analysis, classical–quantum comparisons, numerical diagnostics, research planning and execution, campaign persistence and authorization, result presentation, and mathematical-notation rendering.
 
-## Suggested Research Workflows
+Some CI workflows also run Julia smoke tests. A passing test suite verifies the tested software behaviour; it does not validate every possible physical interpretation or establish asymptotic dynamical properties.
 
-### Classical Dynamics
+## Data and provenance
 
-1. Select $k_r$, $k_\theta$, and the initial conditions.
-2. Generate classical trajectories or phase-space portraits.
-3. Compare trajectory structures for selected parameter configurations.
-4. Examine Lyapunov and other numerical diagnostics where appropriate.
+The application generates CSV files, plots, JSON metadata, campaign records, and downloadable archives depending on the selected workflow. Generated numerical data and research campaign records are stored under the repository's results area unless a tool or user specifies another output location.
 
-### Mean Ergodicity and Birkhoff-Average Investigations
+For reproducible analysis, retain:
 
-1. Select the DKT map parameters and observables.
-2. Evaluate the finite-data mean-ergodicity distance over sampled initial conditions.
-3. Examine finite-time trajectory averages.
-4. Investigate the variance of Birkhoff averages across distinct initial conditions.
-5. Compare the results across observables, parameter configurations, and observation windows.
-6. Interpret the numerical behaviour without treating finite-time results as proofs of asymptotic mean ergodicity or pointwise ergodicity.
+- The exact DKT parameters $k_r$, $k_\theta$, and $p$.
+- Initial conditions and the coordinate convention.
+- The number of kicks and any transient-discard interval.
+- Ensemble size, grid resolution, random seed, and sampling procedure, where applicable.
+- Observable definitions and normalization conventions.
+- Partition resolution and lag range for mixing estimates.
+- Software version / commit and relevant Julia environment.
+- Original CSV files, metadata manifests, campaign records, and derived artifacts.
 
-### Weak-Mixing-Related Investigations
+Do not infer missing parameters from a filename alone when the associated metadata are unavailable. Do not silently replace missing, failed, or uncomputed values with zero. Keep raw data separate from derived summaries so that analyses can be repeated.
 
-1. Select multiple trajectories generated under the same DKT map.
-2. Calculate observable autocorrelation functions.
-3. Examine finite-window Cesàro averages of squared autocorrelations.
-4. Compare the results across observables and time windows.
-5. Investigate sensitivity to initial-condition sampling and the available lag range.
+## Recommended research practice
 
-### Strong-Mixing-Related Investigations
+A robust computational investigation should:
 
-1. Generate or select an ensemble of trajectories under a common DKT map.
-2. Specify the spherical partition resolution.
-3. Calculate finite-partition alpha-coefficient estimates over selected time lags.
-4. Examine sensitivity to partition resolution, lag range, and trajectory sampling.
-5. Check approximate stationarity of the pooled trajectory/time-origin sample.
-6. Interpret the results as finite-partition numerical indicators rather than a proof of strong mixing.
+1. State a precise, falsifiable research question.
+2. Identify the observable and the mathematical property being investigated.
+3. Fix control parameters and vary only the parameter relevant to the question.
+4. Search and inspect existing evidence before generating new data.
+5. Record all numerical inputs, sampling assumptions, and software provenance.
+6. Use independent initial conditions or ensembles where the diagnostic requires them.
+7. Check numerical constraints such as unit-sphere normalization and state norms where applicable.
+8. Examine sensitivity to observation time, ensemble size, grid resolution, partition resolution, and random seed.
+9. Separate direct numerical observations from physical interpretation.
+10. State limitations and unresolved questions explicitly.
 
-### Reproducible Ergodic-Hierarchy Dashboard Workflow
+For a fixed-$k_r$ asymmetry study, keep $k_r$, $p$, initial conditions, and kick count fixed while varying $k_\theta$. For an ergodic-hierarchy investigation, do not use one diagnostic as a proxy for another: report mean-ergodicity, Birkhoff-average, weak-mixing-related, and strong-mixing-related results separately.
 
-1. Open **Generate and save a DKT trajectory ensemble**.
-2. Set $k_r$, $k_\theta$, and $p$.
-3. Choose the angular-grid size and number of kicks.
-4. Specify the transient-discard interval, maximum lag, and spherical partition.
-5. Click **Generate, save & run diagnostics**.
-6. Allow the application to generate the trajectory files, save the metadata and manifest, and calculate the diagnostics.
-7. Examine the resulting plots and numerical tables.
-8. Select a previously generated metadata-backed ensemble to repeat or extend the analysis.
-9. Download the ensemble as a ZIP archive when required.
+## Scientific limitations
 
-The generated ensemble and its diagnostic outputs are stored separately, preserving the original trajectory data and its provenance.
+This software supports controlled numerical investigation. It does not, by itself, provide mathematical proofs of ergodicity, mixing, invariant measures, or asymptotic convergence.
 
-### Quantum Entanglement
+Interpret all finite-data results in relation to:
 
-1. Choose the quantum spin and subsystem partition.
-2. Specify the initial spin-coherent state or grid of initial states.
-3. Run the entanglement dynamics or heatmap calculation.
-4. Specify the transient-discard interval and averaging interval.
-5. Examine the resulting entropy curves, heatmaps, and numerical outputs.
+- The finite observation time and transient treatment.
+- The number and distribution of sampled initial conditions.
+- The observables actually evaluated.
+- The numerical precision and stability checks performed.
+- The chosen partition and lag range for mixing estimates.
+- The finite seed set used in fixed-point and periodic-orbit searches.
+- The assumptions and scope of each numerical method.
 
-### Classical–Quantum Correspondence
+In particular, finite-time trajectory separation is not a Lyapunov exponent; finite-partition alpha estimates are not a proof of strong mixing; full-sphere sampling is not a local-region test; and a local-cloud geometry comparison is not a test of ergodicity. These distinctions are part of the intended scientific use of the platform.
 
-1. Specify matching classical and quantum initial conditions.
-2. Select the DKT parameters and number of kicks.
-3. Calculate classical coordinates and normalized quantum spin expectations.
-4. Examine component-wise and vector error measures.
-5. Investigate the finite-time correspondence without conflating expectation-value deviations with classical chaoticity.
+## Repository organization
 
-## Scientific Interpretation and Limitations
+The principal components are organized as follows. The exact file set may expand as the project develops.
 
-The project is intended as a computational research assistant. Numerical outputs should be interpreted in the context of the model, assumptions, finite observation times, numerical precision, and sampling choices.
+~~~text
+DKT-Research-Agent/
+├── app.py                         # Main Streamlit application
+├── README.md
+├── requirements.txt
+├── dkt_agent/
+│   ├── agent.py                   # LangGraph research agent
+│   ├── tools.py                   # Core simulation tools
+│   ├── langchain_tools.py         # Agent-facing tools
+│   ├── research_orchestrator.py   # Deterministic research planner
+│   ├── research_execution.py      # Campaign persistence and guarded execution
+│   ├── research_studio.py         # Research Studio interface
+│   ├── streamlit_rendering.py     # Structured result presentation
+│   └── ...                        # Diagnostics and domain-specific modules
+├── scripts/
+│   └── julia/                     # Julia workflow entry points
+├── QuantumKickedTop.jl/           # Julia simulation package (submodule)
+├── docs/
+│   └── PHASE3_PRODUCT_DESIGN.md   # Research workflow and interface principles
+├── tests/
+│   └── python/                    # Python regression and scientific-workflow tests
+└── results/                       # Generated data and campaign records (runtime)
+~~~
 
-In particular:
+## Acknowledgements and citation
 
-- A finite-data mean-ergodicity distance is not a mathematical proof of von Neumann mean ergodicity.
-- Finite-time Birkhoff averages and their ensemble variance do not establish asymptotic pointwise ergodicity.
-- Finite-window Cesàro diagnostics are numerical indicators, not proofs of weak mixing.
-- Observed correlation decay over a finite interval does not prove strong mixing.
-- The finite-partition alpha coefficient is not the supremum over all measurable sets required by the mathematical definition of strong mixing.
-- Pooled trajectory and time-origin samples used in alpha-coefficient estimates should be checked for approximate stationarity.
-- Lyapunov and KS-entropy estimates depend on numerical methods, iteration length, and applicable theoretical assumptions.
-- Quantum entanglement measures and classical trajectory diagnostics describe different aspects of the dynamics.
-- Classical–quantum correspondence should be assessed using clearly specified observables, initial-state alignment, and finite-time error measures.
+This repository is a computational research project for the Double Kicked Top model. If you use the software, numerical outputs, or workflows in academic work, cite the repository at the commit or release corresponding to the version used and describe the relevant numerical methods, parameters, and sampling assumptions in your methods section.
 
-The AI agent is designed to analyse available evidence and numerical results. It should not replace independent verification of calculations or justify unsupported physical conclusions.
-
-## Troubleshooting
-
-**Julia dependency errors**
-
-Run:
-
-```bash
-julia --project=QuantumKickedTop.jl -e 'using Pkg; Pkg.instantiate()'
-```
-
-**Missing Gemini API key**
-
-Set `GOOGLE_API_KEY` in the active terminal before launching the agent or Streamlit application.
-
-**Python import errors**
-
-Activate the virtual environment and reinstall the dependencies:
-
-```bash
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-**Git submodule issues**
-
-Run:
-
-```bash
-git submodule update --init --recursive
-```
-
-**Streamlit port already in use**
-
-Launch the application on another port:
-
-```bash
-streamlit run app.py --server.port 8502
-```
-
-## Development Status
-
-The project is under active development. Its simulation, analysis, visualization, and research-agent capabilities are being extended and refined.
-
-The current platform brings together classical DKT dynamics, quantum entanglement, classical–quantum correspondence, and numerical investigations of the ergodic hierarchy within a reproducible computational workflow.
-
-Numerical results and research conclusions should be checked against the underlying Julia and Python implementations, relevant theoretical assumptions, and independent calculations.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
-Copyright (c) 2026 Avadhut V. Purohit.
-
-You are free to use, modify, distribute, and adapt this software in accordance with the terms of the MIT License.
-
-See the [LICENSE](LICENSE) file for the complete license text.
-
-
-## Periodic-orbit hierarchy
-
-The numerical periodic-orbit search detects primitive DKT cycles over a configurable
-period range, excludes lower-period repeats, deduplicates cyclic rotations, and
-reports closure residuals and Floquet multipliers. See [the periodic-orbit guide](docs/periodic_orbits.md)
-for the Julia command, Python API, Streamlit panel, output schema and numerical
-limitations. Searches are finite and non-exhaustive; absence from a result is not
-evidence of nonexistence. At fixed \(k_r\), \(k_\theta\) comparisons are interpreted
-as orbit-geometry comparisons, not changes in classical chaoticity.
+Repository: [github.com/avadhut1987/DKT-Research-Agent](https://github.com/avadhut1987/DKT-Research-Agent)

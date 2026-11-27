@@ -27,6 +27,18 @@ class TestResearchOrchestrator(unittest.TestCase):
         self.assertEqual(p["research_intent"], "ergodic_hierarchy")
         self.assertTrue(any("new ensemble" in x.lower() for x in p["clarifications_or_gates"]))
 
+    def test_mean_ergodicity_and_mixing_are_planned_as_distinct_diagnostics(self):
+        p = build_research_plan(
+            "Investigate von Neumann mean ergodicity together with weak and strong mixing.",
+            existing_data_available=True,
+        )
+        tools = [step["tool"] for step in p["workflow"]]
+        self.assertIn("mean_ergodicity_langchain_tool", tools)
+        self.assertIn("diagnose_mixing_hierarchy", tools)
+        mixing = next(step for step in p["workflow"] if step["tool"] == "diagnose_mixing_hierarchy")
+        self.assertIn("finite-partition", mixing["scientific_caveat"])
+        self.assertTrue(any("mean ergodicity" in item.lower() for item in p["scope_and_controls"]))
+
     def test_new_calculation_requires_authorization(self):
         p = build_research_plan("Estimate Lyapunov exponents and KS entropy.")
         self.assertEqual(p["execution_authorization"], "not_authorized")
