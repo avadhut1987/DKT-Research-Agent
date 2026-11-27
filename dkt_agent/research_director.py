@@ -202,12 +202,25 @@ def validate_decision(decision: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def _bounded_text(value: str) -> str:
+    """Keep long tool payloads valid and explicitly marked as truncated JSON."""
+    if len(value) <= MAX_TOOL_OUTPUT_CHARS:
+        return value
+    preview_limit = MAX_TOOL_OUTPUT_CHARS - 500
+    return json.dumps({
+        "truncated": True,
+        "original_characters": len(value),
+        "preview": value[:preview_limit],
+        "note": "The preview is truncated; inspect the original artifact for complete data.",
+    }, ensure_ascii=False)
+
+
 def search_existing_evidence(question: str) -> str:
     """Perform the initial read-only evidence search before model planning."""
     raw = search_research_evidence.invoke({"query": question, "max_files": 10})
     if isinstance(raw, str):
-        return raw[:MAX_TOOL_OUTPUT_CHARS]
-    return json.dumps(raw, ensure_ascii=False, default=str)[:MAX_TOOL_OUTPUT_CHARS]
+        return _bounded_text(raw)
+    return _bounded_text(json.dumps(raw, ensure_ascii=False, default=str))
 
 
 def decide_next_step(
@@ -266,8 +279,8 @@ def execute_approved_step(
         raise PermissionError("Numerical execution requires an explicit user approval action.")
     result = tool.invoke(arguments)
     if isinstance(result, str):
-        return result[:MAX_TOOL_OUTPUT_CHARS]
-    return json.dumps(result, ensure_ascii=False, default=str)[:MAX_TOOL_OUTPUT_CHARS]
+        return _bounded_text(result)
+    return _bounded_text(json.dumps(result, ensure_ascii=False, default=str))
 
 
 def parse_tool_result(value: str) -> Any:
