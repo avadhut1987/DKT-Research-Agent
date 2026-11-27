@@ -188,7 +188,7 @@ tool_development_proposal (object or null).
 If no more work is justified, tool_name must be null, arguments {}, execution_mode
 "none", and status must be SUFFICIENT, UNRESOLVED, or PAUSED. If a genuinely
 necessary scientific method is not covered by any registered tool, do not force
-an unsuitable tool. Return tool_name null and execution_mode "none", and provide
+an unsuitable tool. Return status "UNRESOLVED", tool_name null and execution_mode "none", and provide
 tool_development_proposal with: name, scientific_gap, mathematical_definition,
 algorithm, validation_plan, expected_outputs, and limitations. This is a
 design proposal only; it does not write code or authorize execution.
