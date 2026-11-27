@@ -99,6 +99,9 @@ def derive_campaign_status(campaign: dict[str, Any]) -> str:
             return "awaiting_evidence_review"
         return "planned" if all(status == "pending" for status in statuses) else "paused"
 
+    evidence_gate = campaign.get("evidence_review") or {}
+    if evidence_gate.get("decision") == "stop_existing_evidence_sufficient":
+        return "completed_existing_evidence"
     has_numerical_work = any(
         stage.get("execution_mode") == "new_numerical_data" for stage in stages
     )
@@ -586,7 +589,11 @@ def build_campaign_validation_report(campaign: dict[str, Any]) -> dict[str, Any]
             blockers.append(f"Stage {number} ({label}) is not complete: {status}.")
             continue
         if status == "reused_existing_evidence":
-            note = stage.get("review_decision", {}).get("note") or stage.get("result", {}).get("evidence_reuse_note")
+            reused_result = stage.get("result")
+            note = stage.get("review_decision", {}).get("note") or (
+                reused_result.get("evidence_reuse_note")
+                if isinstance(reused_result, dict) else None
+            )
             if not str(note or "").strip():
                 blockers.append(f"Stage {number} is marked as reused but has no evidence reference.")
             else:
