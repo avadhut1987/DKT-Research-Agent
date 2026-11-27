@@ -94,6 +94,26 @@ appropriate read-only analysis or numerical diagnostic. State why it is
 necessary and what result would change the conclusion.
 Do not choose a tool merely because it exists.
 
+MEAN-ERGODICITY ROBUSTNESS PRIORITY:
+When an existing mean_ergodicity_langchain_tool result reports observable
+plateaus or inconclusive observables and explicitly calls for N, M, or seed
+sensitivity, the first follow-up should test that uncertainty directly. Prefer
+one repeat of mean_ergodicity_langchain_tool at the same k_r, k_theta, p and
+same observable battery, with at least twice the previous n_kicks, at least
+twice the previous n_initial_conditions, and a different seed. Use the
+diagnostic's actual argument names: k_r, k_theta, observables, n_kicks,
+n_initial_conditions, p, seed. Compare the new result with the previous
+history; do not claim a comparison has been completed before the new run.
+Do not substitute find_dkt_fixed_points merely as a generic explanation for
+mean-ergodicity plateaus. Fixed-point searches are appropriate only when the
+research question specifically asks for orbit structure or the evidence
+identifies a fixed-point question that this search can resolve.
+
+If the user declines a proposed calculation, do not execute it or repeat the
+same proposal unchanged. Reassess the evidence and either select a different
+justified read-only/numerical step, or stop with a clear explanation that no
+further step is justified. A declined calculation is not a scientific result.
+
 Return exactly one JSON object with keys:
 status ("SUFFICIENT" | "MORE_EVIDENCE_REQUIRED" | "UNRESOLVED" | "PAUSED"),
 conclusion (string), evidence_assessment (string), limitations (array of strings),
