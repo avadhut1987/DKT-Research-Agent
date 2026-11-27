@@ -1,12 +1,11 @@
 """Streamlit page for the semi-autonomous DKT Research Director."""
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 
 import streamlit as st
 
-from dkt_agent.presentation import format_json, json_safe, normalize_math_notation
+from dkt_agent.presentation import format_json, normalize_math_notation
 
 from dkt_agent.research_director import (
     decide_next_step,
