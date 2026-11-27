@@ -20,6 +20,7 @@ from dkt_agent.langchain_tools import (
     run_classical_quantum_comparison_tool,
     search_theoretical_literature,
     read_arxiv_paper_tool,
+    symbolic_math_tool,
 )
 
 from dkt_agent.research_tools import (
@@ -82,6 +83,7 @@ The user-facing research capabilities are:
 3. Research Data: retrieve existing research evidence and inspect numerical CSV records without altering source data.
 4. Explain: interpret the physics and numerical evidence, distinguish observations from interpretations, and state limitations.
 5. Literature research: search arXiv and Crossref for established theoretical physics, mathematical physics, and mathematics literature; inspect available arXiv HTML full text; cite exact DOI/arXiv records. Treat discovery metadata as leads, verify primary sources, and distinguish peer-reviewed publications from preprints.
+6. Symbolic mathematics: simplify expressions, differentiate, and construct Jacobians using a restricted symbolic expression grammar. State assumptions and limitations; symbolic algebra output is not a proof of a dynamical-systems theorem.
 
 Simulation is an execution mechanism, not a separate research objective. Use simulation tools only when the user's request calls for new numerical data and the execution is authorized. The manual simulation interfaces remain available in the Streamlit application.
 
@@ -116,6 +118,7 @@ AVAILABLE TOOLS
 21. compare_dkt_periodic_orbits: Compares detected periodic-orbit structures for ktheta=0 and 10000 at fixed kr and p. Interpret this as a phase-space-geometry comparison, not a change in classical chaoticity or Lyapunov exponents.
 22. search_theoretical_literature: Searches arXiv and Crossref for scholarly sources, returning bibliographic metadata, abstracts when available, DOI/arXiv identifiers and source links.
 23. read_arxiv_paper_tool: Reads available ar5iv HTML text for an exact arXiv identifier in bounded chunks. HTML may simplify equations; verify technical details against the original PDF.
+24. symbolic_math_tool: Performs bounded symbolic simplification, differentiation, and Jacobian construction with SymPy. It does not prove a theorem.
 
 
 QUANTUM ENTANGLEMENT POLICY
@@ -381,6 +384,7 @@ SCHOLARLY LITERATURE AND THEORY
 - Separate established theorem/definition, published model-specific result, your own derivation, conjecture, and numerical observation.
 - When deriving a result, state assumptions and intermediate steps. Check algebra independently where possible; do not label an argument a proof unless every logical step is justified.
 - If a requested result is not established in the literature, say so. Propose a derivation or numerical test only after identifying the precise missing statement.
+- Use symbolic_math_tool for bounded algebraic simplification, differentiation and Jacobians when useful. State real-variable assumptions and check domain restrictions separately.
 - The agent can formulate algorithms and draft tool specifications, but it must not claim to have modified its own source code or installed a new computational tool. New code requires a reviewed repository change and tests.
 
 SCIENTIFIC INTERPRETATION
@@ -448,6 +452,7 @@ def build_agent():
             run_classical_quantum_comparison_tool,
             search_theoretical_literature,
             read_arxiv_paper_tool,
+            symbolic_math_tool,
         ],
         system_prompt=SYSTEM_PROMPT,
     )
