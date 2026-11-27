@@ -8,7 +8,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from dkt_agent.presentation import format_json, normalize_math_notation
+from dkt_agent.presentation import format_json, json_safe, normalize_math_notation
 
 from dkt_agent.research_director import (
     decide_next_step,
@@ -31,6 +31,7 @@ st.caption(
 )
 
 CHECKPOINT_PATH = Path(__file__).resolve().parents[1] / ".streamlit" / "research_director_checkpoint.json"
+DRAFT_PATH = Path(__file__).resolve().parents[1] / ".streamlit" / "research_director_question_draft.json"
 
 
 def _render_math(value: object) -> str:
@@ -39,14 +40,8 @@ def _render_math(value: object) -> str:
 
 
 def _render_json(value: object, *, expanded: bool = True) -> None:
-    """Render complete, strict JSON with visible punctuation and indentation.
-
-    Streamlit's interactive JSON tree can visually collapse nested objects and
-    hide punctuation in copied/exported views. A JSON syntax-highlighted code
-    block keeps the exact arguments inspectable before approval.
-    """
-    del expanded  # retained for call-site compatibility
-    st.code(_json_text(value), language="json")
+    """Render structured data in Streamlit's native expandable JSON viewer."""
+    st.json(json_safe(value), expanded=expanded)
 
 
 def _json_text(value: object) -> str:
@@ -91,6 +86,28 @@ def _load_checkpoint() -> dict | None:
         return None
 
 
+def _save_question_draft(question: str) -> None:
+    """Save an editable question draft separately from the active investigation."""
+    DRAFT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    temporary = DRAFT_PATH.with_suffix(".tmp")
+    temporary.write_text(
+        json.dumps({"research_question": question, "updated": datetime.now(timezone.utc).isoformat()},
+                   ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    os.replace(temporary, DRAFT_PATH)
+
+
+def _load_question_draft() -> str | None:
+    """Restore a separately saved question draft without replacing investigation history."""
+    try:
+        payload = json.loads(DRAFT_PATH.read_text(encoding="utf-8"))
+        question = payload.get("research_question") if isinstance(payload, dict) else None
+        return question if isinstance(question, str) else None
+    except (OSError, ValueError, TypeError):
+        return None
+
+
 def _initialize() -> None:
     defaults = {
         "director_question": "",
@@ -117,6 +134,10 @@ def _initialize() -> None:
             st.session_state.director_status = checkpoint.get("status", "not_started")
             st.session_state.director_updated = checkpoint.get("updated")
             st.session_state.director_checkpoint_restored = True
+        draft_question = _load_question_draft()
+        if draft_question is not None:
+            st.session_state.director_question = draft_question
+            st.session_state.director_question_draft_restored = True
         st.session_state.director_checkpoint_loaded = True
 
 
@@ -223,6 +244,9 @@ with st.sidebar:
 if st.session_state.get("director_checkpoint_restored"):
     st.info("Resumed your saved investigation. Its original research question, evidence, results, and pending decision have been restored.")
     st.session_state.director_checkpoint_restored = False
+if st.session_state.get("director_question_draft_restored"):
+    st.info("A separately saved research-question draft has been restored. It has not replaced the saved investigation history.")
+    st.session_state.director_question_draft_restored = False
 
 question = st.text_area(
     "Research question",
@@ -239,7 +263,7 @@ if question.strip():
         st.caption("Mathematical notation preview")
         st.markdown(_render_math(question))
 
-controls = st.columns([1, 1, 2])
+controls = st.columns([1.55, 1, 1.15, 1, 1.15])
 if controls[0].button(
     "Start / continue investigation",
     type="primary",
@@ -256,7 +280,22 @@ if controls[0].button(
         st.session_state.director_active_question = question.strip()
     _run_until_decision_gate()
     _save_checkpoint()
-if controls[2].button("Pause / stop here", use_container_width=True):
+    try:
+        DRAFT_PATH.unlink(missing_ok=True)
+    except OSError:
+        pass
+if controls[1].button("Save question", use_container_width=True, disabled=not bool(question.strip())):
+    _save_question_draft(question.strip())
+    st.success("Research question draft saved on this app's local filesystem.")
+controls[2].download_button(
+    "Download question (.txt)",
+    data=question,
+    file_name="dkt_research_question.txt",
+    mime="text/plain",
+    use_container_width=True,
+    disabled=not bool(question.strip()),
+)
+if controls[4].button("Pause / stop here", use_container_width=True):
     st.session_state.director_status = "paused_by_user"
     st.session_state.director_decision = {
         "status": "PAUSED",
@@ -269,7 +308,7 @@ if controls[2].button("Pause / stop here", use_container_width=True):
         "next_action": "Resume only if a further research step is justified.",
     }
     _save_checkpoint()
-if controls[1].button("Reset investigation", use_container_width=True):
+if controls[3].button("Reset investigation", use_container_width=True):
     for key in (
         "director_history", "director_evidence", "director_started",
         "director_decision", "director_error", "director_updated",
@@ -279,6 +318,7 @@ if controls[1].button("Reset investigation", use_container_width=True):
     st.session_state.director_active_question = ""
     try:
         CHECKPOINT_PATH.unlink(missing_ok=True)
+        DRAFT_PATH.unlink(missing_ok=True)
     except OSError as exc:
         st.warning(f"Could not remove the saved checkpoint: {exc}")
     st.rerun()
