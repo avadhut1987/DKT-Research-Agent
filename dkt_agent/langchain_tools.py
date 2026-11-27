@@ -23,8 +23,6 @@ from dkt_agent.literature import (
     read_arxiv_paper as _read_arxiv_paper,
 )
 
-from dkt_agent.symbolic_tools import symbolic_math_tool as _symbolic_math_tool
-
 @tool
 def run_dkt_simulation(
     kr: float,
@@ -363,23 +361,3 @@ def read_arxiv_paper_tool(
     )
     return json.dumps(result, indent=2, ensure_ascii=False)
 
-
-
-@tool
-def symbolic_math_tool(
-    operation: str,
-    expressions: list[str],
-    variables: list[str] | None = None,
-) -> str:
-    """Perform bounded symbolic simplification, differentiation, or Jacobian construction.
-
-    Variables are treated as real. Supported functions include sin, cos, tan,
-    exp, log, sqrt, sinh, cosh, tanh, asin, acos, atan and Abs. This is a
-    symbolic algebra aid, not a theorem prover.
-    """
-    result = _symbolic_math_tool(
-        operation=operation,
-        expressions=expressions,
-        variables=variables,
-    )
-    return json.dumps(result, indent=2, ensure_ascii=False)
