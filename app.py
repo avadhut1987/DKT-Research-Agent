@@ -142,8 +142,11 @@ def render_tool_result(tool: dict[str, Any]) -> None:
     except (TypeError, json.JSONDecodeError):
         payload = None
 
+    if payload is None:
+        render_structured_data(content_to_text(raw), title="Tool output")
+        return
     if not isinstance(payload, dict):
-        st.text(content_to_text(raw))
+        render_structured_data(payload, title="Structured tool output")
         return
 
     def number(value, digits=6):
