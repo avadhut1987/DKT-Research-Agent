@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 import streamlit as st
 
-from dkt_agent.presentation import json_safe, normalize_math_notation
+from dkt_agent.presentation import format_json, json_safe, normalize_math_notation
 
 from dkt_agent.research_director import (
     decide_next_step,
@@ -47,7 +47,7 @@ def _render_json(value: object, *, expanded: bool = True) -> None:
 
 def _json_text(value: object) -> str:
     """Serialize a strict, standards-compliant JSON download."""
-    return json.dumps(json_safe(value), indent=2, ensure_ascii=False, allow_nan=False)
+    return format_json(value)
 
 
 def _initialize() -> None:
