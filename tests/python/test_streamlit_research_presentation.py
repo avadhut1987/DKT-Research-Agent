@@ -82,7 +82,7 @@ class StructuredRenderingDataTests(unittest.TestCase):
             {"stage": 1, "parameters": {"kr": 1, "ktheta": 0}},
             {"stage": 2, "parameters": {"kr": 1, "ktheta": 10000}},
         ])
-        self.assertEqual(list(frame.columns), ["Stage", "Parameters · Kr", "Parameters · Ktheta"])
+        self.assertEqual(list(frame.columns), ["Stage", "Parameters · kr", "Parameters · ktheta"])
         self.assertEqual(frame.iloc[0]["Parameters · Kr"], 1)
         self.assertEqual(frame.iloc[1]["Parameters · Ktheta"], 10000)
 
