@@ -189,17 +189,20 @@ def search_research_evidence(
 @tool
 def read_research_evidence_file(
     relative_path: str,
-    max_chars: int = Field(default=30000, ge=1000, le=60000),
+    max_chars: int = Field(default=30000, ge=1000, le=40000),
+    start_char: int = Field(default=0, ge=0),
 ) -> str:
     """
     Read one existing JSON, Markdown, text, or log artifact under results/.
     Use after search_research_evidence identifies the exact relevant path.
-    This is read-only and never executes file contents. max_chars must be between 1000 and 60000.
+    This is read-only and never executes file contents. max_chars must be between 1000 and 40000.
+    For large files, continue with start_char equal to the previous result's next_start_char.
     Use read_research_csv_tool for CSV evidence.
     """
     result = _read_research_evidence_file(
         relative_path=relative_path,
         max_chars=max_chars,
+        start_char=start_char,
     )
     return json.dumps(result, indent=2, ensure_ascii=False)
 
