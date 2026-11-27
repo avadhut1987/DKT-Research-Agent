@@ -446,19 +446,19 @@ with st.expander("Investigation history and results", expanded=bool(st.session_s
             st.markdown("**Readable result**")
             st.markdown(_render_math(parsed["text"]))
 
+record = {
+    "director_version": "1.0.0",
+    "research_question": st.session_state.director_question,
+    "status": st.session_state.director_status,
+    "evidence_search": st.session_state.director_evidence,
+    "decision": decision,
+    "history": st.session_state.director_history,
+}
+st.download_button(
+    "Download full investigation record (.json)",
+    data=_json_text(record).encode("utf-8"),
+    file_name="dkt_research_director_record.json",
+    mime="application/json",
+)
 with st.expander("Machine-readable investigation record (JSON)", expanded=False):
-    record = {
-        "director_version": "1.0.0",
-        "research_question": st.session_state.director_question,
-        "status": st.session_state.director_status,
-        "evidence_search": st.session_state.director_evidence,
-        "decision": decision,
-        "history": st.session_state.director_history,
-    }
     _render_json(record, expanded=False)
-    st.download_button(
-        "Download investigation record (JSON)",
-        data=_json_text(record).encode("utf-8"),
-        file_name="dkt_research_director_record.json",
-        mime="application/json",
-    )
