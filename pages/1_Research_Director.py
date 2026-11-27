@@ -470,8 +470,11 @@ if decision:
                 _save_checkpoint()
                 _run_until_decision_gate()
                 st.rerun()
-        elif decision.get("execution_mode") == "read_only":
-            st.info("This read-only step will be performed automatically when you continue the investigation.")
+        elif decision.get("execution_mode") in {"read_only", "symbolic"}:
+            if decision.get("execution_mode") == "symbolic":
+                st.info("This symbolic analysis does not launch a physical simulation and will run automatically when you continue.")
+            else:
+                st.info("This read-only step will be performed automatically when you continue the investigation.")
         else:
             st.caption("No further tool execution is proposed.")
     else:
