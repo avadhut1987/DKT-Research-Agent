@@ -24,6 +24,15 @@ from dkt_agent.research_execution import (
 )
 
 
+def _mapping(value) -> dict:
+    """Return a mapping for optional nested campaign/result records.
+
+    Persisted campaign fields may be absent, null, or malformed in older records.
+    Rendering should degrade to an empty mapping rather than crash.
+    """
+    return value if isinstance(value, dict) else {}
+
+
 def _render_scientific_text(value: str) -> str:
     """Convert common plain-text DKT notation to Streamlit-rendered LaTeX.
 
@@ -99,7 +108,7 @@ def _campaign_is_authorized(campaign: dict) -> bool:
     """Read current and legacy campaign authorization fields."""
     if "execution_authorization" in campaign:
         return campaign.get("execution_authorization") == "authorized_by_user"
-    return campaign.get("plan", {}).get("execution_authorization") == "authorized_by_user"
+    return _mapping(campaign.get("plan")).get("execution_authorization") == "authorized_by_user"
 
 
 def _record_authorization_if_requested(campaign: dict, authorized: bool) -> None:
@@ -170,7 +179,7 @@ def _render_stage_result(stage: dict) -> None:
             for i, (key, value) in enumerate(scalar_items[:9]):
                 cols[i % len(cols)].metric(key.replace("_", " ").title(), str(value))
         if tool == "diagnose_direction_dependent_local_ergodicity":
-            screen = result.get("region_invariance_screen", {})
+            screen = _mapping(result.get("region_invariance_screen"))
             st.markdown("**Region-invariance screening**")
             status = screen.get("status", "not reported")
             st.metric("Finite-sample region screen", "Passed" if status == "finite_sample_invariance_screen_passed" else "Not passed")
@@ -433,7 +442,7 @@ def _render_execution(campaign: dict) -> None:
                     record_evidence_review(campaign, stage_decisions=stage_decisions)
                     st.rerun()
         return
-    if campaign.get("evidence_review", {}).get("decision") == "stop_existing_evidence_sufficient":
+    if _mapping(campaign.get("evidence_review")).get("decision") == "stop_existing_evidence_sufficient":
         st.success("The campaign stopped after evidence review. No new numerical data were generated.")
         return
 
@@ -830,7 +839,7 @@ def render_research_studio() -> None:
             "Numerical execution authorization",
             "Authorized" if is_authorized else "Not authorized",
         )
-        evidence_decision = campaign.get("evidence_review", {}).get("decision")
+        evidence_decision = _mapping(campaign.get("evidence_review")).get("decision")
         evidence_label = {
             "proceed_with_new_calculations": "New calculations approved",
             "stop_existing_evidence_sufficient": "Existing evidence accepted at gate",
@@ -838,7 +847,7 @@ def render_research_studio() -> None:
         }.get(evidence_decision, "Not recorded")
         auth_columns[1].metric("Pre-execution evidence gate", evidence_label)
         auth_columns[2].metric("Execution status", campaign.get("status", "unknown").replace("_", " ").title())
-        scientific_decision = campaign.get("scientific_review", {}).get("decision")
+        scientific_decision = _mapping(campaign.get("scientific_review")).get("decision")
         scientific_label = {
             "accepted": "Accepted",
             "more_work_required": "Further work required",
