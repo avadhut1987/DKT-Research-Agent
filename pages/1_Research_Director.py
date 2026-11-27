@@ -121,7 +121,7 @@ def _render_readable_result(value: object, heading: str = "Result") -> None:
         if key in rendered or item is None:
             continue
         if key == "latex" and isinstance(item, list):
-            st.markdown("**Symbolic expression**")
+            st.markdown("**Mathematical expressions**")
             for expression in item:
                 if isinstance(expression, str):
                     st.latex(expression)
@@ -329,7 +329,7 @@ def _run_until_decision_gate() -> None:
                 decision["arguments"],
                 result,
             )
-            result_label = "SYMBOLIC ANALYSIS RESULT" if mode == "symbolic" else "READ-ONLY FOLLOW-UP RESULT"
+            result_label = "READ-ONLY FOLLOW-UP RESULT"
             st.session_state.director_evidence += (
                 f"\n\n{result_label} — "
                 + decision["tool_name"] + ":\n" + result
@@ -349,7 +349,7 @@ with st.sidebar:
     st.markdown("### Investigation controls")
     st.markdown(
         "**Automatic:** project-evidence inspection, scholarly literature lookup, "
-        "symbolic algebra, evidence assessment, and selection of the next justified direction."
+        "evidence assessment, and selection of the next justified direction."
     )
     st.markdown(
         "**Requires your click:** every new numerical calculation. "
@@ -527,11 +527,8 @@ if decision:
                 _save_checkpoint()
                 _run_until_decision_gate()
                 st.rerun()
-        elif decision.get("execution_mode") in {"read_only", "symbolic"}:
-            if decision.get("execution_mode") == "symbolic":
-                st.info("This symbolic analysis does not launch a physical simulation and will run automatically when you continue.")
-            else:
-                st.info("This read-only step will be performed automatically when you continue the investigation.")
+        elif decision.get("execution_mode") == "read_only":
+            st.info("This read-only step will be performed automatically when you continue the investigation.")
         else:
             st.caption("No further tool execution is proposed.")
     else:
