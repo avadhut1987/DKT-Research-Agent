@@ -263,7 +263,7 @@ if decision:
                 try:
                     with st.spinner(f"Running approved calculation: {decision['tool_name']}…"):
                         result = execute_approved_step(
-                            decision["tool_name"], decision["arguments"]
+                            decision["tool_name"], decision["arguments"], user_approved=True
                         )
                     _record(
                         decision["tool_name"],
