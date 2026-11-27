@@ -7,6 +7,7 @@ import numpy as np
 from dkt_agent.local_ergodicity import (
     dkt_inverse_step,
     region_membership,
+    region_area_fraction,
     run_direction_dependent_local_ergodicity,
     sample_region,
 )
@@ -25,6 +26,18 @@ class TestRegionConditionedDirectionalErgodicity(unittest.TestCase):
             evolved = np.column_stack((x, y, zz))
             recovered = dkt_inverse_step(evolved, 2.4, -1.7, p)
             np.testing.assert_allclose(recovered, points, atol=2e-12, rtol=0.0)
+
+    def test_region_area_fractions_are_geometrically_correct(self):
+        self.assertAlmostEqual(region_area_fraction("full_sphere"), 1.0)
+        self.assertAlmostEqual(
+            region_area_fraction("spherical_cap", angular_radius=np.pi), 1.0
+        )
+        self.assertAlmostEqual(
+            region_area_fraction("latitude_band", theta_min=0.0, theta_max=np.pi), 1.0
+        )
+        self.assertAlmostEqual(
+            region_area_fraction("longitude_sector", phi_min=-np.pi, phi_max=0.0), 0.5
+        )
 
     def test_region_samplers_respect_region_and_sphere(self):
         rng = np.random.default_rng(5)
