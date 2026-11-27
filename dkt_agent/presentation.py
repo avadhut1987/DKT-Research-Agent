@@ -23,6 +23,9 @@ def normalize_math_notation(value: Any) -> str:
         protected.append(match.group(0))
         return f"\x00MATH{len(protected) - 1}\x00"
 
+    # Strip invisible Unicode formatting characters that can split math tokens.
+    value = value.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "").replace("\ufeff", "")
+    value = value.replace("\u00a0", " ")
     text = re.sub(
         r"\$\$.*?\$\$|\$[^$]+\$|\\\[.*?\\\]|\\\(.*?\\\)",
         hold,
