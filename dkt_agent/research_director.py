@@ -241,6 +241,8 @@ def decide_next_step(
     }
     prompt = (
         SYSTEM_DECISION_RULES
+        + "\n\nAVAILABLE TOOL CATALOG (names and argument schemas are authoritative):\n"
+        + json.dumps(tool_catalog, ensure_ascii=False, default=str)
         + "\n\nRESEARCH QUESTION:\n" + question
         + "\n\nEXISTING EVIDENCE (read-only search):\n" + (evidence or "No evidence search supplied.")
         + "\n\nCOMPLETED INVESTIGATION HISTORY (JSON):\n"
