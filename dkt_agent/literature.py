@@ -74,7 +74,7 @@ def _search_crossref(query: str, limit: int) -> list[dict]:
     params = urlencode({
         "query.bibliographic": query,
         "rows": limit,
-        "select": "DOI,title,author,published,created,container-title,type,URL,abstract,score",
+        "select": "DOI,title,author,published,created,container-title,type,URL,abstract",
     })
     root = __import__("json").loads(_get("https://api.crossref.org/works?" + params).decode("utf-8"))
     results = []
@@ -196,7 +196,7 @@ def read_arxiv_paper(arxiv_id: str, max_chars: int = 24000, start_char: int = 0)
 
     parser = _TextExtractor()
     parser.feed(html)
-    text = re.sub(r"\n{3,}", "\n\n", " ".join(parser.parts)).strip()
+    text = re.sub(r"\n{3,}", "\n\n", "".join(parser.parts)).strip()
     end_char = min(start_char + max_chars, len(text))
     return {
         "status": "success",
