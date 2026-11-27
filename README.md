@@ -230,16 +230,9 @@ The output includes kick-resolved components and numerical error summaries such 
 
 Finite-time disagreement between a single classical trajectory and quantum expectation values is not, by itself, a diagnostic of classical chaos. Entanglement entropy is treated as a separate observable.
 
-### 8. Scholarly literature and symbolic mathematics
+### 8. Scholarly literature research
 
 The research assistant and Research Director include read-only scholarly discovery through **arXiv** and **Crossref**. Search results provide bibliographic metadata, abstracts when available, DOI/arXiv identifiers, and source links. Available arXiv HTML full text can be inspected in bounded chunks. Search ranking is only a discovery aid: it does not establish correctness, relevance, or peer-review status. The agent must distinguish preprints from published work and verify theorem statements and technical equations against primary sources.
-
-A bounded **SymPy** tool supports:
-- Algebraic simplification.
-- Symbolic differentiation.
-- Jacobian construction for lists of expressions.
-
-The symbolic parser accepts a restricted expression grammar rather than arbitrary Python. Variables are treated as real unless a later tool explicitly supports stronger assumptions. These calculations can check algebra and support derivations, but they are not a theorem prover and do not establish dynamical-systems results without a complete mathematical argument.
 
 ### Theory-to-tool development
 
@@ -306,8 +299,8 @@ Launch the Streamlit application with **streamlit run app.py**. The interface or
 - **Comparisons:** controlled trajectory, geometry, and classical–quantum comparisons.
 - **Data and evidence:** inspection and analysis of existing research data.
 - **Research Studio:** question framing, evidence discovery, workflow planning, guarded campaign execution, campaign records, and scientific review.
-- **Research Director:** iterative evidence-led investigation, automatic read-only inspection, scholarly literature retrieval, symbolic algebra support, and approval-gated numerical proposals.
-- **Research assistant:** natural-language interaction with the LangGraph research agent, including DKT numerical tools, scholarly discovery, and symbolic mathematics.
+- **Research Director:** iterative evidence-led investigation, automatic read-only inspection, scholarly literature retrieval, and approval-gated numerical proposals.
+- **Research assistant:** natural-language interaction with the LangGraph research agent, including DKT numerical tools and scholarly discovery.
 
 Exact tab labels may evolve as the interface develops. The scientific tools and their recorded inputs, rather than the visual arrangement of tabs, define the calculation performed.
 
