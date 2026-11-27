@@ -41,7 +41,7 @@ from dkt_agent.periodic_orbit_tools import (
 
 DIRECTOR_VERSION = "1.0.0"
 MAX_DECISION_STEPS = 10
-MAX_TOOL_OUTPUT_CHARS = 18000
+MAX_TOOL_OUTPUT_CHARS = 60000
 
 # Explicit allow-list. Tools not listed here cannot be selected by model output.
 TOOL_REGISTRY = {
@@ -111,10 +111,39 @@ mean-ergodicity plateaus. Fixed-point searches are appropriate only when the
 research question specifically asks for orbit structure or the evidence
 identifies a fixed-point question that this search can resolve.
 
-If the user declines a proposed calculation, do not execute it or repeat the
-same proposal unchanged. Reassess the evidence and either select a different
+If the user declines a proposed calculation, do not execute it or repeat
+the same proposal unchanged. Reassess the evidence and either select a different
 justified read-only/numerical step, or stop with a clear explanation that no
 further step is justified. A declined calculation is not a scientific result.
+
+EVIDENCE COMPLETENESS GATE:
+A truncated search preview is not evidence that a result is absent. Never infer
+that Lyapunov exponents, KS entropy, mean-ergodicity, or mixing results are
+unavailable merely because their values are not visible in a truncated excerpt.
+When retrieval is truncated or only filenames/snippets are visible, the next
+action must be read-only retrieval targeted to the missing evidence (for example
+search_research_evidence with a focused query), not a new numerical experiment.
+Do not state that a local diagnostic "failed due to region leakage" unless the
+actual result is present in the evidence/history and has been inspected.
+
+LYAPUNOV/KS REUSE GATE:
+Do not propose diagnose_lyapunov_ks simply to "confirm whether" the DKT is
+chaotic at $k_r=1$, or from one initial condition as a prerequisite to ergodicity.
+The role of $k_r$ in controlling chaoticity is established in this project.
+Only propose a new Lyapunov/KS calculation if the research question explicitly
+requires a fresh quantitative estimate and read-only inspection confirms that
+the relevant existing estimates cannot answer it. If proposing one, explain
+why the existing estimates are inadequate and what comparison/robustness issue
+the new run resolves. Never suggest that changing $k_theta$ changes chaoticity.
+
+AUTONOMOUS INVESTIGATION LOOP:
+After each completed tool result, interpret the result against the original
+research question and all earlier steps. Then independently decide whether to
+(a) inspect a specific existing artifact, (b) run one necessary numerical
+calculation after approval, or (c) stop with a defensible conclusion/limitation.
+Do not reset the scientific question after each step, do not repeat completed
+work, and do not ask the user to choose the diagnostic. Numerical approval is
+a permission gate, not a transfer of research planning to the user.
 
 Return exactly one JSON object with keys:
 status ("SUFFICIENT" | "MORE_EVIDENCE_REQUIRED" | "UNRESOLVED" | "PAUSED"),
