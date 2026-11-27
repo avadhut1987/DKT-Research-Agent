@@ -35,8 +35,14 @@ def _render_math(value: object) -> str:
 
 
 def _render_json(value: object, *, expanded: bool = True) -> None:
-    """Render actual structured JSON, not a JSON-looking code block."""
-    st.json(json_safe(value), expanded=expanded)
+    """Render complete, strict JSON with visible punctuation and indentation.
+
+    Streamlit's interactive JSON tree can visually collapse nested objects and
+    hide punctuation in copied/exported views. A JSON syntax-highlighted code
+    block keeps the exact arguments inspectable before approval.
+    """
+    del expanded  # retained for call-site compatibility
+    st.code(_json_text(value), language="json")
 
 
 def _json_text(value: object) -> str:
@@ -258,7 +264,8 @@ if decision:
                 "This step creates new numerical data. Nothing will run until you approve it below. "
                 "Approval applies only to this one calculation."
             )
-            if st.button(
+            approval_col, reconsider_col = st.columns(2)
+            if approval_col.button(
                 "Approve and run this numerical calculation",
                 type="primary",
                 key="approve_director_numerical",
@@ -284,6 +291,22 @@ if decision:
                     st.rerun()
                 except Exception as exc:
                     st.error(f"Approved calculation failed: {type(exc).__name__}: {exc}")
+            if reconsider_col.button(
+                "Do not run — ask Director to reconsider",
+                key="reject_and_reconsider_director_step",
+                use_container_width=True,
+            ):
+                st.session_state.director_evidence += (
+                    "\n\nUSER FEEDBACK ON PROPOSED STEP: The user declined the proposed "
+                    + decision["tool_name"]
+                    + " calculation. Do not execute it or simply repeat the same proposal. "
+                    "Reassess the evidence and choose a different, simpler justified action, "
+                    "a read-only inspection, or conclude that no further work is justified."
+                )
+                st.session_state.director_decision = None
+                st.session_state.director_status = "continuing"
+                _run_until_decision_gate()
+                st.rerun()
         elif decision.get("execution_mode") == "read_only":
             st.info("This read-only step will be performed automatically when you continue the investigation.")
         else:
