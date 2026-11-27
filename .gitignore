@@ -171,3 +171,6 @@ results/
 
 # Julia periodic-orbit environment lockfile is generated locally
 scripts/julia/periodic_orbit_env/Manifest.toml
+
+# Local Research Director resume checkpoint
+.streamlit/research_director_checkpoint.json
