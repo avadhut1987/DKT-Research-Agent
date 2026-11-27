@@ -107,7 +107,7 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
                 ["2–24 exact trajectory CSV paths from distinct initial conditions", "verified common k_r, k_theta and p", "transient", "maximum lag", "spherical partition resolution"],
                 "The weak-mixing indicator tests only the implemented Cartesian observables over finite records. The strong-mixing alpha estimate uses a finite partition and sampled lags; it is not the supremum over all measurable sets. Neither is a proof of asymptotic mixing."))
             if existing_data_available is not True:
-                gates.append("The mixing follow-up requires an existing ensemble generated under one verified map. Locate suitable trajectories or explicitly authorize an ensemble-generation workflow."))
+                gates.append("The mixing follow-up requires an existing ensemble generated under one verified map. Locate suitable trajectories or explicitly authorize an ensemble-generation workflow.")
     elif _has(t, r"weak.?mix", r"strong.?mix", r"mixing", r"ergodic hierarchy", r"hierarchy"):
         intent = "ergodic_hierarchy"
         scope = ["Keep mean ergodicity, Birkhoff behaviour, weak-mixing indicators and strong-mixing indicators distinct.",
