@@ -4,6 +4,7 @@ import pytest
 
 from dkt_agent.research_director import (
     _extract_json,
+    SYSTEM_DECISION_RULES,
     execute_approved_step,
     parse_tool_result,
     validate_decision,
@@ -66,3 +67,14 @@ def test_parse_tool_result_preserves_plain_text():
 def test_numerical_execution_requires_explicit_approval():
     with pytest.raises(PermissionError, match="explicit user approval"):
         execute_approved_step("mean_ergodicity_langchain_tool", {"k_r": 1.0})
+
+
+
+def test_director_prioritizes_controlled_mean_ergodicity_robustness_check():
+    assert "doubling" in SYSTEM_DECISION_RULES
+    assert "This isolates the effect of trajectory length" in SYSTEM_DECISION_RULES
+    assert "Do not substitute find_dkt_fixed_points" in SYSTEM_DECISION_RULES
+
+
+def test_director_must_reconsider_when_user_declines_proposal():
+    assert "do not execute it or repeat the" in SYSTEM_DECISION_RULES
