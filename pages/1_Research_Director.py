@@ -35,7 +35,9 @@ DRAFT_PATH = Path(__file__).resolve().parents[1] / ".streamlit" / "research_dire
 
 
 def _render_math(value: object) -> str:
-    """Return prose with DKT mathematical notation rendered as LaTeX."""
+    """Return readable prose with DKT mathematical notation rendered as LaTeX."""
+    if isinstance(value, str) and _looks_like_json(value):
+        return "Structured machine-readable content is hidden in the normal research view."
     return normalize_math_notation(value)
 
 
