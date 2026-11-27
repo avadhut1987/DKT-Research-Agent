@@ -21,6 +21,8 @@ from dkt_agent.langchain_tools import (
     find_dkt_fixed_points,
     run_dkt_comparison_study,
     compare_dkt_simulations,
+    search_theoretical_literature,
+    read_arxiv_paper_tool,
 )
 from dkt_agent.research_tools import (
     diagnose_classical_trajectory,
@@ -66,6 +68,8 @@ TOOL_REGISTRY = {
     "search_dkt_periodic_orbits": (periodic_orbit_langchain_tool, "numerical"),
     "compare_dkt_periodic_orbits": (periodic_orbit_comparison_langchain_tool, "numerical"),
     "search_research_evidence": (search_research_evidence, "read_only"),
+    "search_theoretical_literature": (search_theoretical_literature, "read_only"),
+    "read_arxiv_paper_tool": (read_arxiv_paper_tool, "read_only"),
 }
 
 SYSTEM_DECISION_RULES = """
@@ -86,6 +90,20 @@ that passes an invariance screen does not prove an invariant component.
 Do not recommend local or direction-dependent ergodicity unless the user's
 question specifically requires a spatially restricted or observable-resolved
 claim and the existing evidence cannot answer it more simply.
+
+THEORETICAL AND LITERATURE RESEARCH:
+When a research question depends on established mathematical, theoretical-physics,
+or mathematical-physics results, use search_theoretical_literature to discover
+relevant arXiv and Crossref sources. Inspect available arXiv full text with
+read_arxiv_paper_tool in bounded chunks. Cite exact retrieved source metadata.
+Do not treat search rank, an abstract, or an arXiv preprint as proof or as
+automatically peer reviewed. Prefer original sources and authoritative reviews.
+Separate established theorems/definitions, published model-specific findings,
+your own derivations, conjectures, and numerical observations. For a derivation,
+state assumptions and show intermediate reasoning; do not claim a rigorous
+proof if a step is unverified. The Director may propose a derivation or a
+mathematical diagnostic, but it cannot silently write, install, or execute
+new source code. New computational tools require reviewed code changes and tests.
 
 Use existing evidence before proposing new numerical data. Do not repeat a
 completed calculation unless you explain the specific gap it addresses.
