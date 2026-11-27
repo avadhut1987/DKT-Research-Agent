@@ -16,6 +16,7 @@ from langchain.chat_models import init_chat_model
 from dkt_agent.langchain_tools import (
     search_research_evidence,
     read_research_csv_tool,
+    read_research_evidence_file,
     run_dkt_simulation,
     find_dkt_fixed_points,
     run_dkt_comparison_study,
@@ -46,6 +47,7 @@ MAX_TOOL_OUTPUT_CHARS = 60000
 # Explicit allow-list. Tools not listed here cannot be selected by model output.
 TOOL_REGISTRY = {
     "read_research_csv_tool": (read_research_csv_tool, "read_only"),
+    "read_research_evidence_file": (read_research_evidence_file, "read_only"),
     "summarize_research_csv": (summarize_research_csv, "read_only"),
     "run_dkt_simulation": (run_dkt_simulation, "numerical"),
     "find_dkt_fixed_points": (find_dkt_fixed_points, "numerical"),
@@ -332,7 +334,7 @@ def decide_next_step(
     # the model's prose so that it cannot jump from missing snippets to a run.
     if (
         decision.get("tool_name") == "diagnose_lyapunov_ks"
-        and re.search(r"truncat|preview|snippet", evidence, re.I)
+        and re.search(r"truncat|preview|snippet|matching_lines", evidence, re.I)
     ):
         decision = validate_decision({
             "status": "MORE_EVIDENCE_REQUIRED",
