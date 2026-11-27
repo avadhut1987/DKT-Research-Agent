@@ -180,7 +180,7 @@ Return exactly one JSON object with keys:
 status ("SUFFICIENT" | "MORE_EVIDENCE_REQUIRED" | "UNRESOLVED" | "PAUSED"),
 conclusion (string), evidence_assessment (string), limitations (array of strings),
 next_action (string), tool_name (string or null), arguments (object),
-execution_mode ("read_only" | "numerical" | "none"),
+execution_mode ("read_only" | "symbolic" | "numerical" | "none"),
 why_needed (string), expected_decision_impact (string),
 user_question (string or null).
 
@@ -279,6 +279,8 @@ def validate_decision(decision: dict[str, Any]) -> dict[str, Any]:
                 schema.parse_obj(arguments)
         if mode == "read_only" and status not in {"MORE_EVIDENCE_REQUIRED", "UNRESOLVED"}:
             raise ValueError("Read-only follow-up requires an evidence-related status.")
+        if mode == "symbolic" and status not in {"MORE_EVIDENCE_REQUIRED", "UNRESOLVED"}:
+            raise ValueError("Symbolic analysis requires an evidence-related status.")
         if mode == "numerical" and status != "MORE_EVIDENCE_REQUIRED":
             raise ValueError("A numerical proposal must use MORE_EVIDENCE_REQUIRED status.")
     normalized = {
