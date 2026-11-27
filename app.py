@@ -126,7 +126,8 @@ def content_to_text(content: Any) -> str:
                 if block.get("type") == "text":
                     parts.append(str(block.get("text", "")))
                 else:
-                    parts.append(json.dumps(block, ensure_ascii=False, default=str))
+                    block_type = block.get("type", "structured")
+                    parts.append(f"[{str(block_type).replace('_', ' ').title()} content]")
             else:
                 parts.append(str(block))
         return "\n".join(part for part in parts if part)
