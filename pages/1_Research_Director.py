@@ -86,10 +86,23 @@ def _render_parameter_table(parameters: object) -> None:
 def _render_readable_result(value: object, heading: str = "Result") -> None:
     """Render tool results as prose/tables without exposing serialized JSON."""
     if isinstance(value, str):
-        st.markdown(_render_math(value))
+        if _looks_like_json(value):
+            st.caption("Structured machine-readable result is hidden in the normal view.")
+        else:
+            st.markdown(_render_math(value))
+        return
+    if isinstance(value, list):
+        if value and all(isinstance(row, dict) for row in value):
+            safe_rows = [
+                {str(column): _display_value(cell) for column, cell in row.items()}
+                for row in value
+            ]
+            st.dataframe(safe_rows, use_container_width=True, hide_index=True)
+        else:
+            st.markdown("\\n".join(f"- {_display_value(item)}" for item in value))
         return
     if not isinstance(value, dict):
-        st.write(value)
+        st.write(_display_value(value))
         return
 
     preferred_text = ("text", "summary", "interpretation", "message", "note")
