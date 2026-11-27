@@ -238,6 +238,7 @@ def run_direction_dependent_local_ergodicity(
     initial = sample_region(region_type, n_initial_conditions, rng, **region_args)
     points = initial.copy()
     ever_out = np.zeros(n_initial_conditions, dtype=bool)
+    max_norm_error = float(np.max(np.abs(np.sum(points * points, axis=1) - 1.0)))
     sums = np.zeros((n_initial_conditions, len(names)), dtype=float)
     checkpoints = np.unique(np.round(np.geomspace(1, n_kicks, 32)).astype(int))
     d_values = np.empty((len(checkpoints), len(names)), dtype=float)
@@ -247,6 +248,10 @@ def run_direction_dependent_local_ergodicity(
     for kick in range(1, n_kicks + 1):
         sums += _observable_values(points, parsed_observables)
         points = _step_points(points, k, kp, p)
+        max_norm_error = max(
+            max_norm_error,
+            float(np.max(np.abs(np.sum(points * points, axis=1) - 1.0))),
+        )
         ever_out |= ~region_membership(points, region_type, **region_args)
         if kick == checkpoints[checkpoint_index]:
             averages = sums / kick
@@ -363,6 +368,7 @@ def run_direction_dependent_local_ergodicity(
         ),
         "observables": per_observable,
         "directional_summary": directional_summary,
+        "numerical_checks": {"maximum_unit_sphere_norm_error": max_norm_error},
         "scientific_interpretation": [
             "The region-conditioned area measure is appropriate as an invariant measure only if the selected region is invariant under the map; finite-sample leakage screens cannot prove this.",
             "The observable-wise D_N values are finite-data L2 indicators relative to the estimated conditional area means, not proofs of mean or pointwise ergodicity.",
