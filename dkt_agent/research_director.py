@@ -126,8 +126,11 @@ When retrieval is truncated or only filenames/snippets are visible, the next
 action must be read-only retrieval targeted to the missing evidence (for example
 search_research_evidence with a focused query), not a new numerical experiment.
 For a relevant matched JSON/Markdown/text/log artifact, use read_research_evidence_file
-with its exact returned path and set max_chars between 1000 and 60000; for CSV evidence, use read_research_csv_tool. Inspect
-those contents before deciding that a numerical result is missing.
+with its exact returned path and set max_chars between 1000 and 40000. If the result
+reports truncated=true, continue reading the same file with start_char equal to
+the returned next_start_char; repeat until the relevant contents have been inspected.
+For CSV evidence, use read_research_csv_tool. Inspect those contents before deciding
+that a numerical result is missing.
 Do not state that a local diagnostic "failed due to region leakage" unless the
 actual result is present in the evidence/history and has been inspected.
 
