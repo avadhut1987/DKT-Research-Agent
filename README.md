@@ -168,7 +168,7 @@ Each escape rate is accompanied by a 95% Wilson upper confidence bound. The user
 
 If the screen passes, the tool estimates the conditional spherical-area mean and variance from an independent reference sample, then computes observable-resolved finite-time Birkhoff averages and the normalized spread
 
-$
+$$
 \frac{D_N^{(R)}(f)}{\operatorname{Var}_R(f)}
 =
 \frac{
@@ -178,8 +178,7 @@ $
 },
 \qquad
 A_N f(x)=\frac{1}{N}\sum_{n=0}^{N-1}f(F^n x).
-$
-
+$$
 This conditional $L^2$ interpretation requires $R$ to be invariant under the map so that the normalized restricted area measure $\mu_R$ is invariant. The finite-sample screen can identify only a **candidate region**; it cannot prove invariance. Even for a candidate region, finite-$N$ decay or a plateau is evidence for the tested observable and sampling range, not a proof of mean or pointwise ergodicity. Direction-dependent differences across $X$, $Y$, $Z$ and higher-order observables are therefore reported as observable-resolved finite-data behaviour, not as an unconditional claim that the map is ergodic in some directions and non-ergodic in others.
 
 The Research Studio exposes region geometry, map parameters, observables, sample sizes and leakage tolerance in the same supervised execution workflow used by the other research tools. The LangGraph assistant can also invoke the diagnostic directly. This workflow is distinct from matched local-cloud geometry comparisons: a cloud's deformation is not a local-ergodicity test.
