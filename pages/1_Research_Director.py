@@ -123,19 +123,20 @@ def _render_readable_result(value: object, heading: str = "Result") -> None:
             for expression in item:
                 if isinstance(expression, str):
                     st.latex(expression)
-        elif key == "results" and isinstance(item, list) and all(isinstance(row, dict) for row in item):
+        elif key == "results" and isinstance(item, list) and item and all(isinstance(row, dict) for row in item):
             st.markdown("**Scholarly sources found**")
             for source in item:
                 title = source.get("title", "Untitled source")
-                st.markdown(f"**{_render_math(title)}**")
+                st.write(title)
                 authors = ", ".join(source.get("authors") or [])
                 metadata = " · ".join(str(part) for part in (source.get("year"), source.get("source"), authors) if part)
                 if metadata:
                     st.caption(metadata)
                 if source.get("abstract"):
                     st.markdown(_render_math(source["abstract"]))
-                if source.get("url"):
-                    st.markdown(f"[Open source]({source['url']})")
+                source_url = source.get("url")
+                if isinstance(source_url, str) and source_url.startswith("https://"):
+                    st.markdown(f"[Open source]({source_url})")
                 elif source.get("doi"):
                     st.markdown(f"[DOI](https://doi.org/{source['doi']})")
         elif isinstance(item, list) and item and all(isinstance(row, dict) for row in item):
