@@ -310,8 +310,8 @@ _initialize()
 with st.sidebar:
     st.markdown("### Investigation controls")
     st.markdown(
-        "**Automatic:** evidence search, evidence assessment, read-only inspection, "
-        "and selection of the next justified direction."
+        "**Automatic:** project-evidence inspection, scholarly literature lookup, "
+        "symbolic algebra, evidence assessment, and selection of the next justified direction."
     )
     st.markdown(
         "**Requires your click:** every new numerical calculation. "
