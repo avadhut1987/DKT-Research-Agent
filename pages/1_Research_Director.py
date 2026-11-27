@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
+import os
+from pathlib import Path
 
 import streamlit as st
 
@@ -27,6 +30,8 @@ st.caption(
     "Evidence first · one justified next step at a time · supervised numerical execution"
 )
 
+CHECKPOINT_PATH = Path(__file__).resolve().parents[1] / "results" / "research_director_checkpoint.json"
+
 
 def _render_math(value: object) -> str:
     """Return prose with DKT mathematical notation rendered as LaTeX."""
@@ -49,6 +54,43 @@ def _json_text(value: object) -> str:
     return format_json(value)
 
 
+def _save_checkpoint() -> None:
+    """Persist the active investigation locally so it survives page reloads."""
+    payload = {
+        "director_version": "1.0.0",
+        "research_question": st.session_state.get("director_active_question")
+        or st.session_state.get("director_question", ""),
+        "evidence": st.session_state.get("director_evidence", ""),
+        "history": st.session_state.get("director_history", []),
+        "decision": st.session_state.get("director_decision"),
+        "started": st.session_state.get("director_started", False),
+        "status": st.session_state.get("director_status", "not_started"),
+        "updated": st.session_state.get("director_updated"),
+    }
+    if not payload["research_question"]:
+        return
+    CHECKPOINT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    temporary = CHECKPOINT_PATH.with_suffix(".tmp")
+    temporary.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+    os.replace(temporary, CHECKPOINT_PATH)
+
+
+def _load_checkpoint() -> dict | None:
+    """Load the last saved investigation, rejecting malformed checkpoint data."""
+    try:
+        payload = json.loads(CHECKPOINT_PATH.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict) or not isinstance(payload.get("research_question"), str):
+            return None
+        if not isinstance(payload.get("history", []), list):
+            return None
+        return payload
+    except (OSError, ValueError, TypeError):
+        return None
+
+
 def _initialize() -> None:
     defaults = {
         "director_question": "",
@@ -63,6 +105,18 @@ def _initialize() -> None:
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+    if not st.session_state.get("director_checkpoint_loaded"):
+        checkpoint = _load_checkpoint()
+        if checkpoint:
+            st.session_state.director_question = checkpoint["research_question"]
+            st.session_state.director_active_question = checkpoint["research_question"]
+            st.session_state.director_evidence = checkpoint.get("evidence", "")
+            st.session_state.director_history = checkpoint.get("history", [])
+            st.session_state.director_decision = checkpoint.get("decision")
+            st.session_state.director_started = bool(checkpoint.get("started", False))
+            st.session_state.director_status = checkpoint.get("status", "not_started")
+            st.session_state.director_updated = checkpoint.get("updated")
+        st.session_state.director_checkpoint_loaded = True
 
 
 def _record(tool_name: str, mode: str, arguments: dict, result: str) -> None:
@@ -136,10 +190,13 @@ def _run_until_decision_gate() -> None:
                 "\n\nREAD-ONLY FOLLOW-UP RESULT — "
                 + decision["tool_name"] + ":\n" + result
             )
+            _save_checkpoint()
         st.session_state.director_status = "ready_to_continue"
+        _save_checkpoint()
     except Exception as exc:
         st.session_state.director_error = f"{type(exc).__name__}: {exc}"
         st.session_state.director_status = "error"
+        _save_checkpoint()
 
 
 _initialize()
@@ -190,6 +247,7 @@ if controls[0].button(
         st.session_state.director_error = None
         st.session_state.director_active_question = question.strip()
     _run_until_decision_gate()
+    _save_checkpoint()
 if controls[2].button("Pause / stop here", use_container_width=True):
     st.session_state.director_status = "paused_by_user"
     st.session_state.director_decision = {
@@ -202,6 +260,7 @@ if controls[2].button("Pause / stop here", use_container_width=True):
         "arguments": {},
         "next_action": "Resume only if a further research step is justified.",
     }
+    _save_checkpoint()
 if controls[1].button("Reset investigation", use_container_width=True):
     for key in (
         "director_history", "director_evidence", "director_started",
@@ -210,6 +269,10 @@ if controls[1].button("Reset investigation", use_container_width=True):
         st.session_state[key] = [] if key == "director_history" else "" if key == "director_evidence" else False if key == "director_started" else None
     st.session_state.director_status = "not_started"
     st.session_state.director_active_question = ""
+    try:
+        CHECKPOINT_PATH.unlink(missing_ok=True)
+    except OSError as exc:
+        st.warning(f"Could not remove the saved checkpoint: {exc}")
     st.rerun()
 
 if st.session_state.director_error:
@@ -286,6 +349,7 @@ if decision:
                     )
                     st.session_state.director_decision = None
                     st.session_state.director_status = "continuing"
+                    _save_checkpoint()
                     _run_until_decision_gate()
                     st.rerun()
                 except Exception as exc:
@@ -304,6 +368,7 @@ if decision:
                 )
                 st.session_state.director_decision = None
                 st.session_state.director_status = "continuing"
+                _save_checkpoint()
                 _run_until_decision_gate()
                 st.rerun()
         elif decision.get("execution_mode") == "read_only":
