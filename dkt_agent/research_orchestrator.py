@@ -90,8 +90,6 @@ def build_research_plan(research_question: str, *, existing_data_available: bool
             "Cross-check finite-time averages across distinct uniformly sampled initial conditions for the same nine observables.",
             ["k_r, k_theta, p", "ensemble size", "kick count and transient", "random seed"],
             "Finite-ensemble variance trends are not proofs of ergodicity; a separate region-conditioned sampling protocol is required for local phase-space claims."))
-        if _has(t, r"local", r"region", r"neighbou?rhood", r"subset", r"island", r"component"):
-            gates.append("PAUSED — Region-restricted local ergodicity is not yet implemented. Current mean-ergodicity and Birkhoff-variance samplers use full-sphere sampling. A region-conditioned sampler, explicit region definition and validation are required before this question can be executed or claimed.")
         if _has(t, r"weak.?mix", r"strong.?mix", r"mixing"):
             steps.append(_step("4 · Weak/strong-mixing indicators", "diagnose_mixing_hierarchy",
                 "Assess the implemented weak-mixing observable indicator and finite-partition strong-mixing alpha indicator separately from observable-wise mean ergodicity.",
