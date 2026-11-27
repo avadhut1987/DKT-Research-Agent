@@ -477,7 +477,7 @@ try:
             n_invariance_samples=n_invariance_samples,
             invariance_tolerance=invariance_tolerance, seed=seed,
         )
-        return format_for_agent(result)
+        return json.dumps(result, indent=2, ensure_ascii=False)
 
 except ImportError:  # pragma: no cover
     diagnose_direction_dependent_local_ergodicity = None
