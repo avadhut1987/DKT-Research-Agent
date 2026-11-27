@@ -234,7 +234,7 @@ class TestResearchExecution(unittest.TestCase):
                         loaded, 2, {"kr": 1.0}, execution_authorized=True
                     )
                 self.assertEqual(updated["stages"][2]["status"], "completed")
-                self.assertEqual(updated["status"], "completed")
+                self.assertEqual(updated["status"], "awaiting_scientific_review")
                 self.assertTrue(any(
                     event["event"] == "stage_level_evidence_review_recorded"
                     for event in updated["events"]
@@ -396,6 +396,70 @@ class TestResearchExecution(unittest.TestCase):
         self.assertTrue(execution.is_stage_terminal("reused_existing_evidence"))
         self.assertFalse(execution.is_stage_terminal("pending"))
         self.assertFalse(execution.is_stage_terminal("interrupted"))
+
+
+    def test_all_existing_evidence_can_complete_at_preexecution_gate(self):
+        campaign = {
+            "evidence_review": {"decision": "stop_existing_evidence_sufficient"},
+            "stages": [
+                {"status": "reused_existing_evidence", "execution_mode": "new_numerical_data"}
+            ],
+        }
+        self.assertEqual(execution.derive_campaign_status(campaign), "completed_existing_evidence")
+
+    def test_reused_stage_without_result_does_not_crash_validation(self):
+        report = execution.build_campaign_validation_report({
+            "stages": [{
+                "index": 0, "label": "Reused comparison",
+                "status": "reused_existing_evidence",
+                "execution_mode": "new_numerical_data",
+                "review_decision": {"action": "reuse", "note": "results/prior.csv"},
+                "result": None,
+            }]
+        })
+        self.assertTrue(report["ready_for_review"])
+
+    def test_completed_numerical_campaign_waits_for_scientific_review(self):
+        campaign = {
+            "stages": [
+                {"status": "completed", "execution_mode": "new_numerical_data", "tool": "run_dkt_comparison_study"}
+            ],
+            "scientific_review": None,
+        }
+        self.assertEqual(execution.derive_campaign_status(campaign), "awaiting_scientific_review")
+
+    def test_validation_report_detects_missing_result_and_input_provenance(self):
+        report = execution.build_campaign_validation_report({
+            "stages": [{
+                "index": 0, "label": "Comparison", "status": "completed",
+                "execution_mode": "new_numerical_data", "result": None,
+                "input_arguments": None,
+            }]
+        })
+        self.assertFalse(report["ready_for_review"])
+        self.assertTrue(any("no saved result" in item for item in report["blockers"]))
+
+    def test_scientific_review_requires_completed_stages_and_rationale(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(execution, "CAMPAIGNS_ROOT", Path(directory)):
+                plan = build_research_plan("Compare ktheta=0 and 10000 at fixed kr=1.")
+                campaign = execution.create_campaign(plan)
+                campaign["stages"] = [{
+                    "index": 0, "label": "Comparison", "tool": "run_dkt_comparison_study",
+                    "execution_mode": "new_numerical_data", "status": "completed",
+                    "input_arguments": {"kr": 1.0}, "result": {"status": "success"},
+                    "attempt_history": [{"status": "completed"}],
+                }]
+                execution.save_campaign(campaign)
+                with self.assertRaises(ValueError):
+                    execution.record_scientific_review(campaign, decision="accepted", notes="")
+                execution.record_scientific_review(
+                    campaign, decision="inconclusive",
+                    notes="The saved outputs require inspection against the full research question."
+                )
+                loaded = execution.load_campaign(campaign["campaign_id"])
+                self.assertEqual(loaded["scientific_review"]["decision"], "inconclusive")
+                self.assertEqual(loaded["status"], "review_inconclusive")
 
 if __name__ == "__main__":
     unittest.main()

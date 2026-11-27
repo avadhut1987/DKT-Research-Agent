@@ -74,6 +74,52 @@ def is_stage_terminal(status: str) -> bool:
     return status in {"completed", "reused_existing_evidence"}
 
 
+def derive_campaign_status(campaign: dict[str, Any]) -> str:
+    """Derive lifecycle status from stage execution and post-execution review."""
+    stages = campaign.get("stages", [])
+    statuses = [stage.get("status", "pending") for stage in stages]
+    if "running" in statuses:
+        return "running"
+    if "failed" in statuses:
+        return "failed"
+    if "interrupted" in statuses:
+        return "interrupted"
+    if not all(is_stage_terminal(status) for status in statuses):
+        evidence_done = any(
+            stage.get("tool") == "search_research_evidence"
+            and stage.get("status") == "completed"
+            for stage in stages
+        )
+        numerical_pending = any(
+            stage.get("execution_mode") == "new_numerical_data"
+            and stage.get("status") in {"pending", "failed", "interrupted"}
+            for stage in stages
+        )
+        if evidence_done and numerical_pending and not campaign.get("evidence_review"):
+            return "awaiting_evidence_review"
+        return "planned" if all(status == "pending" for status in statuses) else "paused"
+
+    evidence_gate = campaign.get("evidence_review") or {}
+    if evidence_gate.get("decision") == "stop_existing_evidence_sufficient":
+        return "completed_existing_evidence"
+    has_numerical_work = any(
+        stage.get("execution_mode") == "new_numerical_data" for stage in stages
+    )
+    if not has_numerical_work:
+        return "completed"
+    review = campaign.get("scientific_review") or {}
+    decision = review.get("decision")
+    if decision == "accepted":
+        return "completed"
+    if decision == "more_work_required":
+        return "review_requires_follow_up"
+    if decision == "inconclusive":
+        return "review_inconclusive"
+    return "awaiting_scientific_review"
+
+
+
+
 def inspect_stage_liveness(
     stage: dict[str, Any], *, stale_after_seconds: int = 600
 ) -> dict[str, Any]:
@@ -191,6 +237,7 @@ def create_campaign(plan: dict[str, Any]) -> dict[str, Any]:
         "created_at": _now(),
         "updated_at": _now(),
         "status": "planned",
+        "scientific_review": None,
         "plan": plan,
         "execution_authorization": (
             "authorized_by_user"
@@ -244,6 +291,13 @@ def load_campaign(campaign_id: str) -> dict[str, Any]:
         campaign = json.load(handle)
     if campaign.get("schema_version") != 1:
         raise ValueError("Unsupported research campaign schema version.")
+    # Normalize legacy campaigns whose stage ledger was complete while the
+    # separate scientific review had never been recorded.
+    derived_status = derive_campaign_status(campaign)
+    if campaign.get("status") != derived_status:
+        campaign["status"] = derived_status
+        campaign["updated_at"] = _now()
+        _save(campaign)
     return campaign
 
 
@@ -258,7 +312,7 @@ def list_campaigns(limit: int = 20) -> list[dict[str, str]]:
                 item = json.load(handle)
             rows.append({
                 "campaign_id": item["campaign_id"],
-                "status": item.get("status", "unknown"),
+                "status": derive_campaign_status(item),
                 "research_question": item.get("plan", {}).get("research_question", ""),
                 "execution_authorization": item.get(
                     "execution_authorization",
@@ -396,10 +450,7 @@ def execute_campaign_stage(
             "error": None, "runner_pid": None, "runner_host": None,
             "runner_thread_id": None, "active_attempt_id": None,
         })
-        campaign["status"] = (
-            "completed" if all(s["status"] in {"completed", "reused_existing_evidence"} for s in stages)
-            else "paused"
-        )
+        campaign["status"] = derive_campaign_status(campaign)
         campaign["updated_at"] = _now()
         campaign["events"].append({
             "at": _now(), "event": "stage_completed", "stage_index": stage_index,
@@ -519,6 +570,143 @@ def record_evidence_review(
             "at": _now(), "event": "evidence_review_recorded", "decision": decision,
         })
         campaign["status"] = "paused" if proceed_with_new_calculations else "completed_existing_evidence"
+    _save(campaign)
+
+
+def build_campaign_validation_report(campaign: dict[str, Any]) -> dict[str, Any]:
+    """Run deterministic record/provenance checks without judging scientific truth."""
+    blockers: list[str] = []
+    warnings: list[str] = []
+    checks: list[dict[str, str]] = []
+    stages = campaign.get("stages", [])
+    if not stages:
+        blockers.append("The campaign has no planned stages.")
+    for stage in stages:
+        number = stage.get("index", 0) + 1
+        status = stage.get("status", "unknown")
+        label = stage.get("label", f"Stage {number}")
+        if not is_stage_terminal(status):
+            blockers.append(f"Stage {number} ({label}) is not complete: {status}.")
+            continue
+        if status == "reused_existing_evidence":
+            reused_result = stage.get("result")
+            note = stage.get("review_decision", {}).get("note") or (
+                reused_result.get("evidence_reuse_note")
+                if isinstance(reused_result, dict) else None
+            )
+            if not str(note or "").strip():
+                blockers.append(f"Stage {number} is marked as reused but has no evidence reference.")
+            else:
+                checks.append({"Check": f"Stage {number} evidence reuse", "Status": "Pass", "Detail": "A provenance note is recorded."})
+            continue
+        result = stage.get("result")
+        if result is None:
+            blockers.append(f"Stage {number} is marked completed but has no saved result.")
+            continue
+        if isinstance(result, dict) and (
+            str(result.get("status", "")).lower() in {"error", "failed", "failure"}
+            or result.get("success") is False
+        ):
+            blockers.append(f"Stage {number} contains a tool-reported failure payload.")
+            continue
+        checks.append({"Check": f"Stage {number} saved result", "Status": "Pass", "Detail": "A result is present and does not report failure."})
+        if stage.get("execution_mode") == "new_numerical_data":
+            inputs = stage.get("input_arguments")
+            if not isinstance(inputs, dict) or not inputs:
+                blockers.append(f"Stage {number} has no recorded numerical inputs.")
+            else:
+                checks.append({"Check": f"Stage {number} input provenance", "Status": "Pass", "Detail": "The exact submitted inputs are saved."})
+            history = stage.get("attempt_history", [])
+            if history and history[-1].get("status") != "completed":
+                warnings.append(f"Stage {number} latest attempt-history entry is not marked completed.")
+            params = None
+            if isinstance(result, dict):
+                params = result.get("parameters") or result.get("study_parameters")
+            if isinstance(inputs, dict) and isinstance(params, dict):
+                mismatches = [
+                    key for key, value in inputs.items()
+                    if key in params and params[key] != value
+                ]
+                if mismatches:
+                    blockers.append(
+                        f"Stage {number} returned parameters disagree with submitted inputs for: {', '.join(mismatches)}."
+                    )
+                elif any(key in params for key in inputs):
+                    checks.append({"Check": f"Stage {number} parameter cross-check", "Status": "Pass", "Detail": "Overlapping submitted and reported parameters agree exactly."})
+                else:
+                    warnings.append(f"Stage {number} did not report parameter fields that can be cross-checked against its inputs.")
+            elif isinstance(inputs, dict):
+                warnings.append(f"Stage {number} result does not include a parameter block for independent input cross-checking.")
+
+    def collect_artifacts(value: Any, found: set[str]) -> None:
+        if isinstance(value, dict):
+            for child in value.values():
+                collect_artifacts(child, found)
+        elif isinstance(value, (list, tuple)):
+            for child in value:
+                collect_artifacts(child, found)
+        elif isinstance(value, str) and value.lower().endswith((".csv", ".json")):
+            path = Path(value).expanduser()
+            if path.is_file():
+                found.add(str(path.resolve()))
+            else:
+                warnings.append(f"Reported artifact path is not accessible in this runtime: {value}")
+
+    artifacts: set[str] = set()
+    for stage in stages:
+        collect_artifacts(stage.get("result"), artifacts)
+    checks.append({
+        "Check": "Artifact references",
+        "Status": "Pass" if artifacts else "Review",
+        "Detail": f"{len(artifacts)} distinct reported CSV/JSON artifact(s) are accessible." if artifacts else "No accessible CSV/JSON artifacts were discovered; inspect stage outputs and provenance.",
+    })
+    if not artifacts and any(s.get("execution_mode") == "new_numerical_data" for s in stages):
+        warnings.append("No accessible numerical output files were found by the automatic artifact scan.")
+    return {
+        "status": "ready_for_scientific_review" if not blockers else "blocked",
+        "ready_for_review": not blockers,
+        "checks": checks,
+        "blockers": blockers,
+        "warnings": list(dict.fromkeys(warnings)),
+        "accessible_artifacts": sorted(artifacts),
+        "scope_note": (
+            "These are deterministic record, status, parameter and file-access checks. "
+            "They do not establish ergodicity, mixing, chaoticity, convergence, or the scientific sufficiency of the evidence."
+        ),
+    }
+
+
+def record_scientific_review(
+    campaign: dict[str, Any], *, decision: str, notes: str
+) -> None:
+    """Record an explicit post-execution scientific review decision and rationale."""
+    allowed = {"accepted", "more_work_required", "inconclusive"}
+    if decision not in allowed:
+        raise ValueError("Scientific review decision must be accepted, more_work_required, or inconclusive.")
+    note = str(notes or "").strip()
+    if not note:
+        raise ValueError("A review rationale is required.")
+    report = build_campaign_validation_report(campaign)
+    if not report["ready_for_review"]:
+        raise ValueError("Resolve campaign validation blockers before recording scientific review.")
+    if not all(is_stage_terminal(stage.get("status", "")) for stage in campaign.get("stages", [])):
+        raise ValueError("All planned stages must be complete before scientific review.")
+    reviewed_at = _now()
+    campaign["scientific_review"] = {
+        "decision": decision,
+        "notes": note,
+        "reviewed_at": reviewed_at,
+        "validation_status": report["status"],
+    }
+    campaign.setdefault("events", []).append({
+        "at": reviewed_at,
+        "event": "scientific_review_recorded",
+        "decision": decision,
+        "notes": note,
+        "validation_status": report["status"],
+    })
+    campaign["status"] = derive_campaign_status(campaign)
+    campaign["updated_at"] = reviewed_at
     _save(campaign)
 
 

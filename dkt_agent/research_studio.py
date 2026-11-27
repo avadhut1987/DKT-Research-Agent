@@ -19,6 +19,8 @@ from dkt_agent.research_execution import (
     inspect_stage_liveness,
     recover_interrupted_stage,
     is_stage_terminal,
+    build_campaign_validation_report,
+    record_scientific_review,
 )
 
 
@@ -563,6 +565,71 @@ def _render_execution(campaign: dict) -> None:
         )
 
 
+def _render_scientific_review(campaign: dict) -> None:
+    """Show deterministic validation and collect an explicit post-execution review."""
+    stages = campaign.get("stages", [])
+    if not any(item.get("execution_mode") == "new_numerical_data" for item in stages):
+        return
+    st.markdown("### Scientific results review")
+    review = campaign.get("scientific_review") or {}
+    if review:
+        label = {
+            "accepted": "Reviewed — accepted for this research question",
+            "more_work_required": "Reviewed — further work required",
+            "inconclusive": "Reviewed — inconclusive",
+        }.get(review.get("decision"), "Review recorded")
+        st.info(label)
+        st.caption(f"Reviewed at: {review.get('reviewed_at', 'not recorded')}")
+        st.write(review.get("notes", "No rationale recorded."))
+        return
+    report = build_campaign_validation_report(campaign)
+    st.caption(
+        "Automatic checks examine saved results, execution inputs, parameter consistency and accessible files. "
+        "They do not decide scientific sufficiency or prove dynamical properties."
+    )
+    if report["blockers"]:
+        st.error("The campaign is not ready for scientific review. Resolve these record-level issues first.")
+        for item in report["blockers"]:
+            st.write(f"- {item}")
+    else:
+        st.success("Record-level validation passed. The results are ready for your scientific assessment.")
+    if report["warnings"]:
+        with st.expander("Validation warnings", expanded=True):
+            for item in report["warnings"]:
+                st.warning(item)
+    render_structured_data(report.get("checks", []), title="Automatic validation checks")
+    if not report["ready_for_review"]:
+        return
+    with st.form(f"scientific_review_{campaign['campaign_id']}"):
+        decision_label = st.selectbox(
+            "Your scientific assessment",
+            [
+                "Results adequately address the stated question",
+                "Further evidence or calculations are required",
+                "The available evidence is inconclusive",
+            ],
+        )
+        notes = st.text_area(
+            "Review rationale",
+            placeholder="Explain which results support the assessment, relevant limitations, and any remaining uncertainty.",
+            height=120,
+        )
+        submitted = st.form_submit_button("Record scientific review", type="primary", use_container_width=True)
+    if submitted:
+        if not notes.strip():
+            st.error("Please provide a short rationale before recording the review.")
+        else:
+            decision = {
+                "Results adequately address the stated question": "accepted",
+                "Further evidence or calculations are required": "more_work_required",
+                "The available evidence is inconclusive": "inconclusive",
+            }[decision_label]
+            record_scientific_review(campaign, decision=decision, notes=notes)
+            st.session_state["research_studio_campaign"] = load_campaign(campaign["campaign_id"])
+            st.success("Scientific review recorded in the campaign audit trail.")
+            st.rerun()
+
+
 def render_research_studio() -> None:
     """Render the plan-first and campaign-execution research workspace."""
     st.subheader("Research Studio")
@@ -653,11 +720,21 @@ def render_research_studio() -> None:
         )
         evidence_decision = campaign.get("evidence_review", {}).get("decision")
         evidence_label = {
-            "proceed_with_new_calculations": "Proceed approved",
-            "stop_existing_evidence_sufficient": "Stopped after review",
-        }.get(evidence_decision, "Review pending")
-        auth_columns[1].metric("Evidence sufficiency review", evidence_label)
-        auth_columns[2].metric("Campaign status", campaign.get("status", "unknown").replace("_", " ").title())
+            "proceed_with_new_calculations": "New calculations approved",
+            "stop_existing_evidence_sufficient": "Existing evidence accepted at gate",
+            "selective_stage_review": "Stage decisions recorded",
+        }.get(evidence_decision, "Not recorded")
+        auth_columns[1].metric("Pre-execution evidence gate", evidence_label)
+        auth_columns[2].metric("Execution status", campaign.get("status", "unknown").replace("_", " ").title())
+        scientific_decision = campaign.get("scientific_review", {}).get("decision")
+        scientific_label = {
+            "accepted": "Accepted",
+            "more_work_required": "Further work required",
+            "inconclusive": "Inconclusive",
+        }.get(scientific_decision, "Review pending" if any(
+            item.get("execution_mode") == "new_numerical_data" for item in campaign.get("stages", [])
+        ) else "Not applicable")
+        st.metric("Scientific results review", scientific_label)
         if is_authorized:
             authorized_at = campaign.get("execution_authorized_at")
             if authorized_at:
@@ -705,6 +782,8 @@ def render_research_studio() -> None:
                 "Numerical execution is not authorized. Read-only evidence discovery is still permitted."
             )
         _render_execution(campaign)
+        if all(is_stage_terminal(item.get("status", "")) for item in campaign.get("stages", [])):
+            _render_scientific_review(campaign)
 
     with record:
         st.markdown("### Campaign record")
@@ -725,7 +804,11 @@ def render_research_studio() -> None:
             st.markdown("**Authorization and evidence review**")
             st.write(f"Numerical execution: **{'Authorized by user' if _campaign_is_authorized(campaign) else 'Not authorized'}**")
             st.write(f"Authorization recorded: {campaign.get('execution_authorized_at') or 'Not recorded'}")
-            st.write(f"Evidence review: **{campaign.get('evidence_review', {}).get('decision', 'Pending')}**")
+            st.write(f"Pre-execution evidence gate: **{campaign.get('evidence_review', {}).get('decision', 'Not recorded')}**")
+            scientific_review = campaign.get("scientific_review") or {}
+            st.write(f"Post-execution scientific review: **{scientific_review.get('decision', 'Pending')}**")
+            if scientific_review.get("notes"):
+                st.write(f"Review rationale: {scientific_review['notes']}")
             for item in campaign.get("stages", []):
                 with st.expander(f"Stage {item.get('index', 0) + 1} · {item.get('label', 'Stage')}", expanded=False):
                     st.markdown("**Execution inputs**")
