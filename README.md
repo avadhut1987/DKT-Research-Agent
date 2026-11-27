@@ -157,7 +157,32 @@ The strong-mixing estimate depends on the chosen spherical partition, lag range,
 
 The research planner can formulate investigations in which numerical behaviour differs across observables or Cartesian directions. Such questions should be evaluated observable by observable using the implemented mean-ergodicity and Birkhoff-variance diagnostics. Mixing diagnostics can be added when requested and when suitable same-map trajectory data are available.
 
-**Spatially restricted local ergodicity is not currently implemented.** The existing mean-ergodicity and Birkhoff-variance samplers use full-sphere sampling. A valid region-restricted study requires a clearly defined dynamically meaningful region, a region-conditioned sampling protocol, and validation of the measure and dynamics being studied. An arbitrary initial patch or a matched local cloud does not by itself provide these ingredients. The planner therefore marks this type of execution as paused rather than treating a full-sphere result as a local-region result.
+**Region-conditioned direction-dependent ergodicity is now available as a finite-data investigation.** The tool `diagnose_direction_dependent_local_ergodicity` samples a specified region with respect to spherical area and evaluates $X$, $Y$, $Z$, their squares, and cross-observables separately. Supported region geometries are the full sphere, a spherical cap, a polar-angle band, and a longitude sector.
+
+The analysis first screens whether the proposed region is dynamically retained:
+- Forward one-step escape from the region.
+- Backward one-step escape, using the inverse DKT map.
+- Multi-kick retention of the sampled initial-condition ensemble.
+
+Each escape rate is accompanied by a 95% Wilson upper confidence bound. The user-selected tolerance is a finite-sample screening threshold, not a mathematical invariance tolerance. A region that fails the screen does **not** receive a local invariant-measure interpretation; its Birkhoff statistics are reported only as descriptive averages from initial conditions selected inside that geometric region.
+
+If the screen passes, the tool estimates the conditional spherical-area mean and variance from an independent reference sample, then computes observable-resolved finite-time Birkhoff averages and the normalized spread
+
+$
+\frac{D_N^{(R)}(f)}{\operatorname{Var}_R(f)}
+=
+\frac{
+\int_R |A_N f(x)-\langle f\rangle_R|^2\,d\mu_R(x)
+}{
+\operatorname{Var}_R(f)
+},
+\qquad
+A_N f(x)=\frac{1}{N}\sum_{n=0}^{N-1}f(F^n x).
+$
+
+This conditional $L^2$ interpretation requires $R$ to be invariant under the map so that the normalized restricted area measure $\mu_R$ is invariant. The finite-sample screen can identify only a **candidate region**; it cannot prove invariance. Even for a candidate region, finite-$N$ decay or a plateau is evidence for the tested observable and sampling range, not a proof of mean or pointwise ergodicity. Direction-dependent differences across $X$, $Y$, $Z$ and higher-order observables are therefore reported as observable-resolved finite-data behaviour, not as an unconditional claim that the map is ergodic in some directions and non-ergodic in others.
+
+The Research Studio exposes region geometry, map parameters, observables, sample sizes and leakage tolerance in the same supervised execution workflow used by the other research tools. The LangGraph assistant can also invoke the diagnostic directly. This workflow is distinct from matched local-cloud geometry comparisons: a cloud's deformation is not a local-ergodicity test.
 
 ### 5. Matched phase-space geometry comparisons
 
