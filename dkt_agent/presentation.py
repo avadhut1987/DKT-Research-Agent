@@ -56,8 +56,19 @@ def normalize_math_notation(value: Any) -> str:
         (r"(?<![\w])p(?=\s*(?:=|:|∈|≤|≥|,|;|\)|$))", r"$p$"),
         (r"(?<![\w])p(?=\s+(?:is|denotes|remains|at|defaults|takes))", r"$p$"),
     )
+    generated: list[str] = []
+
+    def hold_generated(replacement: str) -> str:
+        generated.append(replacement)
+        return f"\\x00GENERATED{len(generated) - 1}\\x00"
+
     for pattern, replacement in patterns:
-        text = re.sub(pattern, lambda _m, rep=replacement: rep, text, flags=re.I)
+        text = re.sub(
+            pattern,
+            lambda _m, rep=replacement: hold_generated(rep),
+            text,
+            flags=re.I,
+        )
 
     for index, original in enumerate(protected):
         if original.startswith(r"\(") and original.endswith(r"\)"):
@@ -65,6 +76,9 @@ def normalize_math_notation(value: Any) -> str:
         elif original.startswith(r"\[") and original.endswith(r"\]"):
             original = "$$" + original[2:-2] + "$$"
         text = text.replace(f"\x00MATH{index}\x00", original)
+
+    for index, replacement in enumerate(generated):
+        text = text.replace(f"\\x00GENERATED{index}\\x00", replacement)
 
     return text
 
