@@ -242,7 +242,7 @@ def validate_decision(decision: dict[str, Any]) -> dict[str, Any]:
             if isinstance(requested_chars, bool) or not isinstance(requested_chars, int):
                 raise ValueError("read_research_evidence_file.max_chars must be an integer.")
             arguments = dict(arguments)
-            arguments["max_chars"] = max(1000, min(requested_chars, 60000))
+            arguments["max_chars"] = max(1000, min(requested_chars, 40000))
         tool_object = TOOL_REGISTRY[tool_name][0]
         schema_factory = getattr(tool_object, "get_input_schema", None)
         if callable(schema_factory):
