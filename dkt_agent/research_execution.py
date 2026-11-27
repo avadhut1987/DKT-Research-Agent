@@ -51,6 +51,7 @@ TOOL_MODES = {
     "run_dkt_comparison_study": "new_numerical_data",
     "run_dkt_geometry_ensemble_comparison": "new_numerical_data",
     "mean_ergodicity_langchain_tool": "new_numerical_data",
+    "diagnose_direction_dependent_local_ergodicity": "new_numerical_data",
     "run_ergodicity_variance_study": "new_numerical_data",
 }
 
@@ -343,6 +344,9 @@ def _resolve_tool(tool_name: str):
     if tool_name == "mean_ergodicity_langchain_tool":
         from dkt_agent.mean_ergodicity_tools import mean_ergodicity_langchain_tool
         return mean_ergodicity_langchain_tool
+    if tool_name == "diagnose_direction_dependent_local_ergodicity":
+        from dkt_agent.local_ergodicity import diagnose_direction_dependent_local_ergodicity
+        return diagnose_direction_dependent_local_ergodicity
     raise ValueError(f"No execution adapter registered for {tool_name}")
 
 
