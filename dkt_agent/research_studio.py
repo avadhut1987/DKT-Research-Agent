@@ -573,7 +573,7 @@ def _render_execution(campaign: dict) -> None:
             c1, c2, c3 = st.columns(3)
             with c1:
                 kr = st.number_input(r"$k_r$", value=float(defaults["kr"]), format="%.8g")
-                kt = st.number_input(r"$k_{\\theta}$", value=float(defaults["ktheta_a"]), format="%.8g")
+                kt = st.number_input(r"$k_{\theta}$", value=float(defaults["ktheta_a"]), format="%.8g")
             with c2:
                 p = st.number_input(r"$p$", value=float(defaults["p"]), format="%.8g")
                 region_type = st.selectbox(
@@ -597,19 +597,19 @@ def _render_execution(campaign: dict) -> None:
             if region_type == "spherical_cap":
                 st.markdown("**Spherical-cap definition**")
                 r1, r2, r3 = st.columns(3)
-                region_args["center_theta"] = r1.number_input(r"Centre $\\theta_c$ (rad)", min_value=0.0, max_value=3.14159265, value=0.75, format="%.5f")
-                region_args["center_phi"] = r2.number_input(r"Centre $\\phi_c$ (rad)", min_value=-3.14159265, max_value=3.14159265, value=-1.0, format="%.5f")
-                region_args["angular_radius"] = r3.number_input(r"Angular radius $\\alpha$ (rad)", min_value=0.01, max_value=3.14159265, value=0.35, format="%.5f")
+                region_args["center_theta"] = r1.number_input(r"Centre $\theta_c$ (rad)", min_value=0.0, max_value=3.14159265, value=0.75, format="%.5f")
+                region_args["center_phi"] = r2.number_input(r"Centre $\phi_c$ (rad)", min_value=-3.14159265, max_value=3.14159265, value=-1.0, format="%.5f")
+                region_args["angular_radius"] = r3.number_input(r"Angular radius $\alpha$ (rad)", min_value=0.01, max_value=3.14159265, value=0.35, format="%.5f")
             elif region_type == "latitude_band":
                 st.markdown("**Latitude-band definition**")
                 r1, r2 = st.columns(2)
-                region_args["theta_min"] = r1.number_input(r"Minimum polar angle $\\theta_{\\min}$", min_value=0.0, max_value=3.14159265, value=0.3, format="%.5f")
-                region_args["theta_max"] = r2.number_input(r"Maximum polar angle $\\theta_{\\max}$", min_value=0.0, max_value=3.14159265, value=1.3, format="%.5f")
+                region_args["theta_min"] = r1.number_input(r"Minimum polar angle $\theta_{\min}$", min_value=0.0, max_value=3.14159265, value=0.3, format="%.5f")
+                region_args["theta_max"] = r2.number_input(r"Maximum polar angle $\theta_{\max}$", min_value=0.0, max_value=3.14159265, value=1.3, format="%.5f")
             elif region_type == "longitude_sector":
                 st.markdown("**Longitude-sector definition**")
                 r1, r2 = st.columns(2)
-                region_args["phi_min"] = r1.number_input(r"Starting angle $\\phi_{\\min}$", min_value=-3.14159265, max_value=3.14159265, value=-1.0, format="%.5f")
-                region_args["phi_max"] = r2.number_input(r"Ending angle $\\phi_{\\max}$", min_value=-3.14159265, max_value=3.14159265, value=1.0, format="%.5f")
+                region_args["phi_min"] = r1.number_input(r"Starting angle $\phi_{\min}$", min_value=-3.14159265, max_value=3.14159265, value=-1.0, format="%.5f")
+                region_args["phi_max"] = r2.number_input(r"Ending angle $\phi_{\max}$", min_value=-3.14159265, max_value=3.14159265, value=1.0, format="%.5f")
             observables = st.multiselect(
                 "Observables to test independently",
                 ["x", "y", "z", "x2", "y2", "z2", "xy", "yz", "xz"],
