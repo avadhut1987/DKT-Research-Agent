@@ -147,9 +147,9 @@ def _wilson_upper(successes: int, trials: int, z: float = 1.959963984540054) -> 
     return min(1.0, (centre + half) / den)
 
 
-def _observable_values(points: np.ndarray, observables: Sequence[str]) -> np.ndarray:
+def _observable_values(points: np.ndarray, observables) -> np.ndarray:
     x, y, z = points.T
-    return np.column_stack([parse_observable(name).func(x, y, z) for name in observables])
+    return np.column_stack([observable.func(x, y, z) for observable in observables])
 
 
 def _tail_slope(checkpoints: np.ndarray, values: np.ndarray) -> float | None:
@@ -221,7 +221,8 @@ def run_direction_dependent_local_ergodicity(
     # Independent samples: one for the conditional reference moments and one
     # for the forward/backward invariance screen.
     reference = sample_region(region_type, n_reference_samples, rng, **region_args)
-    reference_values = _observable_values(reference, names)
+    parsed_observables = [parse_observable(name) for name in names]
+    reference_values = _observable_values(reference, parsed_observables)
     reference_means = reference_values.mean(axis=0)
     reference_variances = reference_values.var(axis=0, ddof=1)
     reference_mean_se = reference_values.std(axis=0, ddof=1) / math.sqrt(n_reference_samples)
@@ -244,7 +245,7 @@ def run_direction_dependent_local_ergodicity(
     normalized = np.empty_like(d_values)
     checkpoint_index = 0
     for kick in range(1, n_kicks + 1):
-        sums += _observable_values(points, names)
+        sums += _observable_values(points, parsed_observables)
         points = _step_points(points, k, kp, p)
         ever_out |= ~region_membership(points, region_type, **region_args)
         if kick == checkpoints[checkpoint_index]:
