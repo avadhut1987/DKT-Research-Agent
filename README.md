@@ -137,7 +137,7 @@ Fixed-point and periodic-orbit searches are numerical searches over finite initi
 The mean-ergodicity workflow evaluates a finite-data von Neumann / $L^2$ indicator for selected observables over sampled initial conditions. The available observable set includes
 
 $$
-X,\;Y,\;Z,\;X^2,\;Y^2,\;Z^2,\;XY,\;YZ,\;ZX.
+X, Y, Z, X^2, Y^2, Z^2, XY, YZ, ZX.
 $$
 
 The complementary Birkhoff-variance workflow calculates finite-time trajectory averages and examines their variance across an ensemble of distinct initial conditions.
