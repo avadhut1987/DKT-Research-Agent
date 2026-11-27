@@ -30,7 +30,7 @@ st.caption(
     "Evidence first · one justified next step at a time · supervised numerical execution"
 )
 
-CHECKPOINT_PATH = Path(__file__).resolve().parents[1] / "results" / "research_director_checkpoint.json"
+CHECKPOINT_PATH = Path(__file__).resolve().parents[1] / ".streamlit" / "research_director_checkpoint.json"
 
 
 def _render_math(value: object) -> str:
