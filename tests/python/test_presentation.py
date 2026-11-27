@@ -26,7 +26,7 @@ def test_preserve_existing_math_and_normalize_parenthesis_delimiters():
     rendered = normalize_math_notation(text)
     assert "$k_r=1$" in rendered
     assert r"$p=\pi/2$" in rendered
-    assert r"$\Delta\theta$" in rendered
+    assert r"$$\Delta\theta$$" in rendered
 
 
 def test_json_safe_converts_nonfinite_values_and_nested_structures():
