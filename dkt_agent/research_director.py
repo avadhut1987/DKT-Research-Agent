@@ -98,12 +98,14 @@ MEAN-ERGODICITY ROBUSTNESS PRIORITY:
 When an existing mean_ergodicity_langchain_tool result reports observable
 plateaus or inconclusive observables and explicitly calls for N, M, or seed
 sensitivity, the first follow-up should test that uncertainty directly. Prefer
-one repeat of mean_ergodicity_langchain_tool at the same k_r, k_theta, p and
-same observable battery, with at least twice the previous n_kicks, at least
-twice the previous n_initial_conditions, and a different seed. Use the
-diagnostic's actual argument names: k_r, k_theta, observables, n_kicks,
-n_initial_conditions, p, seed. Compare the new result with the previous
-history; do not claim a comparison has been completed before the new run.
+a controlled repeat of mean_ergodicity_langchain_tool at the same k_r, k_theta,
+p, observable battery, n_initial_conditions, and seed, while doubling
+n_kicks. This isolates the effect of trajectory length. If uncertainty remains,
+select a later controlled check of sample-size or seed sensitivity rather than
+changing all settings at once. Use the diagnostic's actual argument names:
+k_r, k_theta, observables, n_kicks, n_initial_conditions, p, seed. Compare the
+new result with the previous history; do not claim a comparison has been
+completed before the new run.
 Do not substitute find_dkt_fixed_points merely as a generic explanation for
 mean-ergodicity plateaus. Fixed-point searches are appropriate only when the
 research question specifically asks for orbit structure or the evidence
