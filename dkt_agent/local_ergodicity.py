@@ -51,6 +51,21 @@ def _validate_region(region_type: str, *, center_theta: float, center_phi: float
             raise ValueError("Use full_sphere for a complete longitude range.")
 
 
+def region_area_fraction(region_type: str, *, angular_radius: float = 0.35,
+                         theta_min: float = 0.3, theta_max: float = 1.3,
+                         phi_min: float = -1.0, phi_max: float = 1.0) -> float:
+    """Exact spherical-area fraction for the supported geometric region types."""
+    if region_type == "full_sphere":
+        return 1.0
+    if region_type == "spherical_cap":
+        return (1.0 - math.cos(angular_radius)) / 2.0
+    if region_type == "latitude_band":
+        return (math.cos(theta_min) - math.cos(theta_max)) / 2.0
+    if region_type == "longitude_sector":
+        return ((phi_max - phi_min) % (2.0 * math.pi)) / (2.0 * math.pi)
+    raise ValueError(f"Unsupported region_type: {region_type}")
+
+
 def sample_region(region_type: str, n: int, rng: np.random.Generator, *,
                   center_theta: float = 0.75, center_phi: float = -1.0,
                   angular_radius: float = 0.35, theta_min: float = 0.3,
@@ -333,6 +348,8 @@ def run_direction_dependent_local_ergodicity(
     parameters = {
         "k_r": float(k_r), "k_theta": float(k_theta), "k": float(k), "k_prime": float(kp),
         "p": float(p), "region_type": region_type, **{key: float(value) for key, value in region_args.items()},
+        "region_area_fraction_of_sphere": region_area_fraction(region_type, **region_args),
+        "coordinate_convention": "theta from +Z; phi=atan2(Y,X); radians",
         "observables": names, "n_kicks": int(n_kicks),
         "n_initial_conditions": int(n_initial_conditions),
         "n_reference_samples": int(n_reference_samples),
