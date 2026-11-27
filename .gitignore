@@ -174,3 +174,6 @@ scripts/julia/periodic_orbit_env/Manifest.toml
 
 # Local Research Director resume checkpoint
 .streamlit/research_director_checkpoint.json
+
+# Local unsent Research Director question draft
+.streamlit/research_director_question_draft.json
