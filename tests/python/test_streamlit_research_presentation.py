@@ -56,8 +56,6 @@ class ResearchStudioPresentationTests(unittest.TestCase):
             self.assertEqual(Path(found[0][1]).name, "trajectory.csv")
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class StructuredRenderingDataTests(unittest.TestCase):
@@ -87,3 +85,7 @@ class StructuredRenderingDataTests(unittest.TestCase):
         self.assertEqual(list(frame.columns), ["Stage", "Parameters · Kr", "Parameters · Ktheta"])
         self.assertEqual(frame.iloc[0]["Parameters · Kr"], 1)
         self.assertEqual(frame.iloc[1]["Parameters · Ktheta"], 10000)
+
+
+if __name__ == "__main__":
+    unittest.main()
