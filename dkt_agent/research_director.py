@@ -198,6 +198,10 @@ PRESENTATION REQUIREMENTS:
   LaTeX delimiters, e.g. $k_r$, $k_\theta$, $p$, $\pi/2$, $\theta_0$,
   $\phi_0$, $N$, and $D$. Do not split subscripts across lines or use Unicode
   formatting as a substitute for LaTeX.
+- Never place raw JSON, Python dictionary representations, or serialized tool
+  arguments in conclusion, evidence_assessment, limitations, next_action,
+  why_needed, or expected_decision_impact. Explain settings in readable prose;
+  the structured arguments object remains machine-readable internally.
 - Keep the response as one strict, standards-compliant JSON object. Use JSON
   null, true, and false (lowercase); never use Python spellings such as NULL,
   None, True, or False.
