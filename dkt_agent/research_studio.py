@@ -720,10 +720,11 @@ def render_research_studio() -> None:
         )
         evidence_decision = campaign.get("evidence_review", {}).get("decision")
         evidence_label = {
-            "proceed_with_new_calculations": "Proceed approved",
-            "stop_existing_evidence_sufficient": "Stopped after review",
-        }.get(evidence_decision, "Review pending")
-        auth_columns[1].metric("Evidence sufficiency review", evidence_label)
+            "proceed_with_new_calculations": "New calculations approved",
+            "stop_existing_evidence_sufficient": "Existing evidence accepted at gate",
+            "selective_stage_review": "Stage decisions recorded",
+        }.get(evidence_decision, "Not recorded")
+        auth_columns[1].metric("Pre-execution evidence gate", evidence_label)
         auth_columns[2].metric("Execution status", campaign.get("status", "unknown").replace("_", " ").title())
         scientific_decision = campaign.get("scientific_review", {}).get("decision")
         scientific_label = {
@@ -803,7 +804,11 @@ def render_research_studio() -> None:
             st.markdown("**Authorization and evidence review**")
             st.write(f"Numerical execution: **{'Authorized by user' if _campaign_is_authorized(campaign) else 'Not authorized'}**")
             st.write(f"Authorization recorded: {campaign.get('execution_authorized_at') or 'Not recorded'}")
-            st.write(f"Evidence review: **{campaign.get('evidence_review', {}).get('decision', 'Pending')}**")
+            st.write(f"Pre-execution evidence gate: **{campaign.get('evidence_review', {}).get('decision', 'Not recorded')}**")
+            scientific_review = campaign.get("scientific_review") or {}
+            st.write(f"Post-execution scientific review: **{scientific_review.get('decision', 'Pending')}**")
+            if scientific_review.get("notes"):
+                st.write(f"Review rationale: {scientific_review['notes']}")
             for item in campaign.get("stages", []):
                 with st.expander(f"Stage {item.get('index', 0) + 1} · {item.get('label', 'Stage')}", expanded=False):
                     st.markdown("**Execution inputs**")
