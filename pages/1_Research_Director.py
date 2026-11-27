@@ -8,7 +8,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from dkt_agent.presentation import format_json, json_safe, normalize_math_notation
+from dkt_agent.presentation import format_json, normalize_math_notation
 
 from dkt_agent.research_director import (
     decide_next_step,
@@ -39,14 +39,76 @@ def _render_math(value: object) -> str:
     return normalize_math_notation(value)
 
 
-def _render_json(value: object, *, expanded: bool = True) -> None:
-    """Render structured data in Streamlit's native expandable JSON viewer."""
-    st.json(json_safe(value), expanded=expanded)
-
-
 def _json_text(value: object) -> str:
     """Serialize a strict, standards-compliant JSON download."""
     return format_json(value)
+
+
+def _display_value(value: object) -> str:
+    if value is None:
+        return "Not specified"
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
+    if isinstance(value, dict):
+        return "; ".join(f"{key}: {_display_value(item)}" for key, item in value.items())
+    if isinstance(value, (list, tuple)):
+        return ", ".join(_display_value(item) for item in value)
+    return str(value)
+
+
+def _render_parameter_table(parameters: object) -> None:
+    """Present tool inputs as a readable parameter table, never as raw JSON."""
+    if not isinstance(parameters, dict) or not parameters:
+        st.caption("No additional settings.")
+        return
+    rows = [
+        {"Parameter": str(key).replace("_", " "), "Value": _display_value(value)}
+        for key, value in parameters.items()
+    ]
+    st.table(rows)
+
+
+def _render_readable_result(value: object, heading: str = "Result") -> None:
+    """Render tool results as prose/tables without exposing serialized JSON."""
+    if isinstance(value, str):
+        st.markdown(_render_math(value))
+        return
+    if not isinstance(value, dict):
+        st.write(value)
+        return
+
+    preferred_text = ("text", "summary", "interpretation", "message", "note")
+    rendered = set()
+    for key in preferred_text:
+        text_value = value.get(key)
+        if isinstance(text_value, str) and text_value.strip():
+            st.markdown(f"**{key.replace('_', ' ').title()}**")
+            st.markdown(_render_math(text_value))
+            rendered.add(key)
+
+    table_rows = []
+    for key, item in value.items():
+        if key in rendered or item is None:
+            continue
+        if isinstance(item, list) and item and all(isinstance(row, dict) for row in item):
+            st.markdown(f"**{key.replace('_', ' ').title()}**")
+            st.dataframe(item, use_container_width=True, hide_index=True)
+        elif isinstance(item, dict):
+            st.markdown(f"**{key.replace('_', ' ').title()}**")
+            _render_parameter_table(item)
+        elif isinstance(item, list):
+            table_rows.append({
+                "Item": key.replace("_", " ").title(),
+                "Value": _display_value(item),
+            })
+        else:
+            table_rows.append({
+                "Item": key.replace("_", " ").title(),
+                "Value": _display_value(item),
+            })
+    if table_rows:
+        st.markdown(f"**{heading} details**")
+        st.table(table_rows)
 
 
 def _save_checkpoint() -> None:
@@ -263,7 +325,7 @@ if question.strip():
         st.caption("Mathematical notation preview")
         st.markdown(_render_math(question))
 
-controls = st.columns([1.55, 1, 1.15, 1, 1.15])
+controls = st.columns([1.7, 1, 1.15, 1.15])
 if controls[0].button(
     "Start / continue investigation",
     type="primary",
@@ -287,15 +349,7 @@ if controls[0].button(
 if controls[1].button("Save question", use_container_width=True, disabled=not bool(question.strip())):
     _save_question_draft(question.strip())
     st.success("Research question draft saved on this app's local filesystem.")
-controls[2].download_button(
-    "Download question (.txt)",
-    data=question,
-    file_name="dkt_research_question.txt",
-    mime="text/plain",
-    use_container_width=True,
-    disabled=not bool(question.strip()),
-)
-if controls[4].button("Pause / stop here", use_container_width=True):
+if controls[2].button("Pause / stop here", use_container_width=True):
     st.session_state.director_status = "paused_by_user"
     st.session_state.director_decision = {
         "status": "PAUSED",
@@ -345,9 +399,6 @@ if decision:
         st.metric("Completed steps", len(st.session_state.director_history))
         st.caption(f"Updated: {st.session_state.director_updated or '—'}")
 
-    with st.expander("Complete research decision (JSON)", expanded=False):
-        _render_json(decision)
-
     st.markdown("**Current conclusion**")
     st.markdown(_render_math(decision.get("conclusion", "")))
     st.markdown("**Evidence assessment**")
@@ -365,9 +416,9 @@ if decision:
         st.markdown(
             "**Expected impact:** " + _render_math(decision.get("expected_decision_impact", "Not specified"))
         )
-        st.code(decision["tool_name"], language="text")
-        st.markdown("**Exact tool arguments (validated JSON)**")
-        _render_json(decision.get("arguments", {}))
+        st.markdown(f"**Diagnostic:** {decision['tool_name'].replace('_', ' ').title()}")
+        st.markdown("**Proposed settings**")
+        _render_parameter_table(decision.get("arguments", {}))
 
         if decision.get("execution_mode") == "numerical":
             st.warning(
@@ -438,13 +489,10 @@ with st.expander("Investigation history and results", expanded=bool(st.session_s
             f"({item['execution_mode'].replace('_', ' ')})"
         )
         st.caption(item.get("completed_at", ""))
-        st.markdown("Arguments")
-        _render_json(item.get("arguments", {}))
-        parsed = parse_tool_result(item.get("result", ""))
-        _render_json(parsed, expanded=False)
-        if isinstance(parsed, dict) and isinstance(parsed.get("text"), str):
-            st.markdown("**Readable result**")
-            st.markdown(_render_math(parsed["text"]))
+        with st.expander("Step settings and result", expanded=False):
+            st.markdown("**Settings**")
+            _render_parameter_table(item.get("arguments", {}))
+            _render_readable_result(parse_tool_result(item.get("result", "")))
 
 record = {
     "director_version": "1.0.0",
@@ -454,11 +502,14 @@ record = {
     "decision": decision,
     "history": st.session_state.director_history,
 }
-st.download_button(
-    "Download full investigation record (.json)",
-    data=_json_text(record).encode("utf-8"),
-    file_name="dkt_research_director_record.json",
-    mime="application/json",
-)
-with st.expander("Machine-readable investigation record (JSON)", expanded=False):
-    _render_json(record, expanded=False)
+with st.expander("Optional: export technical research record", expanded=False):
+    st.caption(
+        "The normal research view contains no raw JSON. If you need a machine-readable "
+        "archive for reproducibility or external analysis, you can download it here."
+    )
+    st.download_button(
+        "Download technical record (.json)",
+        data=_json_text(record).encode("utf-8"),
+        file_name="dkt_research_director_record.json",
+        mime="application/json",
+    )
